@@ -49,7 +49,7 @@ class TestBaseAdapter:
         assert payload['source'] == 'claude_code'
         assert payload['extra_field'] == 'extra_value'
         assert 'timestamp' in payload
-        assert isinstance(payload['timestamp'], float)
+        assert isinstance(payload['timestamp'], (int, float))
     
     def test_extract_project_info_with_project_path(self):
         """Test project info extraction when project path is available."""

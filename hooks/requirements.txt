@@ -4,3 +4,6 @@
 # Token estimation for context tracking
 # Size: ~1MB wheel + ~500KB encoding data
 tiktoken>=0.5.0
+
+# Testing
+pytest>=7.0.0

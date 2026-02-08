@@ -158,8 +158,8 @@ describe('EventHandler', () => {
       expect(session?.status).toBe('working');
       expect(session?.session_title).toBe('Updated Title');
 
-      // Verify broadcast was called
-      expect(mockBroadcastService.sessionWithFocusCalls).toHaveLength(1);
+      // Verify broadcast was called (activity uses broadcastSessionUpdate, not broadcastSessionWithFocus)
+      expect(mockBroadcastService.sessionUpdateCalls).toHaveLength(1);
     });
   });
 
@@ -200,8 +200,8 @@ describe('EventHandler', () => {
       const session = registry.getSession('test-session');
       expect(session?.context_metrics?.used_percentage).toBe(42.5);
 
-      // Verify broadcast was called
-      expect(mockBroadcastService.sessionWithFocusCalls).toHaveLength(1);
+      // Verify broadcast was called (context_update uses broadcastSessionUpdate, not broadcastSessionWithFocus)
+      expect(mockBroadcastService.sessionUpdateCalls).toHaveLength(1);
     });
   });
 
