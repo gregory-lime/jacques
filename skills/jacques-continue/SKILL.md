@@ -1,5 +1,5 @@
 ---
-name: jacques-paste
+name: jacques-continue
 description: Load the latest handoff document and continue work from a previous session
 ---
 

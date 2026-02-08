@@ -273,6 +273,6 @@ When working with a plan file (from handoff or `/plan` mode):
 ### Handoff Workflow
 
 - `/jacques-handoff` — Generate handoff document before ending a session
-- `/jacques-paste` — Load most recent handoff when starting a new session
+- `/jacques-continue` — Load most recent handoff when starting a new session
 
 The handoff captures: project context, progress made, user decisions, plan status, blockers, and next steps.

@@ -23,7 +23,7 @@ Jacques gives you full visibility and control over your Claude Code sessions. Mo
 ### Archive
 - **Full-text search** — search across all past conversations and their plans
 - **Auto catalog extraction** — plans, subagents, and session manifests are saved automatically when sessions end (even Ctrl+C)
-- **Session handoffs** — capture progress and resume in a new session with `/jacques-handoff` and `/jacques-paste`
+- **Session handoffs** — capture progress and resume in a new session with `/jacques-handoff` and `/jacques-continue`
 
 ---
 
@@ -91,20 +91,20 @@ This backs up your existing `~/.claude/settings.json` and merges Jacques hooks: 
 
 **macOS / Linux:**
 ```bash
-mkdir -p ~/.claude/skills/jacques-handoff ~/.claude/skills/jacques-paste
+mkdir -p ~/.claude/skills/jacques-handoff ~/.claude/skills/jacques-continue
 cp skills/jacques-handoff/SKILL.md ~/.claude/skills/jacques-handoff/
-cp skills/jacques-paste/SKILL.md ~/.claude/skills/jacques-paste/
+cp skills/jacques-continue/SKILL.md ~/.claude/skills/jacques-continue/
 ```
 
 **Windows (PowerShell):**
 ```powershell
 New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.claude\skills\jacques-handoff"
-New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.claude\skills\jacques-paste"
+New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.claude\skills\jacques-continue"
 Copy-Item skills\jacques-handoff\SKILL.md "$env:USERPROFILE\.claude\skills\jacques-handoff\"
-Copy-Item skills\jacques-paste\SKILL.md "$env:USERPROFILE\.claude\skills\jacques-paste\"
+Copy-Item skills\jacques-continue\SKILL.md "$env:USERPROFILE\.claude\skills\jacques-continue\"
 ```
 
-This installs two slash commands: `/jacques-handoff` (save session progress) and `/jacques-paste` (resume in a new session). See the [Skills](#skills) section below.
+This installs two slash commands: `/jacques-handoff` (save session progress) and `/jacques-continue` (resume in a new session). See the [Skills](#skills) section below.
 
 ### Step 4: Make `jacques` Available as a Command
 
@@ -173,7 +173,7 @@ Generate a handoff document before ending a session. Captures:
 
 Saved to: `.jacques/handoffs/{timestamp}-handoff.md`
 
-### `/jacques-paste`
+### `/jacques-continue`
 
 Load the latest handoff when starting a new session:
 - Finds the most recent handoff in `.jacques/handoffs/`
@@ -181,7 +181,7 @@ Load the latest handoff when starting a new session:
 - Registers active plan for cross-session tracking
 - Proposes the immediate next step
 
-**Workflow**: End a session with `/jacques-handoff` → start a new session with `/jacques-paste`.
+**Workflow**: End a session with `/jacques-handoff` → start a new session with `/jacques-continue`.
 
 ---
 

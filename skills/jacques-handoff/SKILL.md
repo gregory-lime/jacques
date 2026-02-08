@@ -141,4 +141,4 @@ Things the next session MUST know upfront:
 Tell the user:
 > Handoff saved to `.jacques/handoffs/{filename}`
 >
-> To continue in a new session, run `/jacques-paste`
+> To continue in a new session, run `/jacques-continue`
