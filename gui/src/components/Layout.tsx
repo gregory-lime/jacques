@@ -23,6 +23,10 @@ import { NotificationProvider } from '../hooks/useNotifications';
 import { useSessionBadges } from '../hooks/useSessionBadges';
 import { usePersistedState } from '../hooks/usePersistedState';
 import { useOpenSessions } from '../hooks/useOpenSessions';
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
+import { useShortcutActions } from '../hooks/useShortcutActions';
+import { CommandPalette } from './CommandPalette';
+import { ShortcutHelpOverlay } from './ShortcutHelpOverlay';
 
 const PROJECT_TABS = ['sessions', 'artifacts', 'context'] as const;
 
@@ -70,6 +74,31 @@ export function Layout() {
   const [sidebarCollapsed, setSidebarCollapsed] = usePersistedState('sidebarCollapsed', false);
   const [showLogs, setShowLogs] = usePersistedState('showLogs', false);
   const { viewDashboard } = useOpenSessions();
+
+  // ── Keyboard shortcuts ──────────────────────────────────
+  useKeyboardShortcuts();
+  const { registerAction } = useShortcutActions();
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [showHelpOverlay, setShowHelpOverlay] = useState(false);
+
+  // Register global + navigation shortcuts
+  useEffect(() => {
+    const cleanups = [
+      registerAction('global.command-palette', () => setShowCommandPalette(prev => !prev)),
+      registerAction('global.help', () => setShowHelpOverlay(prev => !prev)),
+      registerAction('global.escape', () => {
+        if (showCommandPalette) setShowCommandPalette(false);
+        else if (showHelpOverlay) setShowHelpOverlay(false);
+      }),
+      registerAction('nav.sessions', () => navProjectSlug && navigate(`/${navProjectSlug}/sessions`)),
+      registerAction('nav.artifacts', () => navProjectSlug && navigate(`/${navProjectSlug}/artifacts`)),
+      registerAction('nav.context', () => navProjectSlug && navigate(`/${navProjectSlug}/context`)),
+      registerAction('nav.archive', () => navigate('/archive')),
+      registerAction('nav.settings', () => navigate('/settings')),
+      registerAction('nav.sidebar-toggle', () => setSidebarCollapsed(!sidebarCollapsed)),
+    ];
+    return () => cleanups.forEach(fn => fn());
+  }, [registerAction, navigate, navProjectSlug, showCommandPalette, showHelpOverlay, sidebarCollapsed, setSidebarCollapsed]);
 
   // Load source status
   useEffect(() => {
@@ -355,6 +384,12 @@ export function Layout() {
         )}
       </div>
     </div>
+    {showCommandPalette && (
+      <CommandPalette onClose={() => setShowCommandPalette(false)} />
+    )}
+    {showHelpOverlay && (
+      <ShortcutHelpOverlay onClose={() => setShowHelpOverlay(false)} />
+    )}
     </NotificationProvider>
   );
 }

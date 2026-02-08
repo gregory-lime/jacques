@@ -24,6 +24,8 @@ interface Props {
   sessions: Session[];
   pendingWorktrees?: PendingWorktree[];
   focusedSessionId: string | null;
+  /** Keyboard navigation cursor (from j/k shortcuts) */
+  keyboardFocusedId?: string | null;
   badges: Map<string, SessionBadges>;
   onSessionClick: (session: Session) => void;
   onFocusSession?: (sessionId: string) => void;
@@ -92,7 +94,7 @@ const NODE_SIZE = PX * 3;
 const GUTTER_LEFT = 8;
 
 export function WorktreeSessionsView({
-  sessions, pendingWorktrees = [], focusedSessionId, badges, onSessionClick, onFocusSession,
+  sessions, pendingWorktrees = [], focusedSessionId, keyboardFocusedId, badges, onSessionClick, onFocusSession,
   onPlanClick, onAgentClick, onTileSessions, onLaunchSession,
   onCreateWorktreeSubmit, onDismissPendingWorktree, worktreeCreation,
   selectedSessionIds: controlledIds, onSelectionChange: controlledOnChange,
@@ -330,6 +332,7 @@ export function WorktreeSessionsView({
                     key={s.session_id}
                     session={s}
                     isFocused={s.session_id === focusedSessionId}
+                    isKeyboardFocused={s.session_id === keyboardFocusedId}
                     badges={badges.get(s.session_id)}
                     onClick={() => onSessionClick(s)}
                     onFocusClick={onFocusSession ? () => onFocusSession(s.session_id) : undefined}

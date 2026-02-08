@@ -33,6 +33,8 @@ import { getActivityInfo } from '../utils/activityLabel';
 interface CompactSessionCardProps {
   session: Session;
   isFocused?: boolean;
+  /** Keyboard navigation cursor (from j/k shortcuts) */
+  isKeyboardFocused?: boolean;
   badges?: SessionBadges;
   onClick?: () => void;
   onFocusClick?: () => void;
@@ -110,6 +112,7 @@ function ActivityIcon({ hint, color, size = 13 }: { hint: string; color: string;
 export function CompactSessionCard({
   session,
   isFocused = false,
+  isKeyboardFocused = false,
   badges,
   onClick,
   onFocusClick,
@@ -178,16 +181,6 @@ export function CompactSessionCard({
     }
   }, [onSelectionChange, isSelected]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      onClick?.();
-    } else if (e.key === ' ') {
-      e.preventDefault();
-      onSelectionChange?.(!isSelected);
-    }
-  }, [onClick, onSelectionChange, isSelected]);
-
   const handleViewClick = useCallback((e: React.MouseEvent) => { e.stopPropagation(); onClick?.(); }, [onClick]);
   const handlePlanClick = useCallback((e: React.MouseEvent) => { e.stopPropagation(); onPlanClick?.(); }, [onPlanClick]);
   const handleAgentClick = useCallback((e: React.MouseEvent) => { e.stopPropagation(); onAgentClick?.(); }, [onAgentClick]);
@@ -197,6 +190,7 @@ export function CompactSessionCard({
     'jacques-compact-card',
     isSelected && 'is-selected',
     isFocused && 'is-focused',
+    isKeyboardFocused && 'is-keyboard-focused',
     selectingAnim === 'selecting' && 'is-selecting',
     selectingAnim === 'deselecting' && 'is-deselecting',
   ].filter(Boolean).join(' ');
@@ -204,13 +198,13 @@ export function CompactSessionCard({
   return (
     <div
       className={classNames}
+      data-session-id={session.session_id}
       style={{
         ...S.card,
         borderLeftWidth: '3px',
-        borderLeftColor: activity.needsAttention ? activity.color : isFocused ? colors.accent : '#2e2e2e',
+        borderLeftColor: isFocused ? colors.accent : activity.needsAttention ? activity.color : '#2e2e2e',
       }}
       onClick={handleClick}
-      onKeyDown={handleKeyDown}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       tabIndex={0}

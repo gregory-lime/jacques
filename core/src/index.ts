@@ -505,3 +505,24 @@ export type {
   PlanProgress,
   PlanProgressListItem,
 } from "./plan/index.js";
+
+// Shortcuts module (shared keyboard shortcut definitions)
+export {
+  SHORTCUTS,
+  CATEGORY_LABELS,
+  getShortcutsForZone,
+  getShortcutById,
+  getShortcutsByCategory,
+  resolveKeyDisplay,
+  matchesShortcut,
+  findMatchingShortcut,
+  fromKeyboardEvent,
+  detectPlatform,
+} from "./shortcuts/index.js";
+
+export type {
+  ShortcutDef,
+  ShortcutCategory,
+  FocusZone,
+  KeyEvent,
+} from "./shortcuts/index.js";

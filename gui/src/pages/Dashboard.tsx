@@ -22,6 +22,8 @@ import { getPersistedValue } from '../hooks/usePersistedState';
 import { PlanIcon, AgentIcon, StatusDot } from '../components/Icons';
 import { ArrowDown, ArrowUp, GitBranch } from 'lucide-react';
 import type { Session } from '../types';
+import { useShortcutActions } from '../hooks/useShortcutActions';
+import { useFocusZone } from '../hooks/useFocusZone';
 
 // ─── Color Constants ─────────────────────────────────────────
 
@@ -382,14 +384,48 @@ export function Dashboard() {
     });
   }, []);
 
+  // ── Keyboard navigation ──────────────────────────────────
+  const { setActiveZone } = useFocusZone();
+  const { registerAction } = useShortcutActions();
+  const [focusedItemIndex, setFocusedItemIndex] = useState(-1);
+
+  // Set focus zone when dashboard is visible
+  useEffect(() => {
+    setActiveZone('dashboard');
+  }, [setActiveZone]);
+
+  // Build flat list of navigable item IDs: active session terminals only
+  const flatItemList = useMemo(() => {
+    return filteredLiveSessions.map(s => s.session_id);
+  }, [filteredLiveSessions]);
+
+  // Track which worktree group each active session belongs to (for J/K jump)
+  const worktreeGroupBoundaries = useMemo(() => {
+    const boundaries: number[] = [0]; // first group starts at 0
+    const seen = new Set<string>();
+    for (let i = 0; i < filteredLiveSessions.length; i++) {
+      const wt = filteredLiveSessions[i].git_worktree || 'main';
+      if (!seen.has(wt)) {
+        if (seen.size > 0) boundaries.push(i);
+        seen.add(wt);
+      }
+    }
+    return boundaries;
+  }, [filteredLiveSessions]);
+
+  // Keyboard-focused item ID (derived from index)
+  const keyboardFocusedId = focusedItemIndex >= 0 && focusedItemIndex < flatItemList.length
+    ? flatItemList[focusedItemIndex]
+    : null;
+
   // ── Window toolbar handlers ──
 
   const getTargetSessionId = useCallback((): string | null => {
     if (selectedSessionIds.size > 0) return Array.from(selectedSessionIds)[0];
+    if (keyboardFocusedId) return keyboardFocusedId;
     if (focusedSessionId) return focusedSessionId;
-    if (filteredLiveSessions.length > 0) return filteredLiveSessions[0].session_id;
     return null;
-  }, [selectedSessionIds, focusedSessionId, filteredLiveSessions]);
+  }, [selectedSessionIds, keyboardFocusedId, focusedSessionId]);
 
   const handleMaximize = useCallback(() => {
     const target = getTargetSessionId();
@@ -409,17 +445,105 @@ export function Dashboard() {
     if (target) focusTerminal(target);
   }, [getTargetSessionId, focusTerminal]);
 
-  const handleBrowserTerminal = useCallback(() => {
-    const target = getTargetSessionId();
-    if (target) positionBrowserLayout([target], 'browser-terminal');
-  }, [getTargetSessionId, positionBrowserLayout]);
-
-  const handleBrowserTwoTerminals = useCallback(() => {
-    const ids = selectedSessionIds.size >= 2
-      ? Array.from(selectedSessionIds).slice(0, 2)
-      : getTargetSessionId() ? [getTargetSessionId()!] : [];
-    if (ids.length > 0) positionBrowserLayout(ids, 'browser-two-terminals');
+  const handleBrowserLayout = useCallback(() => {
+    if (selectedSessionIds.size >= 2) {
+      const ids = Array.from(selectedSessionIds).slice(0, 2);
+      positionBrowserLayout(ids, 'browser-two-terminals');
+    } else {
+      const target = getTargetSessionId();
+      if (target) positionBrowserLayout([target], 'browser-terminal');
+    }
   }, [selectedSessionIds, getTargetSessionId, positionBrowserLayout]);
+
+  // Scroll focused item into view
+  useEffect(() => {
+    if (!keyboardFocusedId) return;
+    // Try to find the element by data attribute or class
+    const el = document.querySelector(`[data-session-id="${keyboardFocusedId}"]`)
+      || document.querySelector(`.is-keyboard-focused`);
+    if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [keyboardFocusedId]);
+
+  // Register all dashboard keyboard shortcuts
+  useEffect(() => {
+    const cleanups = [
+      // Session navigation
+      registerAction('session.next', () => {
+        setFocusedItemIndex(prev => Math.min(prev + 1, flatItemList.length - 1));
+      }),
+      registerAction('session.next-arrow', () => {
+        setFocusedItemIndex(prev => Math.min(prev + 1, flatItemList.length - 1));
+      }),
+      registerAction('session.prev', () => {
+        setFocusedItemIndex(prev => Math.max(prev - 1, 0));
+      }),
+      registerAction('session.prev-arrow', () => {
+        setFocusedItemIndex(prev => Math.max(prev - 1, 0));
+      }),
+      // Worktree group jump
+      registerAction('session.next-worktree', () => {
+        const currentBoundary = worktreeGroupBoundaries.findIndex(b => b > focusedItemIndex);
+        if (currentBoundary >= 0) setFocusedItemIndex(worktreeGroupBoundaries[currentBoundary]);
+      }),
+      registerAction('session.prev-worktree', () => {
+        const idx = [...worktreeGroupBoundaries].reverse().findIndex(b => b < focusedItemIndex);
+        if (idx >= 0) setFocusedItemIndex(worktreeGroupBoundaries[worktreeGroupBoundaries.length - 1 - idx]);
+      }),
+      // Selection
+      registerAction('session.toggle-select', () => {
+        if (!keyboardFocusedId) return;
+        const newSet = new Set(selectedSessionIds);
+        if (newSet.has(keyboardFocusedId)) newSet.delete(keyboardFocusedId);
+        else newSet.add(keyboardFocusedId);
+        setSelectedSessionIds(newSet);
+      }),
+      registerAction('session.select-all', () => {
+        setSelectedSessionIds(new Set(filteredLiveSessions.map(s => s.session_id)));
+      }),
+      registerAction('session.deselect-all', () => {
+        setSelectedSessionIds(new Set());
+      }),
+      // Focus terminal (Enter) — use keyboard-focused, else fall back to selected/focused/first
+      registerAction('session.focus-terminal', () => {
+        const target = keyboardFocusedId || getTargetSessionId();
+        if (target) focusTerminal(target);
+      }),
+      // Open transcript (o)
+      registerAction('session.open', () => {
+        if (!keyboardFocusedId) return;
+        const liveSession = filteredLiveSessions.find(s => s.session_id === keyboardFocusedId);
+        if (liveSession) handleActiveSessionClick(liveSession);
+      }),
+      // Tiling
+      registerAction('tile.fullscreen', () => {
+        const target = keyboardFocusedId || getTargetSessionId();
+        if (target) maximizeWindow(target);
+      }),
+      registerAction('tile.tile-selected', () => handleToolbarTile()),
+      registerAction('tile.browser-layout', () => handleBrowserLayout()),
+      // Terminal management
+      registerAction('terminal.launch', () => {
+        if (!keyboardFocusedId) {
+          if (filteredLiveSessions[0]?.cwd) handleLaunchSession(filteredLiveSessions[0].cwd);
+          return;
+        }
+        const session = filteredLiveSessions.find(s => s.session_id === keyboardFocusedId);
+        if (session?.cwd) handleLaunchSession(session.cwd);
+      }),
+      registerAction('terminal.manage-worktrees', () => handleManageWorktreesClick()),
+      // History toggle
+      registerAction('history.toggle', () => toggleHistoryCollapsed()),
+    ];
+    return () => cleanups.forEach(fn => fn());
+  }, [
+    registerAction, flatItemList, focusedItemIndex, keyboardFocusedId,
+    selectedSessionIds, filteredLiveSessions, historyList,
+    worktreeGroupBoundaries, focusTerminal, maximizeWindow,
+    handleToolbarTile, handleBrowserLayout,
+    handleLaunchSession, handleManageWorktreesClick, toggleHistoryCollapsed,
+    getTargetSessionId, setSelectedSessionIds, handleActiveSessionClick,
+    handleHistorySessionClick, openSession,
+  ]);
 
   // If viewing an open session, render the viewer
   const activeOpen = state.activeViewId
@@ -434,7 +558,7 @@ export function Dashboard() {
     );
   }
 
-  const hasSelection = selectedSessionIds.size > 0 || !!focusedSessionId || filteredLiveSessions.length > 0;
+  const hasSelection = selectedSessionIds.size > 0 || !!keyboardFocusedId || !!focusedSessionId;
 
   const handleBackgroundClick = useCallback((e: React.MouseEvent) => {
     if (e.target === e.currentTarget && selectedSessionIds.size > 0) {
@@ -491,8 +615,7 @@ export function Dashboard() {
           onMaximize={handleMaximize}
           onTileSelected={handleToolbarTile}
           onFocus={handleToolbarFocus}
-          onBrowserTerminal={handleBrowserTerminal}
-          onBrowserTwoTerminals={handleBrowserTwoTerminals}
+          onBrowserLayout={handleBrowserLayout}
           onManageWorktrees={handleManageWorktreesClick}
           manageWorktreesDisabled={!filteredLiveSessions.some(s => s.git_repo_root)}
         />
@@ -507,6 +630,7 @@ export function Dashboard() {
           <WorktreeSessionsView
             sessions={filteredLiveSessions}
             focusedSessionId={focusedSessionId}
+            keyboardFocusedId={keyboardFocusedId}
             badges={badges}
             selectedSessionIds={selectedSessionIds}
             onSelectionChange={setSelectedSessionIds}
@@ -564,6 +688,7 @@ export function Dashboard() {
                   return (
                     <div
                       key={session.id}
+                      data-session-id={session.id}
                       className="jacques-history-row jacques-animate-in"
                       style={{
                         ...styles.historyRow,

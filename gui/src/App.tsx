@@ -12,9 +12,13 @@ import { NotionConnect } from './pages/NotionConnect';
 import { SessionViewer } from './pages/SessionViewer';
 import { ProjectScopeProvider } from './hooks/useProjectScope.js';
 import { OpenSessionsProvider } from './hooks/useOpenSessions';
+import { FocusZoneProvider } from './hooks/useFocusZone';
+import { ShortcutActionsProvider } from './hooks/useShortcutActions';
 
 export function App() {
   return (
+    <FocusZoneProvider>
+    <ShortcutActionsProvider>
     <ProjectScopeProvider>
       <OpenSessionsProvider>
         <Routes>
@@ -48,5 +52,7 @@ export function App() {
         </Routes>
       </OpenSessionsProvider>
     </ProjectScopeProvider>
+    </ShortcutActionsProvider>
+    </FocusZoneProvider>
   );
 }
