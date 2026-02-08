@@ -472,6 +472,13 @@ button {
 .jacques-compact-card.is-focused {
 }
 
+/* ── Keyboard focused — dashed border for j/k navigation ──── */
+.jacques-compact-card.is-keyboard-focused {
+  border-color: #6B7075 !important;
+  border-style: dashed !important;
+  background-color: #252525;
+}
+
 /* ── Selected — outline frame (independent of border) ─────── */
 .jacques-compact-card.is-selected {
   outline-color: var(--color-accent);

@@ -1,12 +1,12 @@
 /**
  * WindowToolbar - Minimal icon-only toolbar for window management.
  *
- * 5 buttons: Maximize, Tile, Focus, Browser+Terminal, Browser+2Terminals
+ * Buttons: Fullscreen, Tile, Focus, Browser+Terminal(s), Manage Worktrees
  * Dark by default, lighter on hover. Always visible between header and content.
  * Buttons glow based on selection count to suggest the most relevant layout.
  */
 
-import { Maximize2, LayoutGrid, Crosshair, PanelRight, Columns3, GitFork } from 'lucide-react';
+import { Maximize2, LayoutGrid, Crosshair, PanelRight, GitFork } from 'lucide-react';
 import { colors } from '../styles/theme';
 
 interface WindowToolbarProps {
@@ -16,8 +16,7 @@ interface WindowToolbarProps {
   onMaximize: () => void;
   onTileSelected: () => void;
   onFocus: () => void;
-  onBrowserTerminal: () => void;
-  onBrowserTwoTerminals: () => void;
+  onBrowserLayout: () => void;
   onManageWorktrees?: () => void;
   manageWorktreesDisabled?: boolean;
 }
@@ -67,58 +66,48 @@ export function WindowToolbar({
   onMaximize,
   onTileSelected,
   onFocus,
-  onBrowserTerminal,
-  onBrowserTwoTerminals,
+  onBrowserLayout,
   onManageWorktrees,
   manageWorktreesDisabled,
 }: WindowToolbarProps) {
-  // Determine which buttons glow based on selection count
   const highlightTile = selectedCount >= 2;
-  const highlightBrowserTerminal = selectedCount === 1;
-  const highlightBrowserTwo = selectedCount === 2;
 
   return (
     <div style={styles.toolbar}>
       <ToolbarButton
         icon={<Maximize2 size={14} />}
-        title="Maximize terminal fullscreen"
+        title="(f)ullscreen"
         disabled={!hasSelection}
         onClick={onMaximize}
       />
       <ToolbarButton
         icon={<LayoutGrid size={14} />}
-        title="Tile selected sessions"
+        title="(t)ile selected"
         disabled={!hasTwoSelected}
         highlighted={highlightTile}
         onClick={onTileSelected}
       />
       <ToolbarButton
         icon={<Crosshair size={14} />}
-        title="Focus terminal"
+        title="focus (Enter)"
         disabled={!hasSelection}
+        highlighted={selectedCount <= 1 && hasSelection}
         onClick={onFocus}
       />
       <div style={styles.separator} />
       <ToolbarButton
         icon={<PanelRight size={14} />}
-        title="Browser + terminal (5/7 + 2/7)"
+        title={selectedCount >= 2 ? "(b)rowser + 2 terminals" : "(b)rowser + terminal"}
         disabled={!hasSelection}
-        highlighted={highlightBrowserTerminal}
-        onClick={onBrowserTerminal}
-      />
-      <ToolbarButton
-        icon={<Columns3 size={14} />}
-        title="Browser + 2 terminals"
-        disabled={!hasSelection}
-        highlighted={highlightBrowserTwo}
-        onClick={onBrowserTwoTerminals}
+        highlighted={hasSelection}
+        onClick={onBrowserLayout}
       />
       {onManageWorktrees && (
         <>
           <div style={styles.separator} />
           <ToolbarButton
             icon={<GitFork size={14} />}
-            title="Manage worktrees"
+            title="(w)orktrees"
             disabled={manageWorktreesDisabled ?? true}
             onClick={onManageWorktrees}
           />
