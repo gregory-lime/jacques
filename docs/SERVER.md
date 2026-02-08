@@ -21,7 +21,21 @@ Real-time session tracking, event processing, and REST/WebSocket API. Depends on
 | `process-scanner.ts` | Cross-platform startup session detection |
 | `unix-socket.ts` | Listen on `/tmp/jacques.sock` for hook events |
 | `websocket.ts` | Broadcast session updates to clients |
-| `http-api.ts` | REST API on port 4243 |
+| `http-api.ts` | REST API orchestrator — thin router chains domain route handlers |
+| `routes/types.ts` | RouteContext, RouteHandler types shared by all route modules |
+| `routes/http-utils.ts` | parseBody, sendJson, handleCors, getMimeType, serveStaticFile, createSSEWriter |
+| `routes/config-store.ts` | JacquesConfig read/write (`~/.jacques/config.json`) |
+| `routes/session-routes.ts` | 11 routes: `/api/sessions/*` (list, detail, badges, tasks, plans, subagents) |
+| `routes/project-routes.ts` | 15 routes: `/api/projects/*` (plans, context CRUD, catalog, handoffs) |
+| `routes/archive-routes.ts` | 8 routes: `/api/archive/*` (stats, conversations, search, subagents, initialize) |
+| `routes/source-routes.ts` | 5 routes: `/api/sources/*` (status, Google/Notion OAuth) |
+| `routes/sync-routes.ts` | 2 SSE routes: `/api/sync`, `/api/catalog/extract` |
+| `routes/notification-routes.ts` | 3 routes: `/api/notifications/*` (settings, history) |
+| `routes/claude-routes.ts` | 2 routes: `/api/claude/operations/*` |
+| `routes/tile-routes.ts` | 3 routes: `/api/tile/*` (displays, sessions, with-keys) |
+| `routes/config-routes.ts` | 2 routes: `/api/config/*` (root-path) |
+| `routes/usage-routes.ts` | 1 route: `/api/usage` |
+| `routes/static-routes.ts` | GUI static file serving with SPA fallback |
 | `terminal-activator.ts` | Activate terminal window via AppleScript |
 | `focus-watcher.ts` | Monitor OS focus changes |
 | `handlers/event-handler.ts` | Routes hook events to registry + broadcast |
@@ -99,37 +113,83 @@ In-memory session store indexed by `session_id`. The registry is a thin facade t
 
 ## HTTP API Endpoints
 
-### Projects
-- `GET /api/projects` — All discovered projects, grouped by git repo root. Merges worktrees. Filters hidden projects. Returns `{ projects: DiscoveredProject[] }` with name, gitRepoRoot, isGitProject, projectPaths, encodedPaths, sessionCount, lastActivity.
-- `DELETE /api/projects/:name` — Hide a project from the discovered list. Persisted in `~/.jacques/hidden-projects.json`.
+The HTTP API is organized into domain-specific route modules in `routes/`. Each module exports a `RouteHandler` function that returns `true` if it handled the request, `false` to pass to the next handler. The orchestrator in `http-api.ts` chains handlers — first match wins.
 
-### Sessions
-- `GET /api/sessions` — All sessions from cache
-- `GET /api/sessions/:id` — Single session with **catalog overlay** (deduplicated planRefs)
-- `GET /api/sessions/:id/plans/:messageIndex` — Plan content (handles all source types)
+### Sessions (`routes/session-routes.ts`)
+- `GET /api/sessions` — All sessions from cache. Returns `{ sessions, lastScanned }`
+- `GET /api/sessions/by-project` — Sessions grouped by project slug. Returns `{ projects: Record<string, session[]> }`
+- `GET /api/sessions/stats` — Cache index statistics. Returns `{ totalSessions, totalSizeBytes, sizeFormatted }`
+- `POST /api/sessions/rebuild` — Rebuild session index (SSE streaming progress). Events: `progress`, `complete`
+- `POST /api/sessions/launch` — Launch a new Claude Code session in a terminal. Body: `{ cwd, mode? }`
+- `GET /api/sessions/:id` — Single session with **catalog overlay** (deduplicated planRefs). Returns session detail with entries, statistics, mode, subagents
+- `GET /api/sessions/:id/badges` — Lightweight badge data (plan count, mode, subagent count, awaiting status)
+- `GET /api/sessions/:id/subagents/:agentId` — Subagent detail from JSONL entries
+- `GET /api/sessions/:id/web-searches` — Web search results extracted from session entries
+- `GET /api/sessions/:id/tasks` — Task signals extracted from session. Returns `{ tasks, summary: { total, completed, percentage } }`
+- `GET /api/sessions/:id/plans/:messageIndex` — Plan content by assistant message index (handles all source types: local file, catalog, inline)
 
-### Archive
-- `GET /api/archive/search?q=...` — Search archived conversations
-- `GET /api/archive/manifests` — List all manifests
+### Projects (`routes/project-routes.ts`)
+- `GET /api/projects` — All discovered projects, grouped by git repo root. Merges worktrees. Filters hidden projects. Returns `{ projects: DiscoveredProject[] }`
+- `DELETE /api/projects/:name` — Hide a project. Persisted in `~/.jacques/hidden-projects.json`
+- `GET /api/projects/:path/plans` — List plans for a project. Returns `{ plans }`
+- `GET /api/projects/:path/plans/:planId/content` — Plan content from catalog. Looks up plan in project index, reads content from local file
+- `POST /api/projects/:path/active-plans` — Activate a plan. Body: `{ planPath }`. Deduplicates via `findDuplicatePlan`
+- `GET /api/projects/:path/active-plans` — List active plan IDs. Returns `{ activePlanIds }`
+- `DELETE /api/projects/:path/active-plans/:planId` — Deactivate a plan
+- `GET /api/projects/:path/catalog` — Project catalog overview. Returns `{ context, plans, sessions, subagents, updatedAt }`
+- `GET /api/projects/:path/context/:id/content` — Read context file content
+- `POST /api/projects/:path/context` — Add context to project index. Body: `{ name, content, source? }`
+- `PUT /api/projects/:path/context/:id` — Update context entry. Body: `{ name?, content? }`
+- `DELETE /api/projects/:path/context/:id` — Remove context from project index
+- `GET /api/projects/:path/subagents/:id/content` — Subagent result markdown from `.jacques/subagents/`
+- `GET /api/projects/:path/handoffs` — List handoff documents. Returns `{ handoffs }`
+- `GET /api/projects/:path/handoffs/:filename/content` — Handoff document content
 
-### Sync
-- `POST /api/sync` — Unified sync: catalog extraction then session index rebuild (SSE progress with `phase: 'extracting' | 'indexing'`; `?force=true` to re-sync all)
+### Archive (`routes/archive-routes.ts`)
+- `GET /api/archive/stats` — Archive statistics. Returns `{ totalConversations, totalProjects, totalSizeBytes }`
+- `GET /api/archive/conversations` — List all archived conversation manifests. Returns `{ manifests }`
+- `GET /api/archive/conversations/by-project` — Conversations grouped by project. Returns `{ projects: Record<string, manifest[]> }`
+- `GET /api/archive/conversations/:id` — Single conversation manifest detail
+- `POST /api/archive/search` — Search archived conversations. Body: `{ query, limit?, offset? }`. Returns `{ results, total }`
+- `GET /api/archive/subagents/:agentId` — Archived subagent data. Returns `{ subagent }`
+- `GET /api/archive/sessions/:sessionId/subagents` — List subagents for an archived session. Returns `{ subagents }`
+- `POST /api/archive/initialize` — Initialize archive from existing data (SSE streaming). Events: `progress`, `complete`
 
-### Catalog
-- `POST /api/catalog/extract` — Trigger catalog extraction (standalone, SSE progress)
-- `POST /api/sessions/rebuild` — Rebuild session index (standalone, SSE progress)
-- `GET /api/projects/:path/catalog` — Project catalog (context, plans, sessions)
-- `GET /api/projects/:path/subagents/:id/content` — Subagent result markdown
-- `GET /api/projects/:path/plans/:id/content` — Plan content from catalog
+### Sources (`routes/source-routes.ts`)
+- `GET /api/sources/status` — Connection status for all sources (Obsidian, Google Docs, Notion). Returns `{ obsidian, googleDocs, notion }`
+- `POST /api/sources/google` — Configure Google Docs OAuth. Body: `{ client_id, client_secret, tokens }`
+- `DELETE /api/sources/google` — Disconnect Google Docs integration
+- `POST /api/sources/notion` — Configure Notion OAuth. Body: `{ client_id, client_secret, tokens, workspace_name? }`
+- `DELETE /api/sources/notion` — Disconnect Notion integration
 
-### Sources
-- `GET /api/sources/status` — Check source connections
-- `POST /api/sources/google` — Configure Google Docs OAuth
-- `POST /api/sources/notion` — Configure Notion OAuth
+### Sync (`routes/sync-routes.ts`)
+- `POST /api/sync` — Unified sync: catalog extraction then session index rebuild (SSE streaming). Query: `?force=true` to re-extract all. Events: `progress` (with `phase: 'extracting' | 'indexing'`), `complete`
+- `POST /api/catalog/extract` — Trigger catalog extraction only (SSE streaming). Query: `?project=<path>` for single project, `?force=true` to force re-extraction
 
-### Static Files
+### Notifications (`routes/notification-routes.ts`)
+- `GET /api/notifications/settings` — Current notification preferences
+- `PUT /api/notifications/settings` — Update notification preferences. Body: notification settings object
+- `GET /api/notifications` — Recent notification history
+
+### Config (`routes/config-routes.ts`)
+- `GET /api/config/root-path` — Current Claude projects root path. Returns `{ rootPath }`
+- `POST /api/config/root-path` — Set custom root path. Body: `{ rootPath }`
+
+### Claude Operations (`routes/claude-routes.ts`)
+- `GET /api/claude/operations` — List tracked Claude API operations
+- `GET /api/claude/operations/:id/debug` — Debug data for a specific operation
+
+### Tile (`routes/tile-routes.ts`)
+- `GET /api/tile/displays` — Available display information for window tiling
+- `POST /api/tile/sessions` — Tile windows by session IDs. Body: `{ sessionIds }`
+- `POST /api/tile/with-keys` — Tile windows by terminal keys. Body: `{ terminalKeys }`
+
+### Usage (`routes/usage-routes.ts`)
+- `GET /api/usage` — Claude API usage limits and current consumption
+
+### Static Files (`routes/static-routes.ts`)
 - `GET /` — Serve `gui/dist/index.html`
-- `GET /*` — Static assets
+- `GET /*` — Static assets from `gui/dist/`, with SPA fallback to `index.html`
 
 ## Catalog Overlay
 
