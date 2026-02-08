@@ -384,43 +384,6 @@ export function Dashboard() {
     });
   }, []);
 
-  // ── Window toolbar handlers ──
-
-  const getTargetSessionId = useCallback((): string | null => {
-    if (selectedSessionIds.size > 0) return Array.from(selectedSessionIds)[0];
-    if (focusedSessionId) return focusedSessionId;
-    if (filteredLiveSessions.length > 0) return filteredLiveSessions[0].session_id;
-    return null;
-  }, [selectedSessionIds, focusedSessionId, filteredLiveSessions]);
-
-  const handleMaximize = useCallback(() => {
-    const target = getTargetSessionId();
-    if (target) maximizeWindow(target);
-  }, [getTargetSessionId, maximizeWindow]);
-
-  const handleToolbarTile = useCallback(() => {
-    if (selectedSessionIds.size >= 2) {
-      const ids = Array.from(selectedSessionIds);
-      // Let server auto-tile using smart grid layout
-      tileWindows(ids);
-    }
-  }, [selectedSessionIds, tileWindows]);
-
-  const handleToolbarFocus = useCallback(() => {
-    const target = getTargetSessionId();
-    if (target) focusTerminal(target);
-  }, [getTargetSessionId, focusTerminal]);
-
-  const handleBrowserLayout = useCallback(() => {
-    if (selectedSessionIds.size >= 2) {
-      const ids = Array.from(selectedSessionIds).slice(0, 2);
-      positionBrowserLayout(ids, 'browser-two-terminals');
-    } else {
-      const target = getTargetSessionId();
-      if (target) positionBrowserLayout([target], 'browser-terminal');
-    }
-  }, [selectedSessionIds, getTargetSessionId, positionBrowserLayout]);
-
   // ── Keyboard navigation ──────────────────────────────────
   const { setActiveZone } = useFocusZone();
   const { registerAction } = useShortcutActions();
@@ -454,6 +417,43 @@ export function Dashboard() {
   const keyboardFocusedId = focusedItemIndex >= 0 && focusedItemIndex < flatItemList.length
     ? flatItemList[focusedItemIndex]
     : null;
+
+  // ── Window toolbar handlers ──
+
+  const getTargetSessionId = useCallback((): string | null => {
+    if (selectedSessionIds.size > 0) return Array.from(selectedSessionIds)[0];
+    if (keyboardFocusedId) return keyboardFocusedId;
+    if (focusedSessionId) return focusedSessionId;
+    return null;
+  }, [selectedSessionIds, keyboardFocusedId, focusedSessionId]);
+
+  const handleMaximize = useCallback(() => {
+    const target = getTargetSessionId();
+    if (target) maximizeWindow(target);
+  }, [getTargetSessionId, maximizeWindow]);
+
+  const handleToolbarTile = useCallback(() => {
+    if (selectedSessionIds.size >= 2) {
+      const ids = Array.from(selectedSessionIds);
+      // Let server auto-tile using smart grid layout
+      tileWindows(ids);
+    }
+  }, [selectedSessionIds, tileWindows]);
+
+  const handleToolbarFocus = useCallback(() => {
+    const target = getTargetSessionId();
+    if (target) focusTerminal(target);
+  }, [getTargetSessionId, focusTerminal]);
+
+  const handleBrowserLayout = useCallback(() => {
+    if (selectedSessionIds.size >= 2) {
+      const ids = Array.from(selectedSessionIds).slice(0, 2);
+      positionBrowserLayout(ids, 'browser-two-terminals');
+    } else {
+      const target = getTargetSessionId();
+      if (target) positionBrowserLayout([target], 'browser-terminal');
+    }
+  }, [selectedSessionIds, getTargetSessionId, positionBrowserLayout]);
 
   // Scroll focused item into view
   useEffect(() => {
@@ -558,7 +558,7 @@ export function Dashboard() {
     );
   }
 
-  const hasSelection = selectedSessionIds.size > 0 || !!focusedSessionId || filteredLiveSessions.length > 0;
+  const hasSelection = selectedSessionIds.size > 0 || !!keyboardFocusedId || !!focusedSessionId;
 
   const handleBackgroundClick = useCallback((e: React.MouseEvent) => {
     if (e.target === e.currentTarget && selectedSessionIds.size > 0) {

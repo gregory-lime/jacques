@@ -202,7 +202,7 @@ export function CompactSessionCard({
       style={{
         ...S.card,
         borderLeftWidth: '3px',
-        borderLeftColor: activity.needsAttention ? activity.color : isFocused ? colors.accent : '#2e2e2e',
+        borderLeftColor: isFocused ? colors.accent : activity.needsAttention ? activity.color : '#2e2e2e',
       }}
       onClick={handleClick}
       onMouseEnter={() => setIsHovered(true)}

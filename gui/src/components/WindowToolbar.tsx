@@ -78,6 +78,7 @@ export function WindowToolbar({
         icon={<Maximize2 size={14} />}
         title="(f)ullscreen"
         disabled={!hasSelection}
+        highlighted={selectedCount <= 1 && hasSelection}
         onClick={onMaximize}
       />
       <ToolbarButton
