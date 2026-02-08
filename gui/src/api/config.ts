@@ -1226,3 +1226,19 @@ export async function getHandoffContent(
   }
   return response.json();
 }
+
+// ============================================================
+// Usage Limits API
+// ============================================================
+
+import type { UsageLimits } from '../types';
+
+export async function getUsageLimits(): Promise<UsageLimits | null> {
+  try {
+    const response = await fetch(`${API_URL}/usage`);
+    if (!response.ok) return null;
+    return response.json();
+  } catch {
+    return null;
+  }
+}

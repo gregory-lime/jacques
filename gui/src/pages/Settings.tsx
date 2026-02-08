@@ -1,13 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { FolderRoot, Bell, Archive, Plug, RefreshCw, ExternalLink, ShieldOff } from 'lucide-react';
+import { FolderRoot, Bell, Archive, Plug, RefreshCw, ExternalLink, ShieldOff, Activity } from 'lucide-react';
 import { colors } from '../styles/theme';
 import { SectionHeader, SettingsSection, ToggleSwitch } from '../components/ui';
 import { useNotifications } from '../hooks/useNotifications';
 import { usePersistedState } from '../hooks/usePersistedState';
 import type { NotificationCategory } from '../notifications/types';
-import { getRootPath, setRootPath, syncSessions, type RootPathConfig, type SyncProgress, type SyncResult } from '../api/config';
+import { getRootPath, setRootPath, syncSessions, getUsageLimits, type RootPathConfig, type SyncProgress, type SyncResult } from '../api/config';
 import { useProjectScope } from '../hooks/useProjectScope';
+import type { UsageLimits } from '../types';
 
 const CATEGORY_LABELS: Record<NotificationCategory, { label: string; description: string }> = {
   context: { label: 'Context thresholds', description: 'Alert at 50%, 70%, 90% usage' },
@@ -23,6 +24,57 @@ const PERMISSION_LABELS: Record<string, { text: string; color: string }> = {
   default: { text: 'Not yet asked', color: colors.textMuted },
   unsupported: { text: 'Not supported in this browser', color: colors.textMuted },
 };
+
+// ─── Usage Limit Helpers ─────────────────────────────────────
+
+const DOT_COUNT = 10;
+const EMPTY_DOT = 'rgba(255,255,255,0.15)';
+
+function formatUtilization(val: number): number {
+  return Math.round(val > 1 ? val : val * 100);
+}
+
+function formatResetTime(iso: string): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  const now = new Date();
+  if (d.toDateString() === now.toDateString()) {
+    return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase();
+  }
+  const diff = d.getTime() - now.getTime();
+  const month = d.toLocaleString('en-US', { month: 'short' }).toLowerCase();
+  const day = d.getDate();
+  if (diff > 0 && diff < 7 * 86400000) {
+    const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase();
+    return `${month} ${day}, ${time}`;
+  }
+  return `${month} ${day}`;
+}
+
+function UsageLimitRow({ label, utilization, valueText, resetTime, color }: {
+  label: string; utilization: number; valueText: string; resetTime: string; color: string;
+}) {
+  const norm = utilization > 1 ? utilization / 100 : utilization;
+  const filled = Math.round(norm * DOT_COUNT);
+  const resetStr = formatResetTime(resetTime);
+
+  return (
+    <div style={styles.usageRow}>
+      <span style={styles.usageLabel}>{label}</span>
+      <span style={styles.usageDots}>
+        {Array.from({ length: DOT_COUNT }, (_, i) => (
+          <span key={i} style={{
+            width: 6, height: 6, borderRadius: '50%', display: 'inline-block',
+            backgroundColor: i < filled ? color : EMPTY_DOT,
+          }} />
+        ))}
+      </span>
+      <span style={{ ...styles.usageValue, color }}>{valueText}</span>
+      {resetStr && <span style={styles.usageReset}>resets {resetStr}</span>}
+    </div>
+  );
+}
 
 export function Settings() {
   const {
@@ -45,6 +97,20 @@ export function Settings() {
   const [rootPathInput, setRootPathInput] = useState('');
   const [rootPathError, setRootPathError] = useState<string | null>(null);
   const [rootPathSaving, setRootPathSaving] = useState(false);
+
+  // Usage limits state
+  const [usageLimits, setUsageLimits] = useState<UsageLimits | null>(null);
+
+  const refreshUsage = useCallback(async () => {
+    const data = await getUsageLimits();
+    if (data) setUsageLimits(data);
+  }, []);
+
+  useEffect(() => {
+    refreshUsage();
+    const interval = setInterval(refreshUsage, 30_000);
+    return () => clearInterval(interval);
+  }, [refreshUsage]);
 
   // Sync state
   const [isSyncing, setIsSyncing] = useState(false);
@@ -395,6 +461,46 @@ export function Settings() {
           Source configuration coming soon
         </div>
       </SettingsSection>
+
+      {/* Subscription Usage Section */}
+      {usageLimits && (
+        <SettingsSection
+          title="Subscription Usage"
+          icon={<Activity size={16} />}
+          description="Current rate limits"
+          defaultExpanded={true}
+        >
+          <div style={styles.usageGrid}>
+            {usageLimits.fiveHour && (
+              <UsageLimitRow
+                label="current"
+                utilization={usageLimits.fiveHour.utilization}
+                valueText={`${formatUtilization(usageLimits.fiveHour.utilization)}%`}
+                resetTime={usageLimits.fiveHour.resetsAt}
+                color={colors.warning}
+              />
+            )}
+            {usageLimits.sevenDay && (
+              <UsageLimitRow
+                label="weekly"
+                utilization={usageLimits.sevenDay.utilization}
+                valueText={`${formatUtilization(usageLimits.sevenDay.utilization)}%`}
+                resetTime={usageLimits.sevenDay.resetsAt}
+                color={colors.success}
+              />
+            )}
+            {usageLimits.extraUsage && (
+              <UsageLimitRow
+                label="extra"
+                utilization={usageLimits.extraUsage.utilization}
+                valueText={`$${usageLimits.extraUsage.usedCredits.toFixed(0)}/$${usageLimits.extraUsage.monthlyLimit.toFixed(0)}`}
+                resetTime={usageLimits.extraUsage.resetsAt}
+                color={colors.success}
+              />
+            )}
+          </div>
+        </SettingsSection>
+      )}
     </div>
   );
 }
@@ -578,6 +684,43 @@ const styles: Record<string, React.CSSProperties> = {
     whiteSpace: 'nowrap' as const,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
+  },
+  usageGrid: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '10px',
+  },
+  usageRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+  },
+  usageLabel: {
+    fontSize: '11px',
+    fontWeight: 500,
+    color: colors.textMuted,
+    fontFamily: "'JetBrains Mono', 'Fira Code', 'SF Mono', monospace",
+    width: '52px',
+    flexShrink: 0,
+  },
+  usageDots: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '2px',
+    flexShrink: 0,
+  },
+  usageValue: {
+    fontSize: '11px',
+    fontWeight: 600,
+    fontFamily: "'JetBrains Mono', 'Fira Code', 'SF Mono', monospace",
+    flexShrink: 0,
+  },
+  usageReset: {
+    fontSize: '10px',
+    color: colors.textMuted,
+    opacity: 0.6,
+    fontFamily: "'JetBrains Mono', 'Fira Code', 'SF Mono', monospace",
+    marginLeft: '4px',
   },
   successBanner: {
     marginTop: '12px',

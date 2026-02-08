@@ -21,7 +21,7 @@ export interface NotificationSettings {
 }
 
 export const DEFAULT_SETTINGS: NotificationSettings = {
-  enabled: true,
+  enabled: false,
   categories: {
     context: true,
     operation: true,

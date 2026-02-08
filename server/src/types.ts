@@ -47,6 +47,23 @@ export interface AutoCompactStatus {
 }
 
 // ============================================================
+// Usage Limits (Anthropic Account Rate Limits)
+// ============================================================
+
+export interface UsageLimits {
+  fiveHour: { utilization: number; resetsAt: string } | null;
+  sevenDay: { utilization: number; resetsAt: string } | null;
+  extraUsage: {
+    isEnabled: boolean;
+    utilization: number;
+    usedCredits: number;
+    monthlyLimit: number;
+    resetsAt: string;
+  } | null;
+  fetchedAt: number;
+}
+
+// ============================================================
 // Context Metrics
 // ============================================================
 

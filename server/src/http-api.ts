@@ -66,6 +66,7 @@ import {
 } from '@jacques/core';
 import type { PlanEntry } from '@jacques/core';
 import type { ContextFile } from '@jacques/core';
+import { fetchUsageLimits } from './usage-limits.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -340,6 +341,17 @@ export async function createHttpApi(options: HttpApiOptions = {}): Promise<HttpA
     }
 
     // === API Routes ===
+
+    // Route: GET /api/usage
+    if (method === 'GET' && url === '/api/usage') {
+      const limits = await fetchUsageLimits();
+      if (limits) {
+        sendJson(res, 200, limits);
+      } else {
+        sendJson(res, 200, null);
+      }
+      return;
+    }
 
     // Route: GET /api/sources/status
     if (method === 'GET' && url === '/api/sources/status') {

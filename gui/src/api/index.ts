@@ -47,6 +47,8 @@ export {
   // Handoff API
   getProjectHandoffs,
   getHandoffContent,
+  // Usage Limits API
+  getUsageLimits,
 } from './config';
 
 export type {

@@ -11,6 +11,19 @@ export interface AutoCompactStatus {
   bug_threshold: number | null;
 }
 
+export interface UsageLimits {
+  fiveHour: { utilization: number; resetsAt: string } | null;
+  sevenDay: { utilization: number; resetsAt: string } | null;
+  extraUsage: {
+    isEnabled: boolean;
+    utilization: number;
+    usedCredits: number;
+    monthlyLimit: number;
+    resetsAt: string;
+  } | null;
+  fetchedAt: number;
+}
+
 export interface TerminalIdentity {
   term_program?: string;
   tty?: string;
