@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE / Editor
+.cursor/
+
+# Jacques runtime data (any .jacques/ directory at any depth)
+**/.jacques/
+
+# Playwright MCP screenshots
+.playwright-mcp/
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# Environment
+.env
+.env.*
+
+# Root-level images (canonical copies live in assets/)
+/*.png
+pixel.py

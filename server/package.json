@@ -1,0 +1,45 @@
+{
+  "name": "@jacques/server",
+  "version": "0.0.7-alpha.1",
+  "description": "Jacques multi-session Claude Code monitor server",
+  "main": "dist/server.js",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/start-server.js",
+      "types": "./dist/start-server.d.ts"
+    },
+    "./server": {
+      "import": "./dist/server.js"
+    }
+  },
+  "bin": {
+    "jacques-mcp": "./dist/mcp/server.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/server.js",
+    "start:mcp": "node dist/mcp/server.js",
+    "test": "node --experimental-vm-modules ../node_modules/jest/bin/jest.js"
+  },
+  "dependencies": {
+    "@jacques/core": "file:../core",
+    "@modelcontextprotocol/sdk": "^1.11.0",
+    "node-notifier": "^10.0.1",
+    "ws": "^8.18.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.10.0",
+    "@types/node-notifier": "^8.0.5",
+    "@types/ws": "^8.5.13",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.4.6",
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

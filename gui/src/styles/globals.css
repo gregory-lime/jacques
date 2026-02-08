@@ -1,0 +1,603 @@
+/**
+ * Jacques GUI - Global Styles
+ *
+ * Dark terminal-inspired theme with CLI aesthetics.
+ */
+
+/* CSS Custom Properties (from theme) */
+:root {
+  /* Backgrounds */
+  --color-bg-primary: #0d0d0d;
+  --color-bg-secondary: #1a1a1a;
+  --color-bg-elevated: #252525;
+  --color-bg-input: #2a2a2a;
+
+  /* Accent */
+  --color-accent: #E67E52;
+  --color-accent-light: #F09070;
+  --color-accent-dark: #D06840;
+  --color-accent-orange: #FF6600;
+
+  /* Text */
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #8B9296;
+  --color-text-muted: #6B7075;
+
+  /* Semantic */
+  --color-success: #4ADE80;
+  --color-warning: #FBBF24;
+  --color-danger: #EF4444;
+
+  /* Borders */
+  --color-border: #E67E52;
+  --color-border-subtle: #3a3a3a;
+
+  /* Progress */
+  --color-progress-fill: #E67E52;
+  --color-progress-empty: #8B9296;
+
+  /* Typography */
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-base: 14px;
+  --font-size-lg: 16px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 24px;
+
+  /* Spacing (4px base) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* Borders */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --border-width: 1px;
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-base: 250ms ease;
+}
+
+/* Reset */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Base */
+html {
+  font-size: 14px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-mono);
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+h1 { font-size: var(--font-size-2xl); }
+h2 { font-size: var(--font-size-xl); }
+h3 { font-size: var(--font-size-lg); }
+h4 { font-size: var(--font-size-base); }
+
+p {
+  color: var(--color-text-secondary);
+}
+
+a {
+  color: var(--color-accent);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--color-accent-light);
+}
+
+code, pre {
+  font-family: var(--font-mono);
+  background-color: var(--color-bg-input);
+  border-radius: var(--radius-sm);
+}
+
+code {
+  padding: 2px 6px;
+  font-size: var(--font-size-sm);
+}
+
+pre {
+  padding: var(--space-4);
+  overflow-x: auto;
+}
+
+/* Focus styles */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Button reset */
+button {
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-subtle);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+
+/* Selection */
+::selection {
+  background-color: var(--color-accent);
+  color: var(--color-bg-primary);
+}
+
+/* Utility classes */
+.text-primary { color: var(--color-text-primary); }
+.text-secondary { color: var(--color-text-secondary); }
+.text-muted { color: var(--color-text-muted); }
+.text-accent { color: var(--color-accent); }
+.text-success { color: var(--color-success); }
+.text-warning { color: var(--color-warning); }
+.text-danger { color: var(--color-danger); }
+
+.bg-primary { background-color: var(--color-bg-primary); }
+.bg-secondary { background-color: var(--color-bg-secondary); }
+.bg-elevated { background-color: var(--color-bg-elevated); }
+
+/* Shared Animations */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.jacques-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+@keyframes slide-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.jacques-animate-in {
+  animation: slide-in 0.3s ease-out forwards;
+}
+
+@keyframes expand-in {
+  from { opacity: 0; max-height: 0; }
+  to { opacity: 1; max-height: 2000px; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.jacques-expand-content {
+  animation: expand-in 0.25s ease-out forwards;
+  overflow: hidden;
+}
+
+.jacques-fade-in {
+  animation: fade-in 0.2s ease-out forwards;
+}
+
+/* Session card hover */
+.jacques-session-card {
+  transition: background-color 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.jacques-session-card:hover {
+  background-color: var(--color-bg-elevated);
+  border-color: #4a4a4a;
+}
+
+.jacques-session-card:hover .jacques-session-card-hint {
+  opacity: 1;
+}
+
+.jacques-indicator:hover {
+  opacity: 1 !important;
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Horizontal scroll for active sessions */
+.jacques-horizontal-scroll {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 8px;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+.jacques-horizontal-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+
+.jacques-horizontal-scroll::-webkit-scrollbar-track {
+  background: var(--color-bg-secondary);
+  border-radius: 3px;
+}
+
+.jacques-horizontal-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-border-subtle);
+  border-radius: 3px;
+}
+
+/* Scroll fade indicator (right edge) */
+.jacques-scroll-fade {
+  position: relative;
+}
+
+.jacques-scroll-fade::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 8px;
+  width: 40px;
+  background: linear-gradient(to right, transparent, var(--color-bg-primary));
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Session history row hover */
+.jacques-history-row {
+  transition: background-color 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.jacques-history-row:hover {
+  background-color: var(--color-bg-elevated);
+  border-color: #4a4a4a;
+  box-shadow: inset 3px 0 0 var(--color-accent);
+}
+
+/* Responsive card grid for active sessions */
+.jacques-card-grid {
+  display: grid;
+  gap: 16px;
+  width: 100%;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+@media (min-width: 1280px) {
+  .jacques-card-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 800px) {
+  .jacques-card-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 520px) {
+  .jacques-card-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Asset/list row hover */
+.jacques-asset-item {
+  transition: background-color 150ms ease, border-color 150ms ease, transform 150ms ease;
+}
+
+.jacques-asset-item:hover {
+  background-color: var(--color-bg-elevated);
+  border-color: #4a4a4a;
+  transform: translateX(2px);
+}
+
+/* List row hover */
+.jacques-list-row {
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.jacques-list-row:hover {
+  background-color: var(--color-bg-elevated);
+  border-color: #4a4a4a;
+}
+
+/* Status dot pulse for working state */
+@keyframes status-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+/* Attention pulse for idle sessions needing user input */
+@keyframes attention-pulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+/* Subtle activity shimmer for working labels */
+@keyframes activity-breathe {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 1; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.jacques-skeleton {
+  background: linear-gradient(90deg, #1a1a1a 25%, #252525 50%, #1a1a1a 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Worktree Sessions View Styles
+   ───────────────────────────────────────────────────────────── */
+
+/* Worktree row — horizontal flex with responsive wrap */
+.jacques-worktree-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  width: 100%;
+}
+
+/* Worktree group animation */
+.jacques-worktree-group {
+  opacity: 0;
+  animation: worktree-slide-in 0.4s ease-out forwards;
+}
+
+@keyframes worktree-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Title hover-scroll marquee effect */
+@keyframes title-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  10% {
+    transform: translateX(0);
+  }
+  90% {
+    transform: translateX(calc(-100% + 200px));
+  }
+  100% {
+    transform: translateX(calc(-100% + 200px));
+  }
+}
+
+.jacques-title-scroll {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Compact Card — Selection System
+
+   Two independent visual layers:
+     BORDER  = activity status (left border: yellow=idle, default=working)
+               Never overridden by selection. Controlled by inline styles.
+     OUTLINE = user selection for tiling (orange frame outside the card)
+               Uses outline so it never conflicts with status borders.
+
+   Focused (last active terminal) uses a subtle top+right+bottom
+   border tint that preserves the left border status color.
+   ───────────────────────────────────────────────────────────── */
+
+.jacques-compact-card {
+  position: relative;
+  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+  outline: 2.5px solid transparent;
+  outline-offset: 1px;
+}
+
+.jacques-compact-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  border-top-color: #4a4a4a;
+  border-right-color: #4a4a4a;
+  border-bottom-color: #4a4a4a;
+  /* Left border is status indicator — never override on hover */
+}
+
+.jacques-compact-card:active {
+  transform: translateY(0);
+}
+
+/* ── Focused — left border only (set via inline style) ────── */
+/* No additional CSS borders needed; the left border color is  */
+/* controlled by the isFocused prop in CompactSessionCard.     */
+.jacques-compact-card.is-focused {
+}
+
+/* ── Selected — outline frame (independent of border) ─────── */
+.jacques-compact-card.is-selected {
+  outline-color: var(--color-accent);
+}
+
+/* ── Select pop animation ─────────────────────────────────── */
+.jacques-compact-card.is-selecting {
+  animation: select-pop 300ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* ── Deselect settle ──────────────────────────────────────── */
+.jacques-compact-card.is-deselecting {
+  animation: deselect-settle 200ms ease-out forwards;
+}
+
+@keyframes select-pop {
+  0%   { transform: scale(1) translateY(0); }
+  40%  { transform: scale(1.025) translateY(-1px); }
+  70%  { transform: scale(0.995) translateY(0); }
+  100% { transform: scale(1) translateY(0); }
+}
+
+@keyframes deselect-settle {
+  0%   { outline-color: var(--color-accent); }
+  100% { outline-color: transparent; }
+}
+
+/* Window toolbar buttons */
+.jacques-window-toolbar-btn:not(:disabled):hover {
+  color: #8B9296 !important;
+  background-color: #252525 !important;
+  opacity: 1 !important;
+}
+
+/* Card hint reveal on hover */
+.jacques-card-hint {
+  opacity: 0;
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+
+.jacques-compact-card:hover .jacques-card-hint {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Worktree connector pulse for active state */
+@keyframes connector-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+/* Artifact viewer hover states */
+.jacques-artifact-item {
+  transition: background-color 150ms ease, border-color 150ms ease, transform 150ms ease;
+}
+
+.jacques-artifact-item:hover {
+  background-color: var(--color-bg-elevated);
+  border-color: #4a4a4a;
+}
+
+/* Responsive behavior for worktree cards */
+@media (min-width: 1400px) {
+  .jacques-worktree-row {
+    gap: 20px;
+  }
+}
+
+/* Responsive artifact viewers */
+@media (max-width: 1200px) {
+  .jacques-viewers-row {
+    flex-direction: column !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .jacques-worktree-row {
+    gap: 12px;
+  }
+
+  .jacques-artifact-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .jacques-artifact-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .jacques-worktree-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .jacques-compact-card {
+    max-width: none !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Title Marquee — hover-to-scroll for long titles
+
+   Applied to a single <span> that overflows its container.
+   On hover: slides left to show full text, pauses at end,
+   then loops back. Single line, no duplication needed.
+   ───────────────────────────────────────────────────────────── */
+
+.jacques-title-marquee {
+  display: inline-block;
+  white-space: nowrap;
+  animation: title-marquee-scroll 6s linear infinite;
+  /* Let it overflow the clipped parent for the scroll */
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+
+@keyframes title-marquee-scroll {
+  0%   { transform: translateX(0); }
+  10%  { transform: translateX(0); }
+  90%  { transform: translateX(calc(-100% + 200px)); }
+  100% { transform: translateX(calc(-100% + 200px)); }
+}

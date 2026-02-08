@@ -1,0 +1,52 @@
+{
+  "statusLine": {
+    "type": "command",
+    "command": "~/.jacques/hooks/statusline.sh"
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.jacques/hooks/jacques-register-session.py"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.jacques/hooks/jacques-report-activity.py"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.jacques/hooks/jacques-session-idle.py"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.jacques/hooks/jacques-unregister-session.py"
+          }
+        ]
+      }
+    ]
+  }
+}

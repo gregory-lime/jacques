@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": "python3 ~/.jacques/hooks/cursor/session-start.py"
+      }
+    ],
+    "sessionEnd": [
+      {
+        "command": "python3 ~/.jacques/hooks/cursor/session-end.py"
+      }
+    ],
+    "postToolUse": [
+      {
+        "command": "python3 ~/.jacques/hooks/cursor/post-tool-use.py"
+      }
+    ],
+    "preCompact": [
+      {
+        "command": "python3 ~/.jacques/hooks/cursor/pre-compact.py"
+      }
+    ],
+    "afterAgentResponse": [
+      {
+        "command": "python3 ~/.jacques/hooks/cursor/after-agent-response.py"
+      }
+    ]
+  }
+}
