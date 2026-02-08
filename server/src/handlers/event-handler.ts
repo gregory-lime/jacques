@@ -131,16 +131,7 @@ export class EventHandler {
       // Activity doesn't change focus — only broadcast the session update
       this.broadcastService.broadcastSessionUpdate(session);
 
-      // For bypass sessions, hook permission_mode is unreliable (always reports acceptEdits)
-      // So detect mode from JSONL transcript instead
-      if (session.is_bypass) {
-        const modeBefore = session.mode;
-        this.registry.updateSessionMode(session.session_id).then((updated) => {
-          if (updated && updated.mode !== modeBefore) {
-            this.broadcastService.broadcastSessionUpdate(updated);
-          }
-        }).catch(() => {});
-      }
+      this.detectModeIfBypass(session);
     }
   }
 
@@ -184,17 +175,22 @@ export class EventHandler {
     if (session) {
       // Idle doesn't change focus, so just broadcast the session update
       this.broadcastService.broadcastSessionUpdate(session);
-
-      // For bypass sessions, detect mode from JSONL since hook permission_mode is unreliable
-      if (session.is_bypass) {
-        const modeBefore = session.mode;
-        this.registry.updateSessionMode(session.session_id).then((updated) => {
-          if (updated && updated.mode !== modeBefore) {
-            this.broadcastService.broadcastSessionUpdate(updated);
-          }
-        }).catch(() => {});
-      }
+      this.detectModeIfBypass(session);
     }
+  }
+
+  /**
+   * For bypass sessions, hook permission_mode is unreliable (always reports acceptEdits).
+   * Detect mode from JSONL transcript instead and broadcast if changed.
+   */
+  private detectModeIfBypass(session: { session_id: string; mode?: string | null; is_bypass?: boolean }): void {
+    if (!session.is_bypass) return;
+    const modeBefore = session.mode;
+    this.registry.updateSessionMode(session.session_id).then((updated) => {
+      if (updated && updated.mode !== modeBefore) {
+        this.broadcastService.broadcastSessionUpdate(updated);
+      }
+    }).catch(() => {});
   }
 
   /**

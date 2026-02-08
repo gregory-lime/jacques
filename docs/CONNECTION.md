@@ -15,6 +15,16 @@ The connection layer handles all interaction between the Jacques server and runn
 | `process-detection.ts` | Cross-platform Claude process detection | `getClaudeProcesses()`, `isProcessRunning()`, `isProcessBypass()`, `getPlatformInfo()` |
 | `index.ts` | Public API (re-exports all modules) | Everything above |
 
+## Session Module (`server/src/session/`)
+
+Session state management is decomposed into focused modules. The `SessionRegistry` delegates to these:
+
+| Module | Purpose | Key Exports |
+|--------|---------|-------------|
+| `session-factory.ts` | Create Session objects from 3 registration paths | `createFromHook()`, `createFromDiscovered()`, `createFromContextUpdate()`, `deriveProjectName()` |
+| `process-monitor.ts` | Process verification, bypass detection, PID tracking | `ProcessMonitor` class |
+| `cleanup-service.ts` | Recently-ended tracking, stale session cleanup | `CleanupService` class |
+
 ## Terminal Key Formats
 
 Terminal keys uniquely identify terminal sessions. Format: `PREFIX:value`

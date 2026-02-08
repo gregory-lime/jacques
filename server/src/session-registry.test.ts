@@ -408,4 +408,255 @@ describe('SessionRegistry', () => {
       expect(sessions[2].session_id).toBe('session-1'); // Oldest
     });
   });
+
+  describe('auto-registration from context_update', () => {
+    it('should auto-register session from context_update when session does not exist', () => {
+      const contextEvent: ContextUpdateEvent = {
+        event: 'context_update',
+        timestamp: Date.now(),
+        session_id: 'auto-session-1',
+        used_percentage: 25.0,
+        remaining_percentage: 75.0,
+        context_window_size: 200000,
+        model: 'claude-sonnet-4-5-20250929',
+        cwd: '/Users/test/my-project',
+      };
+
+      const session = registry.updateContext(contextEvent);
+
+      expect(session).not.toBeNull();
+      expect(session!.session_id).toBe('auto-session-1');
+      expect(session!.terminal_key).toMatch(/^AUTO:/);
+      expect(session!.context_metrics!.used_percentage).toBe(25.0);
+      expect(session!.cwd).toBe('/Users/test/my-project');
+      expect(registry.hasSession('auto-session-1')).toBe(true);
+    });
+
+    it('should upgrade AUTO: terminal key when hook fires after auto-registration', () => {
+      // Auto-register via context_update first
+      const contextEvent: ContextUpdateEvent = {
+        event: 'context_update',
+        timestamp: Date.now(),
+        session_id: 'upgrade-session',
+        used_percentage: 30.0,
+        remaining_percentage: 70.0,
+        context_window_size: 200000,
+        model: 'claude-opus-4-1',
+        cwd: '/Users/test/project',
+      };
+      registry.updateContext(contextEvent);
+
+      const session = registry.getSession('upgrade-session');
+      expect(session!.terminal_key).toMatch(/^AUTO:/);
+
+      // Now hook fires with real terminal key
+      const startEvent: SessionStartEvent = {
+        event: 'session_start',
+        timestamp: Date.now() + 1000,
+        session_id: 'upgrade-session',
+        session_title: 'My Session',
+        transcript_path: '/path/to/transcript.jsonl',
+        cwd: '/Users/test/project',
+        project: 'project',
+        terminal: null,
+        terminal_key: 'TTY:/dev/ttys005',
+      };
+      const updated = registry.registerSession(startEvent);
+
+      // Terminal key should be upgraded from AUTO: to TTY:
+      expect(updated.terminal_key).toBe('TTY:/dev/ttys005');
+      expect(updated.session_title).toBe('My Session');
+      expect(updated.transcript_path).toBe('/path/to/transcript.jsonl');
+    });
+  });
+
+  describe('terminal key conflict resolution', () => {
+    it('should remove old session when new session starts in same terminal', () => {
+      // Register first session
+      const event1: SessionStartEvent = {
+        event: 'session_start',
+        timestamp: Date.now(),
+        session_id: 'old-session',
+        session_title: 'Old Session',
+        transcript_path: null,
+        cwd: '/test',
+        project: 'test',
+        terminal: null,
+        terminal_key: 'TTY:/dev/ttys001',
+      };
+      registry.registerSession(event1);
+
+      expect(registry.hasSession('old-session')).toBe(true);
+
+      // Register new session with same terminal key but different session_id
+      const event2: SessionStartEvent = {
+        event: 'session_start',
+        timestamp: Date.now() + 1000,
+        session_id: 'new-session',
+        session_title: 'New Session',
+        transcript_path: null,
+        cwd: '/test',
+        project: 'test',
+        terminal: null,
+        terminal_key: 'TTY:/dev/ttys001', // Same terminal key!
+      };
+      registry.registerSession(event2);
+
+      // Old session should be removed
+      expect(registry.hasSession('old-session')).toBe(false);
+      // New session should exist
+      expect(registry.hasSession('new-session')).toBe(true);
+      expect(registry.getSessionCount()).toBe(1);
+    });
+  });
+
+  describe('bypass mode', () => {
+    it('should mark session as bypass when pending bypass CWD matches', () => {
+      // Mark CWD as pending bypass
+      registry.markPendingBypass('/Users/test/bypass-project');
+
+      // Register session with matching CWD
+      const event: SessionStartEvent = {
+        event: 'session_start',
+        timestamp: Date.now(),
+        session_id: 'bypass-session',
+        session_title: 'Bypass Session',
+        transcript_path: null,
+        cwd: '/Users/test/bypass-project',
+        project: 'bypass-project',
+        terminal: null,
+        terminal_key: 'TTY:/dev/ttys001',
+      };
+      const session = registry.registerSession(event);
+
+      expect(session.is_bypass).toBe(true);
+    });
+
+    it('should not mark session as bypass when no pending bypass', () => {
+      const event: SessionStartEvent = {
+        event: 'session_start',
+        timestamp: Date.now(),
+        session_id: 'normal-session',
+        session_title: 'Normal Session',
+        transcript_path: null,
+        cwd: '/Users/test/normal-project',
+        project: 'normal-project',
+        terminal: null,
+        terminal_key: 'TTY:/dev/ttys001',
+      };
+      const session = registry.registerSession(event);
+
+      expect(session.is_bypass).toBeFalsy();
+    });
+
+    it('should consume pending bypass so it only works once', () => {
+      registry.markPendingBypass('/Users/test/bypass-project');
+
+      // First session consumes the bypass
+      const event1: SessionStartEvent = {
+        event: 'session_start',
+        timestamp: Date.now(),
+        session_id: 'session-1',
+        session_title: null,
+        transcript_path: null,
+        cwd: '/Users/test/bypass-project',
+        project: 'bypass-project',
+        terminal: null,
+        terminal_key: 'TTY:/dev/ttys001',
+      };
+      const session1 = registry.registerSession(event1);
+      expect(session1.is_bypass).toBe(true);
+
+      // Second session in same CWD should NOT be bypass
+      const event2: SessionStartEvent = {
+        event: 'session_start',
+        timestamp: Date.now() + 1000,
+        session_id: 'session-2',
+        session_title: null,
+        transcript_path: null,
+        cwd: '/Users/test/bypass-project',
+        project: 'bypass-project',
+        terminal: null,
+        terminal_key: 'TTY:/dev/ttys002',
+      };
+      const session2 = registry.registerSession(event2);
+      expect(session2.is_bypass).toBeFalsy();
+    });
+  });
+
+  describe('mode detection from permission_mode', () => {
+    it('should set mode to plan from plan permission', () => {
+      const event: SessionStartEvent = {
+        event: 'session_start',
+        timestamp: Date.now(),
+        session_id: 'plan-session',
+        session_title: 'Plan Session',
+        transcript_path: null,
+        cwd: '/test',
+        project: 'test',
+        terminal: null,
+        terminal_key: 'TTY:/dev/ttys001',
+        permission_mode: 'plan',
+      };
+      const session = registry.registerSession(event);
+
+      expect(session.mode).toBe('plan');
+    });
+
+    it('should set mode to acceptEdits from acceptEdits permission', () => {
+      const event: SessionStartEvent = {
+        event: 'session_start',
+        timestamp: Date.now(),
+        session_id: 'code-session',
+        session_title: 'Code Session',
+        transcript_path: null,
+        cwd: '/test',
+        project: 'test',
+        terminal: null,
+        terminal_key: 'TTY:/dev/ttys001',
+        permission_mode: 'acceptEdits',
+      };
+      const session = registry.registerSession(event);
+
+      expect(session.mode).toBe('acceptEdits');
+    });
+
+    it('should mark as bypass from bypassPermissions (mode not set, is_bypass set)', () => {
+      const event: SessionStartEvent = {
+        event: 'session_start',
+        timestamp: Date.now(),
+        session_id: 'bypass-perm-session',
+        session_title: 'Bypass Session',
+        transcript_path: null,
+        cwd: '/test',
+        project: 'test',
+        terminal: null,
+        terminal_key: 'TTY:/dev/ttys001',
+        permission_mode: 'bypassPermissions',
+      };
+      const session = registry.registerSession(event);
+
+      // bypassPermissions sets is_bypass but does NOT set mode
+      expect(session.is_bypass).toBe(true);
+      expect(session.mode).toBeUndefined();
+    });
+
+    it('should set mode to default from default permission', () => {
+      const event: SessionStartEvent = {
+        event: 'session_start',
+        timestamp: Date.now(),
+        session_id: 'default-session',
+        session_title: 'Default Session',
+        transcript_path: null,
+        cwd: '/test',
+        project: 'test',
+        terminal: null,
+        terminal_key: 'TTY:/dev/ttys001',
+        permission_mode: 'default',
+      };
+      const session = registry.registerSession(event);
+
+      expect(session.mode).toBe('default');
+    });
+  });
 });

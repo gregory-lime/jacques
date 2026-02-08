@@ -11,16 +11,25 @@ Real-time session tracking, event processing, and REST/WebSocket API. Depends on
 
 | File | Responsibility |
 |------|----------------|
-| `server.ts` | Main orchestrator — wires socket, WebSocket, registry, HTTP |
-| `start-server.ts` | Embeddable entry point (used by dashboard) |
+| `server.ts` | Standalone CLI entry point — PID file, pre-flight checks, signal handlers |
+| `start-server.ts` | Embeddable orchestrator — wires socket, WebSocket, registry, HTTP; thin router delegates to handler classes |
 | `types.ts` | Server-specific types (events, messages) |
-| `session-registry.ts` | In-memory session state management |
+| `session-registry.ts` | In-memory session state management (facade over session/ modules) |
+| `session/session-factory.ts` | Session object creation from 3 registration paths |
+| `session/process-monitor.ts` | Process verification, bypass detection, PID management |
+| `session/cleanup-service.ts` | Recently-ended tracking, stale session cleanup |
 | `process-scanner.ts` | Cross-platform startup session detection |
 | `unix-socket.ts` | Listen on `/tmp/jacques.sock` for hook events |
 | `websocket.ts` | Broadcast session updates to clients |
 | `http-api.ts` | REST API on port 4243 |
 | `terminal-activator.ts` | Activate terminal window via AppleScript |
 | `focus-watcher.ts` | Monitor OS focus changes |
+| `handlers/event-handler.ts` | Routes hook events to registry + broadcast |
+| `handlers/window-handler.ts` | Window management: tile, maximize, browser layout, smart tile |
+| `handlers/worktree-handler.ts` | Git worktree create, list, remove |
+| `handlers/session-handler.ts` | Focus terminal, launch session |
+| `handlers/settings-handler.ts` | Auto-compact toggle, notification settings, handoff context |
+| `handlers/ws-utils.ts` | Shared WebSocket response helper |
 
 ## Event Flow
 
@@ -68,10 +77,18 @@ This ensures discovered sessions show accurate metadata immediately without expe
 
 ## Session Registry
 
-In-memory session store indexed by `session_id`.
+In-memory session store indexed by `session_id`. The registry is a thin facade that delegates to three focused modules:
+
+- **`session/session-factory.ts`** — Creates Session objects from 3 registration paths (hooks, process discovery, context_update auto-registration)
+- **`session/process-monitor.ts`** — Verifies processes are still running, detects bypass mode from PIDs, manages pending bypass CWD tracking
+- **`session/cleanup-service.ts`** — Tracks recently-ended sessions (prevents re-registration from stale events), runs periodic stale session cleanup
+
+**Key behaviors:**
 
 - **Auto-registration**: If `context_update` arrives before `session_start`, auto-creates the session
 - **Discovery registration**: Sessions detected at startup via process scanning
+- **Terminal key upgrade**: AUTO:/DISCOVERED: keys upgrade to real keys when hooks fire
+- **Terminal key conflict**: New session in same terminal tab removes the old session
 - **Auto-focus**: Most recently active session gets focus
 - **Terminal identity**: `terminal_key` combines TTY, iTerm session ID, terminal PID
 - **Auto-compact tracking**: Reads `~/.claude/settings.json` for autoCompact settings
@@ -160,6 +177,19 @@ See `docs/CONNECTION.md` (Worktree Management section) for full details on the g
 
 - **`silent: false`** (default, standalone mode): writes to stdout/stderr AND broadcasts to WebSocket
 - **`silent: true`** (embedded/TUI mode): only broadcasts to WebSocket, suppresses stdout/stderr to prevent core module `console.error` calls from leaking onto Ink's alternate screen buffer
+
+## WebSocket Handlers
+
+Client messages are routed by `start-server.ts` to domain handler classes:
+
+| Handler | Messages | Deps |
+|---------|----------|------|
+| `WindowHandler` | tile_windows, maximize_window, position_browser_layout, smart_tile_add | registry, tileStateManager |
+| `WorktreeHandler` | create_worktree, list_worktrees, remove_worktree | registry, tileStateManager |
+| `SessionHandler` | focus_terminal, launch_session | registry |
+| `SettingsHandler` | toggle_autocompact, get_handoff_context, update_notification_settings | registry, wsServer, notificationService |
+
+`select_session`, `trigger_action`, `chat_send`, and `chat_abort` are handled inline in the router.
 
 ## Services
 
