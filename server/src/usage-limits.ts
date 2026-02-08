@@ -10,6 +10,9 @@ import { execSync } from 'child_process';
 import { homedir, platform } from 'os';
 import { join } from 'path';
 import type { UsageLimits } from './types.js';
+import { createLogger } from './logging/logger-factory.js';
+
+const logger = createLogger({ prefix: 'Usage' });
 
 const USAGE_API_URL = 'https://api.anthropic.com/api/oauth/usage';
 const CACHE_TTL_MS = 30_000;
@@ -82,7 +85,10 @@ export async function fetchUsageLimits(): Promise<UsageLimits | null> {
       },
     });
 
-    if (!response.ok) return null;
+    if (!response.ok) {
+      logger.warn(`Usage API returned ${response.status}`);
+      return null;
+    }
 
     const data = await response.json() as Record<string, unknown>;
 
@@ -118,7 +124,8 @@ export async function fetchUsageLimits(): Promise<UsageLimits | null> {
     cachedLimits = limits;
     lastFetchTime = now;
     return limits;
-  } catch {
+  } catch (err) {
+    logger.warn(`Usage API fetch failed: ${err}`);
     return cachedLimits;
   }
 }
