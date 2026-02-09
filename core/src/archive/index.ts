@@ -47,6 +47,14 @@ export {
 
 export type { DetectedPlan, PlanFingerprint } from "./plan-extractor.js";
 
+// Filename Utilities
+export {
+  slugify,
+  generatePlanFilename,
+  generateArchivePlanFilename,
+  generateVersionedFilename,
+} from "./filename-utils.js";
+
 // Plan Cataloger
 export { catalogPlan } from "./plan-cataloger.js";
 export type { CatalogPlanInput } from "./plan-cataloger.js";

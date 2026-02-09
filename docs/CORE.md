@@ -39,7 +39,8 @@ Cross-project conversation search and plan management.
 
 - `manifest-extractor.ts` — Extract metadata from sessions (title, files, technologies)
 - `plan-extractor.ts` — Detect embedded plans via trigger phrases ("Implement the following plan:")
-- `plan-cataloger.ts` — Cross-session dedup: SHA-256 exact match + Jaccard 90% fuzzy match
+- `plan-cataloger.ts` — Cross-session dedup: SHA-256 exact match + Jaccard 75% fuzzy match
+- `filename-utils.ts` — Shared slug/filename generation (`slugify`, `generatePlanFilename`, `generateArchivePlanFilename`, `generateVersionedFilename`)
 - `search-indexer.ts` — Tokenize and build keyword inverted index
 - `archive-store.ts` — Read/write `~/.jacques/archive/` (manifests, conversations, plans)
 - `bulk-archive.ts` — Scan `~/.claude/projects/` and archive all sessions
@@ -131,17 +132,30 @@ Plans undergo two-level deduplication:
 Tracks task completion within sessions for plan progress display.
 
 - `types.ts` — TaskSignal, TaskStatus, ProgressItem interfaces
-- `task-extractor.ts` — Extract tasks from JSONL (TaskCreate, TaskUpdate, TaskList tool calls)
-- `plan-parser.ts` — Parse markdown plan structure into items
-- `progress-matcher.ts` — Match tasks to plan items (title similarity)
-- `progress-computer.ts` — Compute overall plan completion percentage
+- `plan-parser.ts` — Parse markdown plan structure into PlanItem tree (headings, numbered, bullet, checkbox)
+- `task-extractor.ts` — Extract TaskSignals from JSONL (TaskCreate, TaskUpdate, TaskList, TodoWrite, agent_progress, bash_progress, file heuristic)
+- `progress-matcher.ts` — Match signals to plan items via 5 strategies (exact text, keyword overlap, identifier, file path, substring) with source confidence multipliers and parent-child propagation
+- `progress-computer.ts` — Orchestrate full progress computation with caching (`~/.jacques/cache/plan-progress/`)
 
-**Task Sources** (priority order):
-| Source | Tool | Confidence |
-|--------|------|------------|
+**Task Sources** (with confidence multipliers):
+| Source | Tool/Detection | Multiplier |
+|--------|---------------|------------|
 | `task_create` | TaskCreate | 1.0 |
 | `task_update` | TaskUpdate | 1.0 |
-| `task_list` | TaskList results | 0.9 |
+| `task_list` | TaskList results | 1.0 |
+| `todo_write` | TodoWrite (legacy) | 1.0 |
+| `agent_progress` | Subagent assistant messages | 0.7 |
+| `file_heuristic` | Write/Edit file paths | 0.6 |
+| `bash_progress` | Test/build/deploy output | 0.5 |
+
+**Matching strategies** (tried in order, best confidence wins):
+1. Exact text match (normalized)
+2. Keyword overlap (Jaccard similarity >= 0.3)
+3. Identifier match (CamelCase >= 5 chars, hyphenated, file names)
+4. File path match (basename in item text)
+5. Substring match (2-4 word phrase >= 8 chars)
+
+**Test coverage**: All 4 modules have comprehensive tests (plan-parser: 50, task-extractor: 56, progress-matcher: 39, progress-computer: 13).
 
 **API Endpoint**: `GET /api/sessions/:id/tasks` returns extracted tasks with summary (total, completed, percentage).
 

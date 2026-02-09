@@ -33,6 +33,10 @@ hooks/ → React hooks for state management
 
 **Context Providers**: ProjectScope (active project), OpenSessions (session tabs)
 
+**Error Boundaries**: Two React ErrorBoundary layers prevent full-page crashes:
+- `App.tsx` — `<ErrorBoundary level="app">` wraps `<Routes>` (shows "Return to Home" link)
+- `Layout.tsx` — `<ErrorBoundary level="route">` wraps `<Outlet>` (sidebar stays accessible, shows "Try Again" button)
+
 ## Key Components
 
 ### Pages (`gui/src/pages/`)
@@ -46,7 +50,8 @@ hooks/ → React hooks for state management
 - `PlanNavigator.tsx` — Sidebar: plans in a session (uses backend planRefs when available)
 - `PlanViewer.tsx` — Modal: loads plan content (catalog endpoint first, messageIndex fallback)
 
-### UI Components
+### UI Components (`gui/src/components/ui/`)
+- `ErrorBoundary.tsx` — React class component error boundary (`level="app"` or `level="route"`)
 - `ContentModal.tsx` — Reusable modal container
 - `NotificationCenter.tsx` — Toast notifications
 - `ContextMeter.tsx` — Visual context usage meter
@@ -61,7 +66,7 @@ Wraps HTTP calls to the server REST API. Split into 9 domain modules (previously
 
 | File | Responsibility |
 |------|----------------|
-| `client.ts` | `API_URL` constant (dev vs production), `streamSSE()` helper for SSE endpoints |
+| `client.ts` | `API_URL` constant (dev vs production), `streamSSE()` helper for SSE endpoints (malformed JSON events are skipped, not fatal) |
 | `sources.ts` | Source status/config (Obsidian, Google Docs, Notion) |
 | `server-config.ts` | Root catalog path configuration |
 | `archive.ts` | Archived conversations, subagents, search, bulk archive SSE |
@@ -124,6 +129,15 @@ All UI preferences persist to localStorage with the `jacques:` prefix:
 | `logPanelHeight` | `number` | `MultiLogPanel` |
 | `catalogCollapsed` | `boolean` | `Context` |
 | `dangerouslySkipPermissions` | `boolean` | `Settings`, `Dashboard` |
+
+## Shared Utilities (`gui/src/utils/`)
+
+- `session-display.tsx` — Consolidated display functions shared across Dashboard, SessionCard, and CompactSessionCard:
+  - `PLAN_TITLE_PATTERNS` — Regex patterns for detecting plan sessions
+  - `formatSessionTitle(rawTitle, options?)` — Title formatting with options: `maxLength`, `stripCommands`, `stripArtifacts`, `fallbackTitle`
+  - `formatTokens(count)` — Token count formatting (e.g., `125k`)
+  - `contextColor(pct)` — Context usage percentage to color mapping
+  - `ActivityIcon({hint, color, size})` — Lucide icon switch by activity hint
 
 ## Static File Serving
 

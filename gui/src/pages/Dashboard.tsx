@@ -24,6 +24,7 @@ import { ArrowDown, ArrowUp, GitBranch } from 'lucide-react';
 import type { Session } from '../types';
 import { useShortcutActions } from '../hooks/useShortcutActions';
 import { useFocusZone } from '../hooks/useFocusZone';
+import { formatTokens, formatSessionTitle } from '../utils/session-display';
 
 // ─── Color Constants ─────────────────────────────────────────
 
@@ -49,12 +50,6 @@ const PALETTE = {
 
 // ─── Helpers ─────────────────────────────────────────────────
 
-function formatTokens(count: number): string {
-  if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
-  if (count >= 1000) return `${Math.round(count / 1000)}K`;
-  return String(count);
-}
-
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr);
   const now = new Date();
@@ -68,25 +63,6 @@ function formatDate(dateStr: string): string {
   if (diffDays === 1) return 'Yesterday';
   if (diffDays < 7) return `${diffDays}d ago`;
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-
-const PLAN_TITLE_PATTERNS = [
-  /^implement the following plan[:\s]*/i,
-  /^here is the plan[:\s]*/i,
-  /^follow this plan[:\s]*/i,
-];
-
-function formatSessionTitle(rawTitle: string | null): { isPlan: boolean; displayTitle: string } {
-  if (!rawTitle) return { isPlan: false, displayTitle: 'Untitled' };
-  for (const pattern of PLAN_TITLE_PATTERNS) {
-    if (pattern.test(rawTitle)) {
-      const cleaned = rawTitle.replace(pattern, '').trim();
-      const headingMatch = cleaned.match(/^#\s+(.+)/m);
-      const planName = headingMatch ? headingMatch[1].trim() : cleaned.split('\n')[0].trim();
-      return { isPlan: true, displayTitle: planName || 'Unnamed Plan' };
-    }
-  }
-  return { isPlan: false, displayTitle: rawTitle };
 }
 
 // ─── Types ───────────────────────────────────────────────────

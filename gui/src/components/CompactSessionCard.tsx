@@ -23,12 +23,9 @@ import { useRef, useEffect, useState, useCallback } from 'react';
 import type { Session, SessionBadges } from '../types';
 import { colors } from '../styles/theme';
 import { PlanIcon, AgentIcon } from './Icons';
-import {
-  ChevronRight, Crosshair, Zap, GitBranch, ShieldOff,
-  Terminal, FileText, PenTool, Search, Bot,
-  Globe, Plug, Wrench, MessageSquare, Loader,
-} from 'lucide-react';
+import { ChevronRight, Crosshair, Zap, GitBranch, ShieldOff } from 'lucide-react';
 import { getActivityInfo } from '../utils/activityLabel';
+import { formatSessionTitle, formatTokens, contextColor, ActivityIcon } from '../utils/session-display';
 
 interface CompactSessionCardProps {
   session: Session;
@@ -42,69 +39,6 @@ interface CompactSessionCardProps {
   onAgentClick?: () => void;
   isSelected?: boolean;
   onSelectionChange?: (selected: boolean) => void;
-}
-
-// ─── Helpers ──────────────────────────────────────────────
-
-const PLAN_TITLE_PATTERNS = [
-  /^implement the following plan[:\s]*/i,
-  /^here is the plan[:\s]*/i,
-  /^follow this plan[:\s]*/i,
-];
-
-function formatTitle(raw: string | null): { isPlan: boolean; title: string } {
-  if (!raw) return { isPlan: false, title: 'Untitled session' };
-  const trimmed = raw.trim();
-  if (trimmed.startsWith('<local-command') || trimmed.startsWith('<command-')) {
-    return { isPlan: false, title: 'Active Session' };
-  }
-  for (const p of PLAN_TITLE_PATTERNS) {
-    if (p.test(raw)) {
-      const cleaned = raw.replace(p, '').trim();
-      const heading = cleaned.match(/^#\s+(.+)/m);
-      let name = heading ? heading[1].trim() : cleaned.split('\n')[0].trim();
-      // Strip trailing "..." from index truncation artifacts
-      name = name.replace(/\.{3}$/, '').replace(/-$/, '').trim();
-      return { isPlan: true, title: name || 'Unnamed Plan' };
-    }
-  }
-  return { isPlan: false, title: raw };
-}
-
-function formatTokens(tokens: number): string {
-  if (tokens >= 1000000) return `${(tokens / 1000000).toFixed(1)}M`;
-  if (tokens >= 1000) return `${Math.round(tokens / 1000)}k`;
-  return tokens.toString();
-}
-
-function contextColor(pct: number): string {
-  if (pct <= 50) return colors.accent;
-  // Interpolate from accent (#E67E52) to danger (#EF4444) between 50-100%
-  const t = Math.min(1, (pct - 50) / 50);
-  const r = Math.round(0xE6 + (0xEF - 0xE6) * t);
-  const g = Math.round(0x7E - (0x7E - 0x44) * t);
-  const b = Math.round(0x52 - (0x52 - 0x44) * t);
-  return `rgb(${r}, ${g}, ${b})`;
-}
-
-// ─── Activity Icon ────────────────────────────────────────
-
-function ActivityIcon({ hint, color, size = 13 }: { hint: string; color: string; size?: number }) {
-  const p = { size, color, strokeWidth: 2 };
-  switch (hint) {
-    case 'terminal':       return <Terminal {...p} />;
-    case 'file-text':      return <FileText {...p} />;
-    case 'pen-tool':       return <PenTool {...p} />;
-    case 'search':         return <Search {...p} />;
-    case 'bot':            return <Bot {...p} />;
-    case 'globe':          return <Globe {...p} />;
-    case 'plug':           return <Plug {...p} />;
-    case 'wrench':         return <Wrench {...p} />;
-    case 'message-square': return <MessageSquare {...p} />;
-    case 'loader':         return <Loader {...p} style={{ animation: 'spin 1.5s linear infinite' }} />;
-    case 'plan':           return <PlanIcon size={size} color={color} />;
-    default:               return null;
-  }
 }
 
 // ─── Component ────────────────────────────────────────────
@@ -154,7 +88,7 @@ export function CompactSessionCard({
   }, [session.session_title]);
 
   const status = session.status;
-  const { isPlan, title: displayTitle } = formatTitle(session.session_title);
+  const { isPlan, displayTitle } = formatSessionTitle(session.session_title, { stripCommands: true, stripArtifacts: true, fallbackTitle: 'Untitled session' });
   const activity = getActivityInfo(status, session.last_tool_name);
 
   const model = session.model?.display_name || session.model?.id || '';

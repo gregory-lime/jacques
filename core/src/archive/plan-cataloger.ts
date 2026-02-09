@@ -15,54 +15,12 @@ import {
   extractPlanTitle,
   findDuplicatePlan,
 } from "./plan-extractor.js";
+import { generatePlanFilename, generateVersionedFilename } from "./filename-utils.js";
 
 export interface CatalogPlanInput {
   title: string;
   content: string;
   sessionId: string;
-}
-
-/**
- * Generate a filename for a plan.
- * Format: YYYY-MM-DD_title-slug.md
- */
-function generatePlanFilename(title: string): string {
-  const date = new Date().toISOString().split("T")[0];
-  const slug = title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .substring(0, 50);
-
-  return `${date}_${slug}.md`;
-}
-
-/**
- * Generate a versioned filename to avoid collisions.
- */
-async function generateVersionedFilename(
-  basePath: string,
-  filename: string
-): Promise<string> {
-  const ext = ".md";
-  const nameWithoutExt = filename.replace(ext, "");
-
-  let version = 2;
-  let versionedFilename = filename;
-  let versionedPath = join(basePath, versionedFilename);
-
-  while (true) {
-    try {
-      await fs.access(versionedPath);
-      // File exists, try next version
-      versionedFilename = `${nameWithoutExt}-v${version}${ext}`;
-      versionedPath = join(basePath, versionedFilename);
-      version++;
-    } catch {
-      // File doesn't exist, we can use this version
-      return versionedFilename;
-    }
-  }
 }
 
 /**

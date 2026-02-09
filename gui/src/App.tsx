@@ -14,6 +14,7 @@ import { ProjectScopeProvider } from './hooks/useProjectScope.js';
 import { OpenSessionsProvider } from './hooks/useOpenSessions';
 import { FocusZoneProvider } from './hooks/useFocusZone';
 import { ShortcutActionsProvider } from './hooks/useShortcutActions';
+import { ErrorBoundary } from './components/ui';
 
 export function App() {
   return (
@@ -21,6 +22,7 @@ export function App() {
     <ShortcutActionsProvider>
     <ProjectScopeProvider>
       <OpenSessionsProvider>
+        <ErrorBoundary level="app">
         <Routes>
           <Route path="/" element={<Layout />}>
             {/* Root redirect → /:activeProject/sessions */}
@@ -50,6 +52,7 @@ export function App() {
             <Route path="*" element={<RootRedirect />} />
           </Route>
         </Routes>
+        </ErrorBoundary>
       </OpenSessionsProvider>
     </ProjectScopeProvider>
     </ShortcutActionsProvider>

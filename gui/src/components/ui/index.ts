@@ -13,3 +13,4 @@ export { NotificationCenter } from './NotificationCenter';
 export type { ContentModalConfig } from './ContentModal';
 export { ToggleSwitch } from './ToggleSwitch';
 export { SettingsSection } from './SettingsSection';
+export { ErrorBoundary } from './ErrorBoundary';

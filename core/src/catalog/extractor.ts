@@ -23,6 +23,7 @@ import { extractManifestFromEntries } from "../archive/manifest-extractor.js";
 import { detectModeAndPlans } from "../cache/index.js";
 import { catalogPlan } from "../archive/plan-cataloger.js";
 import { PLAN_TRIGGER_PATTERNS, extractPlanTitle } from "../archive/plan-extractor.js";
+import { slugify } from "../archive/filename-utils.js";
 import {
   readProjectIndex,
   addSubagentToIndex,
@@ -38,17 +39,6 @@ import type {
 const JACQUES_DIR = ".jacques";
 const SESSIONS_DIR = "sessions";
 const SUBAGENTS_DIR = "subagents";
-
-/**
- * Generate a URL-safe slug from text.
- */
-function slugify(text: string, maxLength = 40): string {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .substring(0, maxLength);
-}
 
 /**
  * Generate a short hash from text.

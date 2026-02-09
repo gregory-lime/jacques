@@ -22,6 +22,7 @@ import { addToIndex, searchIndex } from "./search-indexer.js";
 import type { SavedContext } from "../session/transformer.js";
 import { addSessionToIndex, addPlanToIndex } from "../context/indexer.js";
 import type { SessionEntry, PlanEntry } from "../context/types.js";
+import { slugify, generateArchivePlanFilename } from "./filename-utils.js";
 
 /** Global archive base path */
 const GLOBAL_ARCHIVE_PATH = path.join(homedir(), ".jacques", "archive");
@@ -35,19 +36,6 @@ const LOCAL_ARCHIVE_DIR = ".jacques";
 // ============================================================
 // Filename Generation
 // ============================================================
-
-/**
- * Slugify a string for use in filenames.
- * Converts to lowercase, replaces spaces/special chars with dashes.
- */
-function slugify(text: string, maxLength: number = 40): string {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .substring(0, maxLength)
-    .replace(/-+$/, "");
-}
 
 /**
  * Generate a readable filename for a session.
@@ -64,44 +52,6 @@ export function generateSessionFilename(
   const shortId = manifest.id.substring(0, 4);
 
   return `${dateStr}_${timeStr}_${titleSlug}_${shortId}.json`;
-}
-
-/**
- * Extract title from plan content (first # heading).
- */
-export function extractPlanTitle(content: string): string | null {
-  const titleMatch = content.match(/^#\s+(.+)$/m);
-  if (titleMatch) {
-    return titleMatch[1].trim();
-  }
-  return null;
-}
-
-/**
- * Generate a readable filename for a plan.
- * Format: [YYYY-MM-DD]_[title-slug].md
- * Uses the actual title from the plan content if provided.
- */
-export function generatePlanFilename(
-  planPath: string,
-  options: { content?: string; createdAt?: Date } = {}
-): string {
-  const dateStr = (options.createdAt || new Date()).toISOString().split("T")[0];
-
-  // Try to extract title from content
-  let title: string | null = null;
-  if (options.content) {
-    title = extractPlanTitle(options.content);
-  }
-
-  // Fallback to original filename
-  if (!title) {
-    title = path.basename(planPath, ".md");
-  }
-
-  const titleSlug = slugify(title);
-
-  return `${dateStr}_${titleSlug}.md`;
 }
 
 // ============================================================
@@ -438,7 +388,7 @@ export async function archivePlan(
 
     // Generate readable filename using the plan's actual title
     const stats = await fs.stat(planPath);
-    const filename = generatePlanFilename(planPath, {
+    const filename = generateArchivePlanFilename(planPath, {
       content,
       createdAt: stats.mtime,
     });
@@ -621,7 +571,7 @@ export async function archiveConversation(
       // Read plan content to extract title for filename
       const planContent = await fs.readFile(planRef.path, "utf-8");
       const planStats = await fs.stat(planRef.path);
-      const planFilename = generatePlanFilename(planRef.path, {
+      const planFilename = generateArchivePlanFilename(planRef.path, {
         content: planContent,
         createdAt: planStats.mtime,
       });

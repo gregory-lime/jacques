@@ -62,13 +62,19 @@ export function streamSSE<TProgress, TResult>(
         if (line.startsWith('event: ')) {
           currentEvent = line.slice(7);
         } else if (line.startsWith('data: ')) {
-          const data = JSON.parse(line.slice(6));
+          let data: unknown;
+          try {
+            data = JSON.parse(line.slice(6));
+          } catch {
+            console.warn('[Jacques SSE] Malformed data, skipping:', line.slice(6, 100));
+            continue;
+          }
           if (currentEvent === 'progress') {
-            callbacks.onProgress?.(data);
+            callbacks.onProgress?.(data as TProgress);
           } else if (currentEvent === 'complete') {
-            callbacks.onComplete?.(data);
+            callbacks.onComplete?.(data as TResult);
           } else if (currentEvent === 'error') {
-            callbacks.onError?.(data.error);
+            callbacks.onError?.((data as { error: string }).error);
           }
         }
       }

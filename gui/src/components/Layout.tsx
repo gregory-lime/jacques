@@ -10,6 +10,7 @@ import {
   ChevronsRight,
 } from 'lucide-react';
 import { colors, typography } from '../styles/theme';
+import { ErrorBoundary } from './ui';
 import { ProjectSelector } from './ProjectSelector';
 import { useJacquesClient } from '../hooks/useJacquesClient';
 import { useProjectScope } from '../hooks/useProjectScope.js';
@@ -372,7 +373,9 @@ export function Layout() {
       {/* Content Area */}
       <div style={styles.contentArea}>
         <main style={styles.main}>
-          <Outlet />
+          <ErrorBoundary level="route">
+            <Outlet />
+          </ErrorBoundary>
         </main>
 
         {showLogs && (

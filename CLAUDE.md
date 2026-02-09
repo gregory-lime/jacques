@@ -76,7 +76,8 @@ cd hooks && python3 -m pytest adapters/test_*.py                # Run hook adapt
 
 **Test Organization**:
 - `server/src/*.test.ts`: Server component tests
-- `core/src/**/*.test.ts`: Core module tests (plan-extractor, catalog)
+- `core/src/**/*.test.ts`: Core module tests (plan-extractor, catalog, plan progress)
+- `core/src/plan/*.test.ts`: Plan progress tests (plan-parser, task-extractor, progress-matcher, progress-computer)
 - `cli/src/**/*.test.ts`: CLI tests (sources, context, archive)
 - `hooks/adapters/test_*.py`: Hook adapter tests
 - Tests use mock data, no actual AI tool sessions required
@@ -170,7 +171,7 @@ This ensures sessions killed with Ctrl+C are still saved to history with their p
 ```
 jacques-context-manager/
 ├── core/src/            # Shared business logic (TypeScript)
-│   ├── archive/         # Cross-project search and archiving
+│   ├── archive/         # Cross-project search and archiving (includes filename-utils.ts)
 │   ├── cache/           # Session indexing (7 submodules: types, persistence, metadata-extractor, mode-detector, project-discovery, git-utils, hidden-projects)
 │   ├── catalog/         # Catalog extraction (pre-extract JSONL → .jacques/)
 │   ├── context/         # Project knowledge management (index.json)
@@ -190,10 +191,12 @@ jacques-context-manager/
 ├── gui/src/             # Web GUI (React + Vite)
 │   ├── api/             # HTTP API client (9 domain modules: sources, archive, sessions, plans, context, sync, handoffs, usage, server-config)
 │   ├── components/      # React components
-│   │   └── context/     # Context Catalog GUI components
+│   │   ├── context/     # Context Catalog GUI components
+│   │   └── ui/          # Shared UI (ErrorBoundary, etc.)
 │   ├── hooks/           # Custom React hooks
 │   ├── pages/           # Route pages
-│   └── styles/          # Theme and styling
+│   ├── styles/          # Theme and styling
+│   └── utils/           # Shared utilities (session-display.tsx)
 ├── hooks/               # Claude Code/Cursor hooks (Python/Bash)
 ├── scripts/             # Setup and configuration scripts
 └── docs/                # Documentation

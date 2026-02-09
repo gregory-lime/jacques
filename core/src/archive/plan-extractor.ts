@@ -12,6 +12,8 @@ import type { ParsedEntry } from "../session/parser.js";
 import type { PlanReference } from "./types.js";
 import type { PlanEntry } from "../context/types.js";
 import { readProjectIndex, addPlanToIndex } from "../context/indexer.js";
+import { generatePlanFilename, generateVersionedFilename } from "./filename-utils.js";
+import { extractKeywords } from "../plan/plan-parser.js";
 
 /** Patterns that indicate an embedded plan */
 export const PLAN_TRIGGER_PATTERNS = [
@@ -243,28 +245,17 @@ export function generatePlanFingerprint(content: string): PlanFingerprint {
 }
 
 /**
- * Calculate text similarity using simple word overlap.
+ * Calculate text similarity using simple word overlap (Jaccard similarity).
  * Returns a score between 0 (no overlap) and 1 (identical).
  */
 export function calculateSimilarity(text1: string, text2: string): number {
-  const words1 = new Set(
-    text1
-      .toLowerCase()
-      .split(/\s+/)
-      .filter((w) => w.length > 3)
-  );
-  const words2 = new Set(
-    text2
-      .toLowerCase()
-      .split(/\s+/)
-      .filter((w) => w.length > 3)
-  );
+  const words1 = extractKeywords(text1);
+  const words2 = extractKeywords(text2);
 
   if (words1.size === 0 || words2.size === 0) {
     return 0;
   }
 
-  // Calculate Jaccard similarity (intersection over union)
   const intersection = new Set([...words1].filter((w) => words2.has(w)));
   const union = new Set([...words1, ...words2]);
 
@@ -332,49 +323,6 @@ export async function findDuplicatePlan(
   }
 
   return null;
-}
-
-/**
- * Generate a filename for a plan.
- * Format: YYYY-MM-DD_title-slug.md
- */
-function generatePlanFilename(title: string): string {
-  const date = new Date().toISOString().split("T")[0];
-  const slug = title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .substring(0, 50); // Limit slug length
-
-  return `${date}_${slug}.md`;
-}
-
-/**
- * Generate a versioned filename to avoid collisions.
- */
-async function generateVersionedFilename(
-  basePath: string,
-  filename: string
-): Promise<string> {
-  const ext = ".md";
-  const nameWithoutExt = filename.replace(ext, "");
-
-  let version = 2;
-  let versionedFilename = filename;
-  let versionedPath = join(basePath, versionedFilename);
-
-  while (true) {
-    try {
-      await fs.access(versionedPath);
-      // File exists, try next version
-      versionedFilename = `${nameWithoutExt}-v${version}${ext}`;
-      versionedPath = join(basePath, versionedFilename);
-      version++;
-    } catch {
-      // File doesn't exist, we can use this version
-      return versionedFilename;
-    }
-  }
 }
 
 /**
