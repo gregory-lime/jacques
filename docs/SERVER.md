@@ -4,7 +4,7 @@ Real-time session tracking, event processing, and REST/WebSocket API. Depends on
 
 **Build**: `cd server && npx tsc`
 **Test**: `cd server && npm test`
-**Start**: `npm run start:server` (standalone) or embedded via dashboard
+**Start**: `npm run start:server` (standalone) or embedded via CLI
 **Ports**: 4242 (WebSocket), 4243 (HTTP API)
 
 ## Key Files

@@ -3,7 +3,7 @@
  * Jacques Setup Script
  * 
  * Handles:
- * - Installing dependencies for server and dashboard
+ * - Installing dependencies for server and CLI
  * - Building both packages
  * - Setting up hooks symlink
  * - Checking prerequisites
@@ -114,12 +114,12 @@ function installDependencies() {
   }
   success('Server dependencies installed');
   
-  log('Installing dashboard dependencies...');
-  if (!run('npm install', { cwd: join(projectRoot, 'dashboard') })) {
-    error('Failed to install dashboard dependencies');
+  log('Installing CLI dependencies...');
+  if (!run('npm install', { cwd: join(projectRoot, 'cli') })) {
+    error('Failed to install CLI dependencies');
     return false;
   }
-  success('Dashboard dependencies installed');
+  success('CLI dependencies installed');
   
   return true;
 }
@@ -136,12 +136,12 @@ function buildPackages() {
   }
   success('Server built');
   
-  log('Building dashboard...');
-  if (!run('npm run build', { cwd: join(projectRoot, 'dashboard') })) {
-    error('Failed to build dashboard');
+  log('Building CLI...');
+  if (!run('npm run build', { cwd: join(projectRoot, 'cli') })) {
+    error('Failed to build CLI');
     return false;
   }
-  success('Dashboard built');
+  success('CLI built');
   
   return true;
 }
@@ -207,8 +207,8 @@ ${COLORS.cyan}1.${COLORS.reset} Configure Claude Code hooks:
 ${COLORS.cyan}2.${COLORS.reset} Start the server (in one terminal):
    ${COLORS.dim}npm run start:server${COLORS.reset}
 
-${COLORS.cyan}3.${COLORS.reset} Start the dashboard (in another terminal):
-   ${COLORS.dim}npm run start:dashboard${COLORS.reset}
+${COLORS.cyan}3.${COLORS.reset} Start the CLI (in another terminal):
+   ${COLORS.dim}npm run start:cli${COLORS.reset}
 
 ${COLORS.cyan}4.${COLORS.reset} Begin a Claude Code session and watch the context tracking!
 

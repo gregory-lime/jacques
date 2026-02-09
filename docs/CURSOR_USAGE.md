@@ -31,7 +31,7 @@ To see your current context usage in Jacques for Cursor sessions:
 2. Type `/summarize` and press Enter
 3. Cursor will trigger context compaction
 4. The `preCompact` hook fires with context metrics
-5. Jacques dashboard updates with current context percentage
+5. Jacques CLI updates with current context percentage
 
 **Example:**
 
@@ -154,7 +154,7 @@ This is a known limitation. Cursor's hooks don't fire on model changes.
 Potential enhancements being considered:
 
 1. Add a notification when context metrics haven't updated in a while
-2. Provide a button in Jacques dashboard to trigger `/summarize` automatically
+2. Provide a button in Jacques CLI to trigger `/summarize` automatically
 3. Investigate other Cursor events that might provide context data
 4. Add support for tracking model changes through alternative methods
 

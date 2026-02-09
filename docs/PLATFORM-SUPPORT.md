@@ -89,7 +89,7 @@ Node.js `net.createServer()` and `net.connect()` support both transports with th
 
 | Port | Service | Configurable Via |
 |------|---------|-----------------|
-| 4242 | WebSocket (dashboard) | `JACQUES_WS_PORT` |
+| 4242 | WebSocket (CLI) | `JACQUES_WS_PORT` |
 | 4243 | HTTP API (GUI) | `JACQUES_HTTP_PORT` |
 
 ---
@@ -257,7 +257,7 @@ Hooks are registered in `~/.claude/settings.json` via `npm run configure`. The c
 
 **Implementation**: `server/src/focus-watcher.ts`
 
-Focus tracking detects which terminal window is in the foreground, enabling the dashboard to highlight the active session.
+Focus tracking detects which terminal window is in the foreground, enabling the CLI to highlight the active session.
 
 ---
 

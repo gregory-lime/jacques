@@ -115,4 +115,4 @@ All UI preferences persist to localStorage with the `jacques:` prefix:
 
 ## Static File Serving
 
-In production, the server serves `gui/dist/` at port 4243. The dashboard auto-rebuilds GUI if sources are newer than dist (`cli.ts` checks timestamps).
+In production, the server serves `gui/dist/` at port 4243. The CLI auto-rebuilds GUI if sources are newer than dist (`cli.ts` checks timestamps).

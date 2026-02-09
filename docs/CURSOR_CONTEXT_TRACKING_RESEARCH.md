@@ -242,7 +242,7 @@ def estimate_tokens_simple(text: str) -> int:
 2. `hooks/cursor/hooks.json.template` - Add new hook
 3. `hooks/adapters/cursor.py` - Add estimation methods
 4. `server/src/types.ts` - Add `context_estimate` event
-5. `dashboard/src/display.ts` - Show estimated vs actual
+5. `cli/src/display.ts` - Show estimated vs actual
 
 ## Open Questions
 
@@ -257,4 +257,4 @@ def estimate_tokens_simple(text: str) -> int:
 2. [ ] Prototype `afterAgentResponse` hook
 3. [ ] Test token estimation accuracy
 4. [ ] Update Jacques server for estimated context
-5. [ ] Update dashboard UI to show estimates
+5. [ ] Update CLI UI to show estimates

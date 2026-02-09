@@ -333,8 +333,8 @@ ${COLORS.bold}To start using Jacques:${COLORS.reset}
 ${COLORS.cyan}1.${COLORS.reset} Start the server:
    ${COLORS.dim}npm run start:server${COLORS.reset}
 
-${COLORS.cyan}2.${COLORS.reset} Start the dashboard (in another terminal):
-   ${COLORS.dim}npm run start:dashboard${COLORS.reset}
+${COLORS.cyan}2.${COLORS.reset} Start the CLI (in another terminal):
+   ${COLORS.dim}npm run start:cli${COLORS.reset}
 
 ${COLORS.cyan}3.${COLORS.reset} Restart any running Claude Code sessions to pick up the new hooks.
 

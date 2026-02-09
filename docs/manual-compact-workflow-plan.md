@@ -28,7 +28,7 @@ Claude Code allows disabling auto-compact via `~/.claude/settings.json`:
 Instead of relying on Claude's auto-compact (which either triggers unexpectedly or has buggy behavior), users can:
 
 1. **Disable auto-compact** (even though it's buggy, it raises the threshold)
-2. **Monitor context usage** via Jacques dashboard
+2. **Monitor context usage** via Jacques CLI
 3. **Manually create quality handoff documents** before any threshold is hit
 4. **Start fresh sessions** with the handoff as initial context
 
@@ -44,7 +44,7 @@ This plan adds three key features to Jacques:
 | ------------------------------- | ----------------------------------------------- |
 | **Manual Compact Workflow**     | UI panel with copy buttons for handoff prompts  |
 | **Auto-Compact Status Display** | Show ON/OFF status with bug warnings            |
-| **Auto-Compact Toggle**         | Click to enable/disable directly from dashboard |
+| **Auto-Compact Toggle**         | Click to enable/disable directly from CLI |
 
 ---
 
@@ -55,9 +55,9 @@ This plan adds three key features to Jacques:
 │                    JACQUES COMPACT WORKFLOW                      │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
-│  1. User working, monitors context in Jacques dashboard          │
+│  1. User working, monitors context in Jacques CLI          │
 │                                                                  │
-│  2. Dashboard shows: "Context at 65% - Auto-compact: [OFF]"     │
+│  2. CLI shows: "Context at 65% - Auto-compact: [OFF]"     │
 │                      [a] to toggle auto-compact                  │
 │                                                                  │
 │  3. At 70%, CompactPanel appears with instructions:              │
@@ -88,7 +88,7 @@ This plan adds three key features to Jacques:
 
 ```mermaid
 flowchart TB
-    subgraph Dashboard [Dashboard UI]
+    subgraph CLI [CLI UI]
         SD[SessionDetails]
         CP[CompactPanel]
         Toggle[AutoCompactToggle]
@@ -286,7 +286,7 @@ export interface Session {
 
 ### One-Click Enable/Disable
 
-Users can toggle auto-compact directly from the Jacques dashboard:
+Users can toggle auto-compact directly from the Jacques CLI:
 
 ```
 Auto-compact: [ON]  ← click or press 'a'
@@ -299,7 +299,7 @@ Auto-compact: [OFF] (bug may trigger at ~78%)
 **Settings Utility:**
 
 ```typescript
-// dashboard/src/utils/settings.ts
+// cli/src/utils/settings.ts
 import { readFileSync, writeFileSync } from "fs";
 import { homedir } from "os";
 import { join } from "path";
@@ -365,14 +365,14 @@ useInput((input) => {
 
 | File                                             | Change                                                  |
 | ------------------------------------------------ | ------------------------------------------------------- |
-| `dashboard/src/components/CompactPanel.tsx`      | New component for compact workflow UI                   |
-| `dashboard/src/components/AutoCompactToggle.tsx` | New toggle component for ON/OFF switch                  |
-| `dashboard/src/components/Dashboard.tsx`         | Add CompactPanel and toggle to layout                   |
-| `dashboard/src/components/SessionDetails.tsx`    | Add auto-compact status display with bug warning        |
-| `dashboard/src/templates/compact-prompt.ts`      | New file with handoff prompt template                   |
-| `dashboard/src/utils/settings.ts`                | New utility for reading/writing ~/.claude/settings.json |
-| `dashboard/src/types.ts`                         | Add `AutoCompactStatus`, `handoff_ready` types          |
-| `dashboard/package.json`                         | Add `clipboardy` dependency                             |
+| `cli/src/components/CompactPanel.tsx`      | New component for compact workflow UI                   |
+| `cli/src/components/AutoCompactToggle.tsx` | New toggle component for ON/OFF switch                  |
+| `cli/src/components/Dashboard.tsx`         | Add CompactPanel and toggle to layout                   |
+| `cli/src/components/SessionDetails.tsx`    | Add auto-compact status display with bug warning        |
+| `cli/src/templates/compact-prompt.ts`      | New file with handoff prompt template                   |
+| `cli/src/utils/settings.ts`                | New utility for reading/writing ~/.claude/settings.json |
+| `cli/src/types.ts`                         | Add `AutoCompactStatus`, `handoff_ready` types          |
+| `cli/package.json`                         | Add `clipboardy` dependency                             |
 | `server/src/types.ts`                            | Add `AutoCompactStatus`, toggle request/response types  |
 | `server/src/session-registry.ts`                 | Handle autocompact status in sessions                   |
 | `server/src/server.ts`                           | Add file watcher + toggle handler                       |
@@ -385,14 +385,14 @@ useInput((input) => {
 
 | ID  | Task                                                               | Status  |
 | --- | ------------------------------------------------------------------ | ------- |
-| 1   | Add `AutoCompactStatus` type to server and dashboard types         | Pending |
+| 1   | Add `AutoCompactStatus` type to server and CLI types         | Pending |
 | 2   | Update `register-session.py` to read autoCompact from settings     | Pending |
 | 3   | Add auto-compact status display with bug warning to SessionDetails | Pending |
 | 4   | Create `compact-prompt.ts` with the handoff prompt template        | Pending |
 | 5   | Create `CompactPanel` component with copy buttons and instructions | Pending |
 | 6   | Add `clipboardy` dependency and clipboard copy functionality       | Pending |
 | 7   | Add server-side file watcher for `.jacques-handoff.md` files       | Pending |
-| 8   | Integrate `CompactPanel` into Dashboard layout                     | Pending |
+| 8   | Integrate `CompactPanel` into CLI Dashboard layout                     | Pending |
 | 9   | Add clickable toggle to switch auto-compact ON/OFF                 | Pending |
 | 10  | Add `[a]` keyboard shortcut to toggle auto-compact                 | Pending |
 
