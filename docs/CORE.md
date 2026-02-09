@@ -4,7 +4,7 @@ Shared business logic used by server, CLI, and GUI. Must be built first — serv
 
 **Build**: `cd core && npx tsc`
 **Test**: `cd core && npm test`
-**Exports**: 8 submodules via `package.json` exports map
+**Exports**: 10 submodules via `package.json` exports map
 
 ## Module Map
 
@@ -19,7 +19,8 @@ Shared business logic used by server, CLI, and GUI. Must be built first — serv
 | Client | `@jacques/core/client` | WebSocket client (`JacquesClient`) |
 | Handoff | `@jacques/core/handoff` | Session handoff generation |
 | Utils | `@jacques/core/utils` | Settings, Claude token management |
-| Cache | `core/src/cache/` | Session index reading (not exported) |
+| Cache | `@jacques/core/cache` | Session indexing, project discovery, mode detection |
+| Logging | `core/src/logging/` | Structured logging, error classification (internal) |
 | Project | `core/src/project/` | Aggregation for CLI |
 
 ## Session Module (`core/src/session/`)
@@ -78,6 +79,28 @@ External context adapters for importing documentation into projects.
 - `googledocs.ts` — OAuth flow, Drive listing, export-to-markdown
 - `notion.ts` — OAuth flow, page search, content fetching
 
+## Logging Module (`core/src/logging/`)
+
+Structured error handling and logging for core modules. Replaces scattered `console.error`/`console.warn` calls with a consistent, silent-by-default logger.
+
+- `logger.ts` — `Logger` interface and `createLogger()` factory. Silent by default; callers opt into output via `silent: false`.
+- `error-utils.ts` — Safe error classification: `isNotFoundError()` (ENOENT), `isPermissionError()` (EACCES/EPERM), `getErrorMessage()` (safe extraction from unknown).
+- `claude-operations.ts` — `ClaudeOperationLogger` for debugging Claude Code CLI interactions.
+- `index.ts` — Barrel re-export.
+
+**Error classification rules:**
+
+| Pattern | Action | Example |
+|---------|--------|---------|
+| ENOENT on optional file | Stay silent | Hidden projects file doesn't exist yet |
+| JSON parse failure | `logger.warn()` | Corrupt index.json, malformed JSONL line |
+| Permission error | `logger.warn()` | Can't read project directory |
+| Unexpected error in critical path | `logger.error()` | `extractSessionMetadata` crashes |
+| Git command fail on non-git dir | Stay silent | Expected when walking parent dirs |
+| File disappeared between readdir/stat | Stay silent | Race condition, not a bug |
+
+**Modules using structured logging:** `cache/persistence.ts`, `cache/git-utils.ts`, `cache/metadata-extractor.ts`, `cache/hidden-projects.ts`, `session/parser.ts`, `session/detector.ts`, `session/token-estimator.ts`.
+
 ## Handoff Module (`core/src/handoff/`)
 
 Session handoff generation for continuing work across sessions.
@@ -131,6 +154,19 @@ Lightweight session indexing for fast startup and GUI loading. Uses a **two-phas
 1. **Fast path**: Read `.jacques/index.json` (pre-extracted catalog metadata)
 2. **Slow path**: Parse JSONL only for uncataloged/stale sessions
 
+Split into 7 focused submodules (previously a single 1,390-line `session-index.ts`):
+
+| File | Responsibility |
+|------|----------------|
+| `types.ts` | Interfaces (`SessionEntry`, `SessionIndex`, `DiscoveredProject`, `PlanRef`, etc.), constants, `getDefaultSessionIndex()` |
+| `persistence.ts` | Index file I/O (`readSessionIndex`, `writeSessionIndex`), `getSessionIndex()` with build deduplication |
+| `metadata-extractor.ts` | JSONL → `SessionEntry` conversion, `buildSessionIndex()`, `listAllProjects()`, catalog-first loading |
+| `mode-detector.ts` | `detectModeAndPlans()` — planning vs execution mode, plan reference extraction |
+| `project-discovery.ts` | `discoverProjects()`, `getSessionEntry()`, `getSessionsByProject()`, `getIndexStats()` |
+| `git-utils.ts` | `detectGitInfo()` (filesystem), `readGitBranchFromJsonl()` (JSONL fallback) |
+| `hidden-projects.ts` | `getHiddenProjects()`, `hideProject()`, `unhideProject()` |
+| `index.ts` | Barrel re-export — all public API flows through this |
+
 **Key functions:**
 - `getSessionIndex(options)` — Get all sessions with caching (default 5-min freshness). Deduplicates concurrent calls: if multiple callers trigger a rebuild simultaneously (e.g., `/api/sessions/by-project` and `/api/projects` on first GUI load), only one `buildSessionIndex()` runs and all callers share the result.
 - `buildSessionIndex()` — Rebuild index from all projects
@@ -156,3 +192,4 @@ Lightweight session indexing for fast startup and GUI loading. Uses a **two-phas
 **Additional features:**
 - Filters out internal agents (auto-compact, prompt_suggestion) from counts
 - Sets `hadAutoCompact: true` flag when auto-compact agent detected
+- Circular dependency between `persistence.ts` and `metadata-extractor.ts` resolved via dynamic `import()`

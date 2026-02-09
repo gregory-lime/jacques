@@ -27,7 +27,7 @@ main.tsx → App.tsx (BrowserRouter)
     ↓
 Routes → Pages → Components
     ↓
-api/config.ts → HTTP API (localhost:4243)
+api/ → HTTP API (localhost:4243) — 9 domain modules
 hooks/ → React hooks for state management
 ```
 
@@ -55,13 +55,25 @@ hooks/ → React hooks for state management
 - `RemoveWorktreeModal.tsx` — Worktree management modal (list, status, remove)
 - `WindowToolbar.tsx` — Top toolbar (Maximize, Tile, Focus, GitFork manage worktrees)
 
-## API Client (`gui/src/api/config.ts`)
+## API Client (`gui/src/api/`)
 
-Wraps HTTP calls to the server REST API.
+Wraps HTTP calls to the server REST API. Split into 9 domain modules (previously a single 1,244-line `config.ts`):
+
+| File | Responsibility |
+|------|----------------|
+| `client.ts` | `API_URL` constant (dev vs production), `streamSSE()` helper for SSE endpoints |
+| `sources.ts` | Source status/config (Obsidian, Google Docs, Notion) |
+| `server-config.ts` | Root catalog path configuration |
+| `archive.ts` | Archived conversations, subagents, search, bulk archive SSE |
+| `sessions.ts` | Session listing, projects, tasks, badges, plans, web searches |
+| `plans.ts` | Plan catalog from `.jacques/index.json` |
+| `context.ts` | Context file CRUD (notes, files) |
+| `sync.ts` | Sync SSE stream (catalog extraction + index rebuild) |
+| `handoffs.ts` | Handoff listing and content |
+| `usage.ts` | Claude API usage limits |
+| `index.ts` | Barrel re-export — all consumers import from `../api` |
 
 **Base URL**: `http://localhost:4243/api` (dev) or `/api` (production, served by server)
-
-Key functions: `getSourcesStatus()`, `configureGoogleDocs()`, `configureNotion()`
 
 All session data, archive search, and catalog operations go through the HTTP API — the GUI never reads JSONL files directly.
 

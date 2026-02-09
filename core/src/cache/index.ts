@@ -5,31 +5,59 @@
  * Reads directly from Claude Code JSONL files.
  */
 
+// Types
+export type {
+  SessionEntry,
+  SessionIndex,
+  DiscoveredProject,
+  PlanRef,
+  ExploreAgentRef,
+  WebSearchRef,
+  GitInfo,
+} from "./types.js";
+
 export {
-  // Types
-  type SessionEntry,
-  type SessionIndex,
-  type DiscoveredProject,
-  // Constants
   getDefaultSessionIndex,
   decodeProjectPath,
-  // Path helpers
+} from "./types.js";
+
+// Persistence
+export {
   getCacheDir,
   getIndexPath,
   ensureCacheDir,
-  // Index operations
   readSessionIndex,
   writeSessionIndex,
+  getSessionIndex,
+  invalidateIndex,
+} from "./persistence.js";
+
+// Mode detection
+export { detectModeAndPlans } from "./mode-detector.js";
+
+// Git utilities
+export { detectGitInfo, readGitBranchFromJsonl } from "./git-utils.js";
+
+// Metadata extraction & index building
+export {
+  extractTitle,
+  extractTimestamps,
   extractSessionMetadata,
   listAllProjects,
   buildSessionIndex,
-  getSessionIndex,
+} from "./metadata-extractor.js";
+
+// Project discovery & query
+export {
+  discoverProjects,
   getSessionEntry,
   getSessionsByProject,
-  discoverProjects,
+  getIndexStats,
+} from "./project-discovery.js";
+
+// Hidden projects
+export {
+  getHiddenProjects,
   hideProject,
   unhideProject,
-  getIndexStats,
-  invalidateIndex,
-  detectModeAndPlans,
-} from "./session-index.js";
+} from "./hidden-projects.js";

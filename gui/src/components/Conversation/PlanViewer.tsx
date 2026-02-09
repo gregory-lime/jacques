@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { FileText, PenTool, Bot, Loader, X, CheckCircle2, ChevronDown, ChevronRight, Circle, Clock } from 'lucide-react';
 import { colors } from '../../styles/theme';
+import { API_URL } from '../../api/client';
 import type { PlanInfo } from './PlanNavigator';
 import { MarkdownRenderer } from './MarkdownRenderer';
 
@@ -32,9 +33,6 @@ interface TasksResponse {
   summary: TaskSummary;
 }
 
-// When served from the same origin, use relative URL
-// When in dev mode (Vite), use absolute URL
-const API_URL = import.meta.env.DEV ? 'http://localhost:4243/api' : '/api';
 
 interface PlanContent {
   title: string;

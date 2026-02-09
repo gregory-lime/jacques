@@ -5,7 +5,7 @@
  * The new architecture reads directly from JSONL files without copying content.
  *
  * This module remains for backwards compatibility with the old archive system.
- * New code should use the session-index module from core/src/cache/ instead.
+ * New code should use the cache module from core/src/cache/ instead.
  *
  * Functions for scanning and bulk-archiving Claude Code conversations.
  * Scans ~/.claude/projects/ for all session files and archives them

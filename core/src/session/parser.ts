@@ -13,6 +13,9 @@
 
 import { promises as fs } from "fs";
 import { get_encoding, type Tiktoken } from "@dqbd/tiktoken";
+import { createLogger, type Logger } from "../logging/logger.js";
+
+const logger: Logger = createLogger({ prefix: "[Parser]" });
 
 // Lazy-loaded tiktoken encoder for cl100k_base (Claude's encoding)
 let tiktokenEncoder: Tiktoken | null = null;
@@ -339,7 +342,7 @@ export function parseJSONLContent(content: string): ParsedEntry[] {
       }
     } catch (err) {
       // Skip invalid JSON lines
-      console.error("Failed to parse JSONL line:", err);
+      logger.warn("Failed to parse JSONL line:", err);
     }
   }
 

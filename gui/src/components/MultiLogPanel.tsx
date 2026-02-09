@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { colors } from '../styles/theme';
+import { API_URL } from '../api/client';
 import { usePersistedState } from '../hooks/usePersistedState';
 import type { ClaudeOperation, ApiLog, ClaudeOperationDebug } from '../types';
 import type { ServerLog } from '../hooks/useJacquesClient';
@@ -46,8 +47,7 @@ function ExpandableText({ text, maxLength = 200 }: { text: string; maxLength?: n
   );
 }
 
-// API base URL
-const API_BASE = import.meta.env.VITE_JACQUES_API_URL || 'http://localhost:4243';
+
 
 interface MultiLogPanelProps {
   serverLogs: ServerLog[];
@@ -171,7 +171,7 @@ export function MultiLogPanel({
   const fetchDebugData = async (operationId: string) => {
     setLoadingDebug(operationId);
     try {
-      const response = await fetch(`${API_BASE}/api/claude/operations/${operationId}/debug`);
+      const response = await fetch(`${API_URL}/claude/operations/${operationId}/debug`);
       if (response.ok) {
         const data = await response.json();
         setSelectedDebug(data);

@@ -13,9 +13,13 @@
  */
 
 import { promises as fs } from "fs";
+import { getErrorMessage } from "../logging/error-utils.js";
+import { createLogger, type Logger } from "../logging/logger.js";
 import * as path from "path";
 import * as os from "os";
 import { getRootCatalogPath } from "../sources/config.js";
+
+const logger: Logger = createLogger({ prefix: "[Detector]" });
 
 export interface SessionFile {
   /** Full path to the JSONL file */
@@ -237,7 +241,7 @@ export async function detectCurrentSession(
       sizeBytes: mostRecent.size,
     };
   } catch (err) {
-    console.error(`Error reading project directory: ${projectDir}`, err);
+    logger.error(`Error reading project directory ${projectDir}:`, getErrorMessage(err));
     return null;
   }
 }

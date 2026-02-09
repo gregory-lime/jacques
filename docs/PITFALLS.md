@@ -80,7 +80,23 @@ fi
 **Solution** (3-part):
 1. **GUI**: Decouple loading states — `historyLoading` only gates session history, active sessions render immediately from WebSocket data (`Dashboard.tsx`)
 2. **Server**: Pre-warm session index cache on startup with fire-and-forget `getSessionIndex()` call (`start-server.ts`)
-3. **Core**: Deduplicate concurrent `buildSessionIndex()` calls via module-level promise (`session-index.ts`)
+3. **Core**: Deduplicate concurrent `buildSessionIndex()` calls via module-level promise (`cache/persistence.ts`)
+
+### Cache Module Circular Dependency
+**Problem**: `persistence.ts` needs `buildSessionIndex` from `metadata-extractor.ts`, but `metadata-extractor.ts` imports `writeSessionIndex` from `persistence.ts`, creating a circular import.
+**Solution**: Use dynamic `await import("./metadata-extractor.js")` in `persistence.ts` (inside `getSessionIndex()`) to break the cycle at runtime. The import only runs when a rebuild is needed, not at module load time.
+
+### ESM Test Mocking in Core
+**Problem**: Core uses ES modules (`"type": "module"`). `jest.mock()` is not available as a global in ESM mode — `ReferenceError: jest is not defined`.
+**Solution**: Import `jest` from `@jest/globals`, use `jest.unstable_mockModule()` instead of `jest.mock()`, and dynamically import the module under test in `beforeEach`. When mocking `fs`, include all named exports used by transitive dependencies (e.g., `existsSync`, `readFileSync`) — not just the methods your test calls directly.
+
+### Silent Catch Blocks Hide Real Errors
+**Problem**: Core modules had 20+ bare `catch {}` blocks that silently swallowed all errors — ENOENT (expected), JSON corruption (bug), permission denied (config issue) all returned the same empty default with no diagnostics.
+**Solution**: Replaced with structured logging using `core/src/logging/`. Each catch now classifies the error:
+- ENOENT → stay silent (file doesn't exist yet, expected)
+- JSON parse / permission / unexpected → `logger.warn()` or `logger.error()`
+- Race condition (file disappeared between readdir/stat) → stay silent
+All loggers are **silent by default** (`createLogger()` returns no-op). Server can inject verbose loggers later.
 
 ### TUI Log Flickering
 **Problem**: In embedded/TUI mode, `startLogInterception()` writes ALL console output (including `console.error` from core modules like `parser.ts`, `token-estimator.ts`) to stdout/stderr, which IS the alternate screen buffer where Ink renders, causing visual flickering.

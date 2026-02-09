@@ -108,7 +108,7 @@ Projects are discovered from `~/.claude/projects/` where Claude Code stores JSON
 2. `cwd` field from first JSONL entry — reliable fallback (most projects)
 3. Naive decode (all `-` → `/`) — last resort, ambiguous for paths with hyphens
 
-**Git worktree grouping**: Multiple worktrees of the same repo are grouped into a single project using `gitRepoRoot`. For deleted worktrees (directory exists but `.git` is gone), `gitBranch` is recovered from JSONL entries and the project is merged into a matching sibling git repo. The `discoverProjects()` function (`core/src/cache/session-index.ts`) handles all grouping.
+**Git worktree grouping**: Multiple worktrees of the same repo are grouped into a single project using `gitRepoRoot`. For deleted worktrees (directory exists but `.git` is gone), `gitBranch` is recovered from JSONL entries and the project is merged into a matching sibling git repo. The `discoverProjects()` function (`core/src/cache/project-discovery.ts`) handles all grouping.
 
 **Non-git projects**: Projects without a git repo are standalone entries — each directory is its own project.
 
@@ -171,10 +171,11 @@ This ensures sessions killed with Ctrl+C are still saved to history with their p
 jacques-context-manager/
 ├── core/src/            # Shared business logic (TypeScript)
 │   ├── archive/         # Cross-project search and archiving
-│   ├── cache/           # Lightweight session indexing
+│   ├── cache/           # Session indexing (7 submodules: types, persistence, metadata-extractor, mode-detector, project-discovery, git-utils, hidden-projects)
 │   ├── catalog/         # Catalog extraction (pre-extract JSONL → .jacques/)
 │   ├── context/         # Project knowledge management (index.json)
 │   ├── handoff/         # Session handoff generation
+│   ├── logging/         # Structured logging (Logger interface, error classification)
 │   ├── plan/            # Plan progress tracking (task extraction, progress matching)
 │   ├── session/         # JSONL parsing, filtering, transformation
 │   └── sources/         # External source adapters (Obsidian, etc.)
@@ -187,6 +188,7 @@ jacques-context-manager/
 │   ├── handoff/         # Handoff tests (imports from @jacques/core)
 │   └── templates/       # Skill templates
 ├── gui/src/             # Web GUI (React + Vite)
+│   ├── api/             # HTTP API client (9 domain modules: sources, archive, sessions, plans, context, sync, handoffs, usage, server-config)
 │   ├── components/      # React components
 │   │   └── context/     # Context Catalog GUI components
 │   ├── hooks/           # Custom React hooks
@@ -219,7 +221,7 @@ Before exploring source code, read the relevant `docs/` file listed below. The d
 | Work on server API | `docs/SERVER.md` (HTTP API section) | `server/src/http-api.ts` |
 | Work on CLI TUI | `docs/CLI.md` | `cli/src/components/` |
 | Work on web GUI | `docs/GUI.md` | `gui/src/` |
-| Work on project discovery | `docs/PLATFORM-SUPPORT.md` (Path encoding section) | `core/src/cache/session-index.ts` (`discoverProjects`) |
+| Work on project discovery | `docs/PLATFORM-SUPPORT.md` (Path encoding section) | `core/src/cache/project-discovery.ts` (`discoverProjects`) |
 | Work on hooks | `docs/HOOKS.md` | `hooks/` |
 | Parse JSONL transcripts | `docs/JSONL-FORMAT.md` | `core/src/session/` |
 | Work on plans/dedup | `docs/CORE.md` (Plan Identity section) | `core/src/catalog/extractor.ts`, `core/src/archive/plan-cataloger.ts` |

@@ -7,6 +7,9 @@
 
 import type { ParsedEntry } from "./parser.js";
 import type { FilterType } from "./filters.js";
+import { createLogger, type Logger } from "../logging/logger.js";
+
+const logger: Logger = createLogger({ prefix: "[Tokens]" });
 
 // Lazy-load tiktoken to avoid import errors if unavailable
 let tiktokenModule: typeof import("@dqbd/tiktoken") | null = null;
@@ -44,7 +47,7 @@ async function getEncoder(): Promise<ReturnType<
     encoder = tiktokenModule.get_encoding("cl100k_base");
     return encoder;
   } catch (err) {
-    console.warn(
+    logger.warn(
       "tiktoken unavailable, using character-based estimation:",
       err
     );
@@ -66,7 +69,7 @@ function countTokens(
       const tokens = enc.encode(text);
       return tokens.length;
     } catch (err) {
-      console.warn("tiktoken encoding failed, falling back:", err);
+      logger.warn("tiktoken encoding failed, falling back:", err);
     }
   }
 

@@ -8,7 +8,7 @@
 import { promises as fs } from "fs";
 import * as path from "path";
 import { homedir } from "os";
-import { listAllProjects } from "../cache/session-index.js";
+import { listAllProjects } from "../cache/index.js";
 import { extractSessionCatalog } from "./extractor.js";
 import type {
   BulkExtractOptions,

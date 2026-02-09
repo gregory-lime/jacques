@@ -6,7 +6,7 @@ import { SectionHeader, SettingsSection, ToggleSwitch } from '../components/ui';
 import { useNotifications } from '../hooks/useNotifications';
 import { usePersistedState } from '../hooks/usePersistedState';
 import type { NotificationCategory } from '../notifications/types';
-import { getRootPath, setRootPath, syncSessions, getUsageLimits, type RootPathConfig, type SyncProgress, type SyncResult } from '../api/config';
+import { getRootPath, setRootPath, syncSessions, getUsageLimits, type RootPathConfig, type SyncProgress, type SyncResult } from '../api';
 import { useProjectScope } from '../hooks/useProjectScope';
 import type { UsageLimits } from '../types';
 

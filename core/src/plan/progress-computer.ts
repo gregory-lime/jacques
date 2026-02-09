@@ -15,7 +15,7 @@ import { createHash } from "crypto";
 import { homedir } from "os";
 import { parseJSONL } from "../session/parser.js";
 import type { PlanEntry } from "../context/types.js";
-import { readSessionIndex, type SessionEntry } from "../cache/session-index.js";
+import { readSessionIndex, type SessionEntry } from "../cache/index.js";
 import { parsePlanMarkdown } from "./plan-parser.js";
 import { extractTaskSignals } from "./task-extractor.js";
 import {

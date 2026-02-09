@@ -20,7 +20,7 @@ import type { ParsedEntry } from "../session/parser.js";
 import { listSubagentFiles } from "../session/detector.js";
 import type { SubagentFile } from "../session/detector.js";
 import { extractManifestFromEntries } from "../archive/manifest-extractor.js";
-import { detectModeAndPlans } from "../cache/session-index.js";
+import { detectModeAndPlans } from "../cache/index.js";
 import { catalogPlan } from "../archive/plan-cataloger.js";
 import { PLAN_TRIGGER_PATTERNS, extractPlanTitle } from "../archive/plan-extractor.js";
 import {
