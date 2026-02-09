@@ -3,7 +3,7 @@
 ## Completed Phases
 
 **Phase 1**: Terminal Context Monitor
-- Basic server/dashboard architecture
+- Basic server/CLI architecture
 - Unix socket + WebSocket communication
 - Session registry with focus detection
 
@@ -72,7 +72,7 @@
 - **37/37 unit tests**: Full coverage for detection, extraction, deduplication, and indexing
 
 **Phase 12**: Catalog Extraction System
-- **Pre-extraction**: Extracts expensive data from JSONL into per-project `.jacques/` for fast dashboard loading
+- **Pre-extraction**: Extracts expensive data from JSONL into per-project `.jacques/` for fast CLI loading
 - **Three categories**: Sessions (manifest JSON), Plans (markdown), Subagents (explore results + web search results as markdown)
 - **Within-session plan dedup**: Groups embedded/agent/write detections into logical plans (write > embedded > agent priority)
 - **Incremental extraction**: Compares JSONL mtime to skip unchanged sessions

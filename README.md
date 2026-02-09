@@ -44,7 +44,7 @@ Claude Code (Python hooks)
 └────────────────────────────────────────┘
        │             │             │
        v             v             v
-   Hook events    Dashboard     Web GUI
+   Hook events    CLI TUI       Web GUI
                   (Ink TUI)   (localhost:4243)
 ```
 
@@ -52,7 +52,7 @@ Claude Code (Python hooks)
 - **WebSocket (port 4242)** — real-time session state broadcasts to connected clients
 - **HTTP API (port 4243)** — REST endpoints for sessions, archive, projects, tiling, sync; also serves the web GUI as static files
 
-All three channels run from a single server process. The dashboard TUI includes an embedded server, so running `jacques` starts everything.
+All three channels run from a single server process. The CLI TUI includes an embedded server, so running `jacques` starts everything.
 
 ---
 
@@ -73,7 +73,7 @@ cd jacques
 npm run setup
 ```
 
-This checks prerequisites, installs dependencies (core, server, dashboard), builds TypeScript, and symlinks hooks to `~/.jacques/hooks/`.
+This checks prerequisites, installs dependencies (core, server, CLI), builds TypeScript, and symlinks hooks to `~/.jacques/hooks/`.
 
 > **Windows**: Uses junction points instead of symlinks (no admin required). Hooks go to `C:\Users\<name>\.jacques\hooks\`.
 
@@ -109,7 +109,7 @@ This installs two slash commands: `/jacques-handoff` (save session progress) and
 ### Step 4: Make `jacques` Available as a Command
 
 ```bash
-cd dashboard && npm link && cd ..
+cd cli && npm link && cd ..
 ```
 
 This creates a global `jacques` command. After this you can type `jacques` from anywhere.
@@ -122,7 +122,7 @@ This creates a global `jacques` command. After this you can type `jacques` from 
 ```bash
 jacques
 ```
-Starts the embedded server + terminal dashboard. Web GUI available at http://localhost:4243.
+Starts the embedded server + CLI dashboard. Web GUI available at http://localhost:4243.
 
 **Option B — Server + Web GUI only:**
 ```bash
@@ -152,7 +152,7 @@ Projects are automatically discovered and grouped by git repo root — worktrees
 Start or restart a Claude Code session. It auto-registers via hooks. You'll see:
 
 - Context percentage in Claude Code's status line: `[Opus] ctx:42%`
-- The session appears in the Jacques dashboard/GUI in real-time
+- The session appears in the Jacques CLI/GUI in real-time
 
 **Important**: Restart any running Claude Code sessions after installation to pick up the new hooks.
 
@@ -189,12 +189,12 @@ Load the latest handoff when starting a new session:
 
 | Command | Description |
 |---------|-------------|
-| `jacques` | Start dashboard + embedded server (single command) |
+| `jacques` | Start CLI + embedded server (single command) |
 | `npm run setup` | Install, build, symlink hooks |
 | `npm run configure` | Configure Claude Code hooks in settings.json |
 | `npm run start:server` | Start server only (API + WebSocket + GUI) |
-| `npm run start:dashboard` | Start terminal TUI only |
-| `npm run build:all` | Rebuild everything (core → server → dashboard → GUI) |
+| `npm run start:cli` | Start terminal TUI only |
+| `npm run build:all` | Rebuild everything (core → server → CLI → GUI) |
 | `npm run dev:gui` | GUI dev server with hot reload (localhost:5173) |
 | `npm run stop:server` | Stop a running server |
 
@@ -259,7 +259,7 @@ netstat -an | findstr "4242 4243"            # Check port conflicts
   - Windows: `type %USERPROFILE%\.claude\settings.json | findstr jacques`
 - Re-run: `npm run configure`
 
-### Dashboard shows "Disconnected"
+### CLI shows "Disconnected"
 
 - Make sure the server is running: `npm run start:server` or just `jacques`
 
@@ -282,7 +282,7 @@ netstat -an | findstr "4242 4243"            # Check port conflicts
 ```bash
 npm run dev:server      # Server with tsc --watch
 npm run dev:gui         # GUI with Vite hot reload
-npm run build:all       # Full rebuild (core -> server -> dashboard -> gui)
+npm run build:all       # Full rebuild (core -> server -> cli -> gui)
 ```
 
 ### Tests
@@ -290,10 +290,10 @@ npm run build:all       # Full rebuild (core -> server -> dashboard -> gui)
 ```bash
 cd server && npm test       # Server tests
 cd core && npm test         # Core tests
-cd dashboard && npm test    # Dashboard tests
+cd cli && npm test          # CLI tests
 ```
 
-Build order: `core` → `server` → `dashboard` → `gui` (each depends on the previous).
+Build order: `core` → `server` → `cli` → `gui` (each depends on the previous).
 
 ---
 

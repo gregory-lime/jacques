@@ -126,7 +126,7 @@ Transcript paths use dash encoding: `/Users/gole/Desktop/project` → `-Users-go
 
 ## Parsing Example
 
-See `dashboard/src/session/parser.ts` for reference implementation.
+See `cli/src/session/parser.ts` for reference implementation.
 
 ## Subagent File Structure
 

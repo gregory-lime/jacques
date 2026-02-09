@@ -1,6 +1,6 @@
 # Core Package (`@jacques/core`)
 
-Shared business logic used by server, dashboard CLI, and GUI. Must be built first — server and dashboard depend on its compiled `.d.ts` files.
+Shared business logic used by server, CLI, and GUI. Must be built first — server and CLI depend on its compiled `.d.ts` files.
 
 **Build**: `cd core && npx tsc`
 **Test**: `cd core && npm test`
@@ -20,7 +20,7 @@ Shared business logic used by server, dashboard CLI, and GUI. Must be built firs
 | Handoff | `@jacques/core/handoff` | Session handoff generation |
 | Utils | `@jacques/core/utils` | Settings, Claude token management |
 | Cache | `core/src/cache/` | Session index reading (not exported) |
-| Project | `core/src/project/` | Aggregation for dashboard |
+| Project | `core/src/project/` | Aggregation for CLI |
 
 ## Session Module (`core/src/session/`)
 
@@ -122,7 +122,7 @@ Tracks task completion within sessions for plan progress display.
 
 **API Endpoint**: `GET /api/sessions/:id/tasks` returns extracted tasks with summary (total, completed, percentage).
 
-**GUI Display**: Dashboard shows task count as `X/Y` format with checkmark when all complete. PlanViewer shows collapsible task list.
+**GUI Display**: GUI shows task count as `X/Y` format with checkmark when all complete. PlanViewer shows collapsible task list.
 
 ## Cache Module (`core/src/cache/`)
 
@@ -150,7 +150,7 @@ Lightweight session indexing for fast startup and GUI loading. Uses a **two-phas
 
 **Used by:**
 - `server/src/process-scanner.ts` — Startup session metadata (title, git, tokens)
-- Dashboard GUI — Session list and filtering
+- CLI TUI — Session list and filtering
 - Plan progress display — Task extraction
 
 **Additional features:**

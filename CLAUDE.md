@@ -5,14 +5,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 
 Jacques is a real-time context monitor for multiple AI coding assistants (Claude Code, Cursor). It displays **exact token usage percentage** in real-time through:
-- Terminal dashboard (Ink/React-based TUI)
+- CLI TUI (Ink/React-based terminal interface)
 - In-app statusLine integration
 - Session lifecycle tracking
 
 The system uses a three-layer architecture:
 1. **Hooks** (Python/Bash) → send events via Unix socket
 2. **Server** (Node.js/TypeScript) → manages sessions and broadcasts updates via WebSocket
-3. **Dashboard** (Ink/React) → displays real-time context usage
+3. **CLI** (Ink/React) → displays real-time context usage
 
 **Platform Support**: macOS, Linux, Windows. See `docs/PLATFORM-SUPPORT.md` for terminal compatibility.
 
@@ -28,17 +28,17 @@ npm run configure          # Configure Claude Code settings.json with hooks
 
 ### Development
 ```bash
-npm run install:all        # Install dependencies for server and dashboard
-npm run build:all          # Build both server and dashboard TypeScript
+npm run install:all        # Install dependencies for server and cli
+npm run build:all          # Build both server and cli TypeScript
 
 # Server
 npm run dev:server         # Server dev mode (tsc --watch)
 npm run start:server       # Start Jacques server
 cd server && npm test      # Run server tests
 
-# Dashboard (Terminal TUI)
-npm run dev:dashboard      # Dashboard dev mode (tsc --watch)
-npm run start:dashboard    # Start terminal dashboard
+# CLI (Terminal TUI)
+npm run dev:cli            # CLI dev mode (tsc --watch)
+npm run start:cli          # Start terminal CLI
 
 # GUI (Web Interface)
 npm run build:gui          # Build GUI (required before serving)
@@ -68,7 +68,7 @@ The GUI can be accessed two ways:
 ```bash
 cd server && npm test                                           # Run all server tests
 cd core && npm test                                             # Run core tests
-cd dashboard && npm test                                        # Run dashboard tests
+cd cli && npm test                                              # Run cli tests
 cd hooks && python3 -m pytest adapters/test_*.py                # Run hook adapter tests
 ```
 
@@ -77,7 +77,7 @@ cd hooks && python3 -m pytest adapters/test_*.py                # Run hook adapt
 **Test Organization**:
 - `server/src/*.test.ts`: Server component tests
 - `core/src/**/*.test.ts`: Core module tests (plan-extractor, catalog)
-- `dashboard/src/**/*.test.ts`: Dashboard tests (sources, context, archive)
+- `cli/src/**/*.test.ts`: CLI tests (sources, context, archive)
 - `hooks/adapters/test_*.py`: Hook adapter tests
 - Tests use mock data, no actual AI tool sessions required
 
@@ -88,16 +88,16 @@ Claude Code/Cursor
     ↓ (hooks via Unix socket /tmp/jacques.sock)
 Jacques Server (Node.js + TypeScript)
     ↓ (WebSocket on port 4242)
-Dashboard (Ink/React CLI)
+CLI (Ink/React TUI)
 ```
 
 - **Server** (`server/src/`): Unix socket listener, session registry, WebSocket broadcaster, HTTP API
 - **Core** (`core/src/`): Shared business logic — archive, catalog, context indexing, session parsing, handoff generation
-- **Dashboard** (`dashboard/src/`): Ink/React TUI with components, archive UI, context management
+- **CLI** (`cli/src/`): Ink/React TUI with components, archive UI, context management
 - **Hooks** (`hooks/`): Python/Bash scripts that send events from Claude Code/Cursor to the server
 - **GUI** (`gui/`): Web-based GUI (Electron/React) for browsing sessions, plans, and subagents
 
-**Build order**: Core → Server → Dashboard (each depends on the previous)
+**Build order**: Core → Server → CLI (each depends on the previous)
 
 ## Project Discovery
 
@@ -181,13 +181,10 @@ jacques-context-manager/
 ├── server/src/          # Node.js server (TypeScript)
 ├── server/src/connection/ # Claude Code connection layer (terminal keys, process detection, etc.)
 ├── server/src/mcp/      # MCP server for archive search
-├── dashboard/src/       # Terminal dashboard (Ink/React)
-│   ├── archive/         # Conversation archive & search
+├── cli/src/             # CLI TUI (Ink/React)
 │   ├── components/      # React/Ink UI components
-│   ├── sources/         # External source adapters (Obsidian, etc.)
-│   ├── context/         # Context file management
-│   ├── session/         # Session parsing and transformation
-│   ├── storage/         # File I/O utilities
+│   ├── hooks/           # Custom React hooks (state management)
+│   ├── handoff/         # Handoff tests (imports from @jacques/core)
 │   └── templates/       # Skill templates
 ├── gui/src/             # Web GUI (React + Vite)
 │   ├── components/      # React components
@@ -209,7 +206,7 @@ jacques-context-manager/
 
 ### Node.js Dependencies
 - **ws**: WebSocket library for server and client
-- **ink**: React-based CLI framework for dashboard
+- **ink**: React-based CLI framework for terminal TUI
 - **commander**: CLI argument parsing
 
 ## Common Operations
@@ -220,7 +217,7 @@ Before exploring source code, read the relevant `docs/` file listed below. The d
 |------|-----------|------|
 | Work on catalog extraction | `docs/CORE.md` (Catalog Module section) | `core/src/catalog/` |
 | Work on server API | `docs/SERVER.md` (HTTP API section) | `server/src/http-api.ts` |
-| Work on CLI dashboard | `docs/DASHBOARD.md` | `dashboard/src/components/` |
+| Work on CLI TUI | `docs/CLI.md` | `cli/src/components/` |
 | Work on web GUI | `docs/GUI.md` | `gui/src/` |
 | Work on project discovery | `docs/PLATFORM-SUPPORT.md` (Path encoding section) | `core/src/cache/session-index.ts` (`discoverProjects`) |
 | Work on hooks | `docs/HOOKS.md` | `hooks/` |
@@ -232,7 +229,7 @@ Before exploring source code, read the relevant `docs/` file listed below. The d
 | Work on process/terminal detection | `docs/CONNECTION.md` | `server/src/connection/` |
 | Work on bypass mode detection | `docs/CONNECTION.md` (Bypass Mode section) | `server/src/session-registry.ts`, `server/src/connection/process-detection.ts` |
 | Work on terminal launching | `docs/CONNECTION.md` (Terminal Launching section) | `server/src/terminal-launcher.ts` |
-| Build and test everything | Use commands in Key Commands above | `cd core && npx tsc && cd ../server && npx tsc && cd ../dashboard && npx tsc` |
+| Build and test everything | Use commands in Key Commands above | `cd core && npx tsc && cd ../server && npx tsc && cd ../cli && npx tsc` |
 | Re-sync all sessions | Start server, then `curl -X POST http://localhost:4243/api/sync?force=true` | Or use GUI Settings → Re-sync All |
 
 ## Detailed Documentation
@@ -241,7 +238,7 @@ Architecture docs by component (read when working on that component):
 
 - `docs/CORE.md` — Core package modules: session parsing, archive, catalog, context, handoff
 - `docs/SERVER.md` — Server: session registry, event flow, HTTP API, WebSocket, MCP
-- `docs/DASHBOARD.md` — CLI TUI: Ink components, keyboard shortcuts, views
+- `docs/CLI.md` — CLI TUI: Ink components, keyboard shortcuts, views
 - `docs/GUI.md` — Web GUI: React pages, API client, plan loading flow
 - `docs/HOOKS.md` — Hook scripts: adapters, field mappings, token estimation
 - `docs/CONNECTION.md` — Connection layer: terminal keys, process detection, focus tracking

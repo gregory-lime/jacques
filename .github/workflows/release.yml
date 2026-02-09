@@ -30,8 +30,8 @@ jobs:
       - name: Build server
         run: cd server && npm run build
 
-      - name: Build dashboard
-        run: cd dashboard && npm run build
+      - name: Build CLI
+        run: cd cli && npm run build
 
       - name: Build gui
         run: cd gui && npm run build
@@ -42,8 +42,8 @@ jobs:
       - name: Test server
         run: cd server && npm test
 
-      - name: Test dashboard
-        run: cd dashboard && npm test
+      - name: Test CLI
+        run: cd cli && npm test
 
   release:
     needs: build-and-test
@@ -89,7 +89,7 @@ jobs:
   #       env:
   #         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
   #
-  #     - name: Publish jacques (CLI)
-  #       run: cd dashboard && npm publish --access public
+  #     - name: Publish @jacques/cli
+  #       run: cd cli && npm publish --access public
   #       env:
   #         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
