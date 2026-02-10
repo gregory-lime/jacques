@@ -267,6 +267,7 @@ export function Dashboard(props: DashboardProps): React.ReactElement {
             newWorktreeName={props.sessionsExpNewWorktreeName}
             worktreeCreateError={props.sessionsExpWorktreeCreateError}
             repoRoot={props.sessionsExpRepoRoot}
+            projectName={props.selectedProject}
           />
         </Box>
       );

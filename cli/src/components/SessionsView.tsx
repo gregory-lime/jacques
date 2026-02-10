@@ -17,14 +17,8 @@ import {
 } from "./layout/index.js";
 import { buildBottomControls } from "../utils/bottom-controls.js";
 import { formatTokens } from "../utils/format.js";
+import { getCliActivity } from "../utils/activity.js";
 import type { Session } from "@jacques/core";
-
-const STATUS_DOTS: Record<string, { icon: string; color: string }> = {
-  working: { icon: "\u25C9", color: ACCENT_COLOR },
-  tool_use: { icon: "\u25C9", color: ACCENT_COLOR },
-  idle: { icon: "\u25CB", color: MUTED_TEXT },
-  waiting: { icon: "\u25CE", color: "yellow" },
-};
 
 const MODE_COLORS: Record<string, string> = {
   plan: "green",
@@ -67,9 +61,8 @@ export function SessionsView({
       const isFocused = session.session_id === focusedSessionId;
       const isMultiSelected = selectedIds.has(session.session_id);
 
-      // Status
-      const statusKey = session.status || "idle";
-      const { icon: statusIcon, color: statusColor } = STATUS_DOTS[statusKey] || STATUS_DOTS.idle;
+      // Status (uses last_tool_name for awaiting differentiation)
+      const activity = getCliActivity(session.status, session.last_tool_name);
 
       // Mode
       const mode = session.is_bypass ? "bypass" : (session.mode || "default");
@@ -90,8 +83,8 @@ export function SessionsView({
           <Text color={isSelected ? ACCENT_COLOR : "white"}>{cursor}</Text>
           <Text color={isMultiSelected ? ACCENT_COLOR : MUTED_TEXT}>{multiMark}</Text>
           <Text> </Text>
-          <Text color={statusColor}>{statusIcon}</Text>
-          <Text color={statusColor}> {statusKey === "tool_use" ? "working" : statusKey}</Text>
+          <Text color={activity.color}>{activity.icon}</Text>
+          <Text color={activity.color}> {activity.label}</Text>
           <Text color={MUTED_TEXT}> </Text>
           <Text color={modeColor}>{modeLabel}</Text>
           <Text color={MUTED_TEXT}> </Text>

@@ -18,13 +18,8 @@ import {
 } from "./layout/theme.js";
 import { formatSessionTitle } from "@jacques/core";
 import type { ContentItem } from "../hooks/useSessionsExperiment.js";
-
-const STATUS_DOTS: Record<string, { icon: string; color: string }> = {
-  working: { icon: "\u25C9", color: ACCENT_COLOR },
-  tool_use: { icon: "\u25C9", color: ACCENT_COLOR },
-  idle: { icon: "\u25CB", color: MUTED_TEXT },
-  waiting: { icon: "\u25CE", color: "yellow" },
-};
+import { getCliActivity } from "../utils/activity.js";
+import { buildBottomControls } from "../utils/bottom-controls.js";
 
 const MODE_COLORS: Record<string, string> = {
   plan: "green",
@@ -48,6 +43,7 @@ interface SessionsExperimentViewProps {
   newWorktreeName: string;
   worktreeCreateError: string | null;
   repoRoot: string | null;
+  projectName: string | null;
 }
 
 export function SessionsExperimentView({
@@ -63,6 +59,7 @@ export function SessionsExperimentView({
   newWorktreeName,
   worktreeCreateError,
   repoRoot,
+  projectName,
 }: SessionsExperimentViewProps): React.ReactElement {
   const currentItemIndex = selectableIndices[selectedIndex] ?? -1;
 
@@ -72,15 +69,25 @@ export function SessionsExperimentView({
   const contentWidth = Math.max(30, terminalWidth - mascotDisplayWidth - 3);
   const contentHeight = Math.max(8, terminalHeight - 3);
 
-  // Mascot
+  // Mascot + shortcuts column
   const mascotLines = MASCOT_ANSI.split("\n").filter((l) => l.trim().length > 0);
+  const shortcutRows = [
+    { key: "\u2191\u2193", label: "nav" },
+    { key: "\u23CE", label: "foc" },
+    { key: "\u2423", label: "sel" },
+    { key: "f", label: "full" },
+    { key: "t", label: "tile" },
+  ];
+  // Match main view: mascot starts at row 1 (same as HorizontalLayout)
   const mascotTopPad = Math.floor((FIXED_CONTENT_HEIGHT - mascotLines.length) / 2);
+  const shortcutsStart = mascotTopPad + mascotLines.length + 2;
 
   // --- Build content lines ---
   const allContentLines: React.ReactNode[] = [];
 
   // Content header
-  allContentLines.push(<Text key="header" bold color={ACCENT_COLOR}>Sessions</Text>);
+  const headerLabel = projectName ? `${projectName}/sessions` : "Sessions";
+  allContentLines.push(<Text key="header" bold color={ACCENT_COLOR}>{headerLabel}</Text>);
   allContentLines.push(<Text key="header-spacer"> </Text>);
 
   if (items.length === 0) {
@@ -118,10 +125,8 @@ export function SessionsExperimentView({
         // Colors: invert when multi-selected
         const fg = isMultiSelected ? "#1a1a1a" : undefined;
 
-        // Status
-        const statusKey = session.status || "idle";
-        const { icon, color: statusColor } = STATUS_DOTS[statusKey] || STATUS_DOTS.idle;
-        const displayStatus = statusKey === "tool_use" ? "working" : statusKey;
+        // Status (uses last_tool_name for awaiting differentiation)
+        const activity = getCliActivity(session.status, session.last_tool_name);
 
         // Mode
         const mode = session.is_bypass ? "bypass" : (session.mode || "default");
@@ -131,7 +136,7 @@ export function SessionsExperimentView({
         // Title (with plan detection)
         const maxTitleLen = Math.max(5, contentWidth - 40);
         const { isPlan, displayTitle } = formatSessionTitle(session.session_title, maxTitleLen);
-        const titleColor = fg || (isPlan ? "green" : (isSelected ? ACCENT_COLOR : "white"));
+        const titleColor = fg || "white";
 
         // Progress
         let progressNode: React.ReactNode;
@@ -142,13 +147,13 @@ export function SessionsExperimentView({
           const empty = barW - filled;
           progressNode = (
             <>
-              <Text color={fg || ACCENT_COLOR}>{"\u2588".repeat(filled)}</Text>
-              <Text color={fg || MUTED_TEXT}>{"\u2591".repeat(empty)}</Text>
-              <Text color={fg || ACCENT_COLOR}> {session.context_metrics.is_estimate ? "~" : ""}{pct.toFixed(0)}%</Text>
+              <Text color={fg || (isSelected ? "white" : ACCENT_COLOR)}>{"\u2588".repeat(filled)}</Text>
+              <Text color={fg || (isSelected ? "gray" : MUTED_TEXT)}>{"\u2591".repeat(empty)}</Text>
+              <Text color={fg || (isSelected ? "white" : ACCENT_COLOR)}> {session.context_metrics.is_estimate ? "~" : ""}{pct.toFixed(0)}%</Text>
             </>
           );
         } else {
-          progressNode = <Text color={fg || MUTED_TEXT}>{"\u2591".repeat(7)} N/A</Text>;
+          progressNode = <Text color={fg || (isSelected ? "gray" : MUTED_TEXT)}>{"\u2591".repeat(7)} N/A</Text>;
         }
 
         allContentLines.push(
@@ -160,8 +165,8 @@ export function SessionsExperimentView({
           >
             <Text color={fg || MUTED_TEXT}>{treeCh} </Text>
             <Text color={fg || (isSelected ? ACCENT_COLOR : "white")}>{cursor} </Text>
-            <Text color={fg || statusColor}>{icon}</Text>
-            <Text color={fg || statusColor}> {displayStatus.padEnd(8)}</Text>
+            <Text color={fg || activity.color}>{activity.icon}</Text>
+            <Text color={fg || activity.color}> {activity.label.padEnd(9)}</Text>
             <Text color={fg || modeColor}>{modeLabel.padEnd(8)}</Text>
             <Text color={titleColor}>{displayTitle}</Text>
             <Text>  </Text>
@@ -260,21 +265,31 @@ export function SessionsExperimentView({
   const borderVersion = " v0.1.0 ";
   const topRemaining = Math.max(0, terminalWidth - borderTitle.length - borderVersion.length - 2);
 
-  // --- Vim footer ---
-  const selectedCount = selectedIds.size;
-  let footerText: string;
+  // --- Bottom border controls ---
+  let bottomIsNotification = false;
+  let bottomIsError = false;
+  let bottomNotificationText = "";
+  const { element: bottomControls, width: controlsWidth } = buildBottomControls([
+    { key: "Esc", label: " back" },
+  ]);
+  let bottomTextWidth: number;
+
   if (notification) {
     const isError = notification.startsWith("!");
     const cleanMsg = isError ? notification.slice(1) : notification;
-    footerText = isError ? ` \u2717 ${cleanMsg} ` : ` \u2713 ${cleanMsg} `;
-  } else if (isCreatingWorktree) {
-    footerText = ` Type name  \u23CE create  Esc cancel `;
-  } else if (selectedCount > 0) {
-    footerText = ` ${selectedCount} selected  \u2191\u2193 navigate  \u2423 toggle  a all  x clear  t tile  Esc back `;
+    const maxLen = terminalWidth - 6;
+    const truncated = cleanMsg.length > maxLen ? cleanMsg.substring(0, maxLen - 3) + "..." : cleanMsg;
+    bottomNotificationText = isError ? `\u2717 ${truncated}` : `\u2713 ${truncated}`;
+    bottomTextWidth = bottomNotificationText.length;
+    bottomIsNotification = true;
+    bottomIsError = isError;
   } else {
-    footerText = ` \u2191\u2193 navigate  \u23CE focus  \u2423 select  f max  t tile  n new  Esc back `;
+    bottomTextWidth = controlsWidth;
   }
-  const footerPad = Math.max(0, terminalWidth - footerText.length);
+
+  const totalBottomDashes = Math.max(0, terminalWidth - bottomTextWidth - 2);
+  const bottomLeftBorder = Math.max(1, Math.floor(totalBottomDashes / 2));
+  const bottomRightBorder = Math.max(1, totalBottomDashes - bottomLeftBorder);
 
   return (
     <Box flexDirection="column">
@@ -288,11 +303,22 @@ export function SessionsExperimentView({
 
       {/* Content rows with mascot + scrollbar */}
       {Array.from({ length: contentHeight }).map((_, rowIndex) => {
-        const mascotLineIndex = rowIndex - mascotTopPad;
-        const mascotLine =
-          mascotLineIndex >= 0 && mascotLineIndex < mascotLines.length
-            ? mascotLines[mascotLineIndex]
-            : "";
+        const mascotIdx = rowIndex - mascotTopPad;
+        let leftCell: React.ReactNode = <Text> </Text>;
+        if (mascotIdx >= 0 && mascotIdx < mascotLines.length) {
+          leftCell = <Text wrap="truncate-end">{mascotLines[mascotIdx]}</Text>;
+        } else {
+          const scIdx = rowIndex - shortcutsStart;
+          if (scIdx >= 0 && scIdx < shortcutRows.length) {
+            const sc = shortcutRows[scIdx];
+            leftCell = (
+              <Text wrap="truncate-end">
+                <Text color={MUTED_TEXT}> {sc.key.padEnd(3)}</Text>
+                <Text color={MUTED_TEXT}> {sc.label}</Text>
+              </Text>
+            );
+          }
+        }
 
         const contentLine = visibleLines[rowIndex];
 
@@ -304,7 +330,7 @@ export function SessionsExperimentView({
           <Box key={rowIndex} flexDirection="row" height={1}>
             <Text color={BORDER_COLOR}>{"\u2502"}</Text>
             <Box width={mascotDisplayWidth} justifyContent="center" flexShrink={0}>
-              <Text wrap="truncate-end">{mascotLine}</Text>
+              {leftCell}
             </Box>
             <Text color={BORDER_COLOR}>{"\u2502"}</Text>
             <Box
@@ -320,15 +346,18 @@ export function SessionsExperimentView({
         );
       })}
 
-      {/* Bottom border */}
+      {/* Bottom border with controls */}
       <Box>
-        <Text color={BORDER_COLOR}>{"\u2570"}{"\u2500".repeat(Math.max(0, terminalWidth - 2))}{"\u256F"}</Text>
-      </Box>
-
-      {/* Vim-style footer */}
-      <Box>
-        <Text backgroundColor={ACCENT_COLOR} color="#1a1a1a">
-          {footerText}{" ".repeat(footerPad)}
+        <Text color={BORDER_COLOR}>
+          {"\u2570"}{"\u2500".repeat(bottomLeftBorder)}
+        </Text>
+        {bottomIsNotification ? (
+          <Text color={bottomIsError ? "red" : "green"}>{bottomNotificationText}</Text>
+        ) : (
+          bottomControls
+        )}
+        <Text color={BORDER_COLOR}>
+          {"\u2500".repeat(bottomRightBorder)}{"\u256F"}
         </Text>
       </Box>
     </Box>

@@ -8,14 +8,8 @@
 import React from "react";
 import { Text } from "ink";
 import { ACCENT_COLOR, MUTED_TEXT } from "../layout/theme.js";
+import { getCliActivity } from "../../utils/activity.js";
 import type { Session } from "@jacques/core";
-
-const STATUS_CONFIG: Record<string, { icon: string; color: string }> = {
-  working: { icon: "\u25C9", color: ACCENT_COLOR },
-  idle: { icon: "\u25CB", color: MUTED_TEXT },
-  awaiting: { icon: "\u25CE", color: "yellow" },
-  active: { icon: "\u25CF", color: "white" },
-};
 
 const MODE_COLORS: Record<string, string> = {
   plan: "green",
@@ -48,16 +42,15 @@ export function StatusLine({
     return <Text color={MUTED_TEXT}>{"\u25CB"} No active session</Text>;
   }
 
-  const status = getSessionStatus(session);
+  const activity = getCliActivity(session.status, session.last_tool_name);
   const mode = getSessionMode(session);
-  const { icon, color: statusColor } = STATUS_CONFIG[status] || STATUS_CONFIG.active;
   const modeColor = MODE_COLORS[mode] || MUTED_TEXT;
   const modeLabel = mode === "acceptEdits" ? "edit" : mode;
   const worktree = session.git_worktree || session.git_branch || "\u2014";
 
   return (
     <Text wrap="truncate-end">
-      <Text color={statusColor}>{icon} {status}</Text>
+      <Text color={activity.color}>{activity.icon} {activity.label}</Text>
       <Text color={MUTED_TEXT}>{" \u2502 "}</Text>
       <Text color={modeColor}>{modeLabel}</Text>
       <Text color={MUTED_TEXT}>{" \u2502 "}</Text>

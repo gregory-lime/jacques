@@ -60,7 +60,7 @@ export interface WorkspaceInfo {
   project_dir: string;
 }
 
-export type SessionStatus = "active" | "working" | "idle" | "tool_use" | "waiting";
+export type SessionStatus = "active" | "working" | "idle" | "tool_use" | "waiting" | "awaiting";
 
 export type SessionSource = "claude_code" | "cursor" | string;
 
