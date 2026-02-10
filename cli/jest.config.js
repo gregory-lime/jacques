@@ -14,7 +14,7 @@ export default {
       },
     ],
   },
-  testMatch: ["**/*.test.ts"],
+  testMatch: ["**/*.test.ts", "**/*.test.tsx"],
   collectCoverageFrom: [
     "src/sources/**/*.ts",
     "src/context/**/*.ts",

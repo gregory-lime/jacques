@@ -63,17 +63,11 @@ export function VerticalLayout({
         ) : (
           <Text>
             <Text color={ACCENT_COLOR}>[Q]</Text>
-            <Text color={MUTED_TEXT}>uit </Text>
-            <Text color={ACCENT_COLOR}>[S]</Text>
-            <Text color={MUTED_TEXT}>ettings</Text>
-            {sessionCount !== undefined && (
-              <>
-                <Text color={ACCENT_COLOR}> [A]</Text>
-                <Text color={MUTED_TEXT}>ctive ({sessionCount})</Text>
-              </>
-            )}
+            <Text color={MUTED_TEXT}>uit</Text>
             <Text color={ACCENT_COLOR}> [P]</Text>
-            <Text color={MUTED_TEXT}>roject</Text>
+            <Text color={MUTED_TEXT}>rojects</Text>
+            <Text color={ACCENT_COLOR}> [W]</Text>
+            <Text color={MUTED_TEXT}>eb</Text>
           </Text>
         )}
       </Box>

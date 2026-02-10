@@ -134,10 +134,18 @@ export class JacquesClient extends EventEmitter {
           this.emit("focus_terminal_result", message.session_id, message.success, message.method, message.error);
           break;
 
-        default:
-          this.warn(
-            `[Client] Unknown message type: ${(message as ServerMessage).type}`
-          );
+        default: {
+          // Handle extended message types (tile, launch, worktree results)
+          const msg = message as unknown as Record<string, unknown>;
+          if (typeof msg.type === "string") {
+            this.emit(msg.type, msg);
+          } else {
+            this.warn(
+              `[Client] Unknown message type: ${(message as ServerMessage).type}`
+            );
+          }
+          break;
+        }
       }
     } catch (err) {
       this.error(`[Client] Failed to parse message: ${err}`);

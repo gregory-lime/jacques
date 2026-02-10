@@ -15,6 +15,7 @@ import {
   HORIZONTAL_LAYOUT_MIN_WIDTH,
   FIXED_CONTENT_HEIGHT,
 } from "./layout/index.js";
+import { buildBottomControls } from "../utils/bottom-controls.js";
 import type { ArchiveProgress, ArchiveInitResult } from "@jacques/core";
 
 interface ArchiveInitProgressViewProps {
@@ -48,7 +49,7 @@ export function ArchiveInitProgressView({
 
   if (result) {
     // Show final results
-    contentLines.push(<Box key="spacer1" />);
+    contentLines.push(<Text key="spacer1"> </Text>);
     contentLines.push(
       <Text key="total" color="white">
         Total sessions found: {result.totalSessions}
@@ -73,7 +74,7 @@ export function ArchiveInitProgressView({
         </Text>
       );
     }
-    contentLines.push(<Box key="spacer2" />);
+    contentLines.push(<Text key="spacer2"> </Text>);
     contentLines.push(
       <Text key="done" color="green" bold>
         Done!
@@ -81,7 +82,7 @@ export function ArchiveInitProgressView({
     );
   } else if (progress) {
     // Show progress
-    contentLines.push(<Box key="spacer1" />);
+    contentLines.push(<Text key="spacer1"> </Text>);
 
     // Phase indicator
     const phaseLabel =
@@ -112,7 +113,7 @@ export function ArchiveInitProgressView({
     }
 
     // Current item
-    contentLines.push(<Box key="spacer2" />);
+    contentLines.push(<Text key="spacer2"> </Text>);
     contentLines.push(
       <Text key="current" color={MUTED_TEXT} wrap="truncate">
         {progress.current}
@@ -121,7 +122,7 @@ export function ArchiveInitProgressView({
 
     // Statistics
     if (progress.skipped > 0 || progress.errors > 0) {
-      contentLines.push(<Box key="spacer3" />);
+      contentLines.push(<Text key="spacer3"> </Text>);
       if (progress.skipped > 0) {
         contentLines.push(
           <Text key="skipped" color={MUTED_TEXT}>
@@ -139,7 +140,7 @@ export function ArchiveInitProgressView({
     }
   } else {
     // Starting state
-    contentLines.push(<Box key="spacer1" />);
+    contentLines.push(<Text key="spacer1"> </Text>);
     contentLines.push(
       <Text key="starting" color={MUTED_TEXT}>
         Starting...
@@ -149,17 +150,12 @@ export function ArchiveInitProgressView({
 
   // Pad to fixed height
   while (contentLines.length < FIXED_CONTENT_HEIGHT) {
-    contentLines.push(<Box key={`pad-${contentLines.length}`} />);
+    contentLines.push(<Text key={`pad-${contentLines.length}`}> </Text>);
   }
 
-  const bottomControls = result ? (
-    <>
-      <Text color={ACCENT_COLOR}>[Esc]</Text>
-      <Text color={MUTED_TEXT}> Back</Text>
-    </>
-  ) : (
-    <Text color={MUTED_TEXT}>Press Esc to cancel</Text>
-  );
+  const { element: bottomControls, width: bottomControlsWidth } = result
+    ? buildBottomControls([{ key: "Esc", label: " Back" }])
+    : buildBottomControls([{ key: "Esc", label: " cancel" }]);
 
   // Render with layout
   return (
@@ -171,6 +167,7 @@ export function ArchiveInitProgressView({
           title="Jacques"
           showVersion={showVersion}
           bottomControls={bottomControls}
+          bottomControlsWidth={bottomControlsWidth}
         />
       ) : (
         <VerticalLayout

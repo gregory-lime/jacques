@@ -4,20 +4,24 @@
  * Displays and allows configuration of settings:
  * - Claude Code connection
  * - Auto-archive toggle
- * - Catalog extraction
- * - Archive browsing
+ * - Skip permissions toggle
+ * - Sync controls (Sync New / Re-sync All)
+ * - Subscription usage visualization
+ * - Browse Archive
  */
 
 import React from "react";
-import { Box, Text } from "ink";
-import { MASCOT_ANSI } from "../assets/mascot-ansi.js";
-import { BORDER_COLOR, ACCENT_COLOR, MUTED_TEXT } from "./layout/index.js";
-
-const MASCOT_WIDTH = 14;
-const MIN_CONTENT_WIDTH = 42;
-const CONTENT_PADDING = 2;
-const HORIZONTAL_LAYOUT_MIN_WIDTH = 62;
-const FIXED_CONTENT_HEIGHT = 10;
+import { Text } from "ink";
+import {
+  HorizontalLayout,
+  VerticalLayout,
+  ACCENT_COLOR,
+  MUTED_TEXT,
+  HORIZONTAL_LAYOUT_MIN_WIDTH,
+  FIXED_CONTENT_HEIGHT,
+} from "./layout/index.js";
+import { buildBottomControls } from "../utils/bottom-controls.js";
+import type { UsageLimits } from "../hooks/useUsageLimits.js";
 
 export interface ArchiveStatsData {
   totalConversations: number;
@@ -30,9 +34,13 @@ interface SettingsViewProps {
   terminalWidth: number;
   selectedIndex: number;
   autoArchive: boolean;
+  skipPermissions: boolean;
   stats: ArchiveStatsData | null;
   loading?: boolean;
   scrollOffset?: number;
+  syncProgress?: string | null;
+  usageLimits?: UsageLimits | null;
+  usageLoading?: boolean;
   // Claude Connection props
   claudeConnected?: boolean;
   claudeTokenMasked?: string | null;
@@ -44,23 +52,40 @@ interface SettingsViewProps {
 }
 
 // Settings items:
-// Index 0: Claude Connection (input/status)
+// Index 0: Claude Connection
 // Index 1: Auto-archive toggle
-// Index 2: Extract Catalog button
-// Index 3: Re-extract All button
-// Index 4: Browse Archive button
-const TOTAL_ITEMS = 5;
+// Index 2: Skip Permissions toggle
+// Index 3: Sync New
+// Index 4: Re-sync All
+// Index 5: Browse Archive
+const TOTAL_ITEMS = 6;
 
 export { TOTAL_ITEMS as SETTINGS_TOTAL_ITEMS };
+
+function renderUsageDots(percentage: number): React.ReactNode {
+  const total = 10;
+  const filled = Math.round((percentage / 100) * total);
+  const empty = total - filled;
+  const color = percentage < 50 ? "green" : percentage < 80 ? "yellow" : "red";
+  return (
+    <Text>
+      <Text color={color}>{"\u25CF".repeat(filled)}</Text>
+      <Text color={MUTED_TEXT}>{"\u25CB".repeat(empty)}</Text>
+    </Text>
+  );
+}
 
 export function SettingsView({
   terminalWidth,
   selectedIndex,
   autoArchive,
+  skipPermissions,
   stats,
   loading = false,
   scrollOffset = 0,
-  // Claude Connection props
+  syncProgress = null,
+  usageLimits = null,
+  usageLoading = false,
   claudeConnected = false,
   claudeTokenMasked = null,
   claudeTokenInput = "",
@@ -76,40 +101,37 @@ export function SettingsView({
 
   // Title
   contentLines.push(
-    <Text bold color={ACCENT_COLOR}>
+    <Text key="title" bold color={ACCENT_COLOR}>
       Settings
     </Text>
   );
-  contentLines.push(<Text color={MUTED_TEXT}>{"─".repeat(40)}</Text>);
+  contentLines.push(<Text key="sep" color={MUTED_TEXT}>{"\u2500".repeat(30)}</Text>);
 
-  // Claude Code Connection section
-  contentLines.push(<Box />);
-  contentLines.push(<Text color={MUTED_TEXT}>Claude Code Connection:</Text>);
+  // Claude Code Connection section (index 0)
+  contentLines.push(<Text key="claude-space"> </Text>);
+  contentLines.push(<Text key="claude-label" color={MUTED_TEXT}>Claude Code Connection:</Text>);
 
   const claudeSelected = selectedIndex === 0;
 
   if (claudeConnected && claudeTokenMasked) {
-    // Connected state
     contentLines.push(
-      <Text color={claudeSelected ? ACCENT_COLOR : "white"}>
+      <Text key="claude-val" color={claudeSelected ? ACCENT_COLOR : "white"}>
         {claudeSelected ? "> " : "  "}
-        <Text color="green">●</Text> Connected
+        <Text color="green">{"\u25CF"}</Text> Connected
         <Text color={MUTED_TEXT}> ({claudeTokenMasked})</Text>
       </Text>
     );
   } else if (isTokenInputMode) {
-    // Token input mode - show two-step instructions
     contentLines.push(
-      <Text color={MUTED_TEXT} wrap="truncate">
+      <Text key="claude-step1" color={MUTED_TEXT} wrap="truncate">
         {"  "}1. Run: <Text color="white">claude setup-token</Text>
       </Text>
     );
     contentLines.push(
-      <Text color={MUTED_TEXT} wrap="truncate">
+      <Text key="claude-step2" color={MUTED_TEXT} wrap="truncate">
         {"  "}2. Paste token here:
       </Text>
     );
-    // Truncate long token input - show last 20 chars with "..." prefix
     const maxDisplayLength = 20;
     let displayToken = claudeTokenInput || "";
     if (displayToken.length > maxDisplayLength) {
@@ -117,308 +139,156 @@ export function SettingsView({
     }
     if (isTokenVerifying) {
       contentLines.push(
-        <Text color={ACCENT_COLOR} wrap="truncate">
+        <Text key="claude-verify" color={ACCENT_COLOR} wrap="truncate">
           {"     "}Verifying...
         </Text>
       );
     } else {
       contentLines.push(
-        <Text color={ACCENT_COLOR} wrap="truncate">
+        <Text key="claude-input" color={ACCENT_COLOR} wrap="truncate">
           {"     "}{displayToken}_
         </Text>
       );
     }
     if (claudeTokenError) {
       contentLines.push(
-        <Text color="red" wrap="truncate">{"     "}{claudeTokenError}</Text>
+        <Text key="claude-err" color="red" wrap="truncate">{"     "}{claudeTokenError}</Text>
       );
     }
   } else {
-    // Not connected state
     contentLines.push(
-      <Text color={claudeSelected ? ACCENT_COLOR : "white"}>
+      <Text key="claude-val" color={claudeSelected ? ACCENT_COLOR : "white"}>
         {claudeSelected ? "> " : "  "}
-        <Text color={MUTED_TEXT}>○</Text> Not connected
+        <Text color={MUTED_TEXT}>{"\u25CB"}</Text> Not connected
         <Text color={MUTED_TEXT}> (press Enter to connect)</Text>
       </Text>
     );
   }
 
   // Auto-archive toggle (index 1)
-  contentLines.push(<Box />);
-  contentLines.push(<Text color={MUTED_TEXT}>Auto-Archive:</Text>);
-
+  contentLines.push(<Text key="archive-space"> </Text>);
   const autoArchiveSelected = selectedIndex === 1;
-  const checkIcon = autoArchive ? "[x]" : "[ ]";
+  const archiveCheck = autoArchive ? "[x]" : "[ ]";
   contentLines.push(
-    <Text color={autoArchiveSelected ? ACCENT_COLOR : "white"}>
+    <Text key="archive-val" color={autoArchiveSelected ? ACCENT_COLOR : "white"}>
       {autoArchiveSelected ? "> " : "  "}
-      {checkIcon} Auto-archive on session end
+      {archiveCheck} Auto-archive on session end
     </Text>
   );
 
-  // Catalog Actions section (indices 2-4)
-  contentLines.push(<Box />);
-  contentLines.push(<Text color={MUTED_TEXT}>Catalog Actions:</Text>);
-
-  const extractSelected = selectedIndex === 2;
+  // Skip permissions toggle (index 2)
+  const skipSelected = selectedIndex === 2;
+  const skipCheck = skipPermissions ? "[x]" : "[ ]";
   contentLines.push(
-    <Text color={extractSelected ? ACCENT_COLOR : "white"}>
-      {extractSelected ? "> " : "  "}
-      Extract Catalog
-      <Text color={MUTED_TEXT}> (extract sessions, plans, subagents)</Text>
+    <Text key="skip-val" color={skipSelected ? ACCENT_COLOR : "white"}>
+      {skipSelected ? "> " : "  "}
+      {skipCheck} <Text color={skipPermissions ? "red" : "white"}>Dangerously skip permissions</Text>
     </Text>
   );
 
-  const reextractSelected = selectedIndex === 3;
-  contentLines.push(
-    <Text color={reextractSelected ? ACCENT_COLOR : "white"}>
-      {reextractSelected ? "> " : "  "}
-      Re-extract All
-      <Text color={MUTED_TEXT}> (force re-extract everything)</Text>
-    </Text>
-  );
+  // Sync section (indices 3-4)
+  contentLines.push(<Text key="sync-space"> </Text>);
+  contentLines.push(<Text key="sync-label" color={MUTED_TEXT}>Sync:</Text>);
 
-  const browseSelected = selectedIndex === 4;
+  if (syncProgress) {
+    contentLines.push(
+      <Text key="sync-progress" color={ACCENT_COLOR}>
+        {"  "}{syncProgress}
+      </Text>
+    );
+  } else {
+    const syncNewSelected = selectedIndex === 3;
+    contentLines.push(
+      <Text key="sync-new" color={syncNewSelected ? ACCENT_COLOR : "white"}>
+        {syncNewSelected ? "> " : "  "}Sync New
+      </Text>
+    );
+
+    const resyncSelected = selectedIndex === 4;
+    contentLines.push(
+      <Text key="resync" color={resyncSelected ? ACCENT_COLOR : "white"}>
+        {resyncSelected ? "> " : "  "}Re-sync All
+      </Text>
+    );
+  }
+
+  // Usage section
+  contentLines.push(<Text key="usage-space"> </Text>);
+  contentLines.push(<Text key="usage-label" color={MUTED_TEXT}>Usage:</Text>);
+
+  if (usageLoading) {
+    contentLines.push(<Text key="usage-loading" color={MUTED_TEXT}>  Loading...</Text>);
+  } else if (usageLimits) {
+    if (usageLimits.current) {
+      const c = usageLimits.current;
+      contentLines.push(
+        <Text key="usage-current">
+          {"  "}current  {renderUsageDots(c.percentage)}
+          <Text color={ACCENT_COLOR}> {c.percentage.toFixed(0)}%</Text>
+          <Text color={MUTED_TEXT}> resets {c.resetsAt}</Text>
+        </Text>
+      );
+    }
+    if (usageLimits.weekly) {
+      const w = usageLimits.weekly;
+      contentLines.push(
+        <Text key="usage-weekly">
+          {"  "}weekly   {renderUsageDots(w.percentage)}
+          <Text color={ACCENT_COLOR}> {w.percentage.toFixed(0)}%</Text>
+          <Text color={MUTED_TEXT}> resets {w.resetsAt}</Text>
+        </Text>
+      );
+    }
+    if (!usageLimits.current && !usageLimits.weekly) {
+      contentLines.push(<Text key="usage-none" color={MUTED_TEXT}>  No usage data available</Text>);
+    }
+  } else {
+    contentLines.push(<Text key="usage-none" color={MUTED_TEXT}>  No usage data available</Text>);
+  }
+
+  // Browse Archive (index 5)
+  contentLines.push(<Text key="browse-space"> </Text>);
+  const browseSelected = selectedIndex === 5;
   contentLines.push(
-    <Text color={browseSelected ? ACCENT_COLOR : "white"}>
+    <Text key="browse-val" color={browseSelected ? ACCENT_COLOR : "white"}>
       {browseSelected ? "> " : "  "}
       Browse Archive
       <Text color={MUTED_TEXT}> (view conversations)</Text>
     </Text>
   );
 
-  // Archive stats section
-  contentLines.push(<Box />);
-  contentLines.push(<Text color={MUTED_TEXT}>{"─".repeat(40)}</Text>);
-  contentLines.push(<Text color={MUTED_TEXT}>Archive Stats</Text>);
+  // Apply scroll to content (keep header, scroll body)
+  const HEADER_LINES = 2;
+  const maxVisible = FIXED_CONTENT_HEIGHT - HEADER_LINES;
+  const bodyLines = contentLines.slice(HEADER_LINES);
+  const visibleBody = bodyLines.slice(scrollOffset, scrollOffset + maxVisible);
+  const finalContent = [...contentLines.slice(0, HEADER_LINES), ...visibleBody];
 
-  if (loading) {
-    contentLines.push(<Text color={MUTED_TEXT}>Loading...</Text>);
-  } else if (stats) {
-    contentLines.push(
-      <Text color={MUTED_TEXT}>
-        Location: {stats.archivePath}
-      </Text>
-    );
-    contentLines.push(
-      <Text color={MUTED_TEXT}>
-        Total: {stats.totalConversations} conversations | {stats.totalProjects}{" "}
-        projects | {stats.totalSize}
-      </Text>
-    );
-  } else {
-    contentLines.push(
-      <Text color={MUTED_TEXT}>No archive yet - save a conversation first</Text>
-    );
-  }
+  // Notification for connection success
+  const notification = showConnectionSuccess ? "Connected!" : null;
 
-  // Footer
-  contentLines.push(<Box />);
-  contentLines.push(
-    <Text color={MUTED_TEXT}>
-      [↑↓] Navigate [Space/Enter] Select [Esc] Back
-    </Text>
-  );
+  const { element: bottomControls, width: controlsWidth } = buildBottomControls([
+    { key: "Esc", label: " back" },
+  ]);
 
-  // Calculate scroll indicators
-  const totalLines = contentLines.length;
-  const hasMoreAbove = scrollOffset > 0;
-  const hasMoreBelow = scrollOffset + FIXED_CONTENT_HEIGHT < totalLines;
-
-  if (useHorizontalLayout) {
-    return (
-      <SettingsHorizontalLayout
-        content={contentLines}
-        terminalWidth={terminalWidth}
-        showVersion={showVersion}
-        showConnectionSuccess={showConnectionSuccess}
-        scrollOffset={scrollOffset}
-        hasMoreAbove={hasMoreAbove}
-        hasMoreBelow={hasMoreBelow}
-      />
-    );
-  }
-
-  return (
-    <SettingsVerticalLayout
-      content={contentLines}
+  return useHorizontalLayout ? (
+    <HorizontalLayout
+      content={finalContent}
+      terminalWidth={terminalWidth}
+      title="Jacques"
       showVersion={showVersion}
-      showConnectionSuccess={showConnectionSuccess}
-      scrollOffset={scrollOffset}
+      notification={notification}
+      bottomControls={bottomControls}
+      bottomControlsWidth={controlsWidth}
     />
-  );
-}
-
-// Horizontal layout (matching Dashboard.tsx pattern)
-interface SettingsHorizontalLayoutProps {
-  content: React.ReactNode[];
-  terminalWidth: number;
-  showVersion: boolean;
-  showConnectionSuccess?: boolean;
-  scrollOffset?: number;
-  hasMoreAbove?: boolean;
-  hasMoreBelow?: boolean;
-}
-
-function SettingsHorizontalLayout({
-  content,
-  terminalWidth,
-  showVersion,
-  showConnectionSuccess = false,
-  scrollOffset = 0,
-  hasMoreAbove = false,
-  hasMoreBelow = false,
-}: SettingsHorizontalLayoutProps): React.ReactElement {
-  const mascotVisualWidth = MASCOT_WIDTH;
-  const mascotPadding = 3;
-  const mascotDisplayWidth = mascotVisualWidth + mascotPadding;
-  const contentWidth = Math.max(
-    MIN_CONTENT_WIDTH,
-    terminalWidth - mascotDisplayWidth - 3
-  );
-
-  const mascotLines = MASCOT_ANSI.split("\n").filter(
-    (line) => line.trim().length > 0
-  );
-  const mascotHeight = mascotLines.length;
-  // Add 1 to height when showing success message for extra breathing room
-  const totalHeight = showConnectionSuccess ? FIXED_CONTENT_HEIGHT + 1 : FIXED_CONTENT_HEIGHT;
-  const mascotTopPadding = Math.floor((totalHeight - mascotHeight) / 2);
-
-  // Apply scroll offset to content
-  const visibleContent = content.slice(scrollOffset, scrollOffset + totalHeight);
-
-  const titlePart = "─ Jacques";
-  const versionPart = showVersion ? " v0.1.0" : "";
-  const titleLength = titlePart.length + versionPart.length;
-  const remainingBorder = Math.max(0, terminalWidth - titleLength - 3);
-
-  const bottomControlsText = "[Esc] Back";
-  const bottomControlsLength = bottomControlsText.length;
-  const totalBottomDashes = terminalWidth - bottomControlsLength - 2;
-  const bottomLeftBorder = Math.max(0, Math.floor(totalBottomDashes / 2));
-  const bottomRightBorder = Math.max(0, totalBottomDashes - bottomLeftBorder);
-
-  // Total box height: 1 (top border) + totalHeight (content rows) + 1 (bottom border)
-  const boxHeight = totalHeight + 2;
-
-  return (
-    <Box flexDirection="column" height={boxHeight}>
-      <Box>
-        <Text color={BORDER_COLOR}>╭</Text>
-        <Text color={ACCENT_COLOR}>{titlePart}</Text>
-        {showVersion && <Text color={MUTED_TEXT}>{versionPart}</Text>}
-        <Text color={BORDER_COLOR}> {"─".repeat(remainingBorder)}╮</Text>
-      </Box>
-
-      {Array.from({ length: totalHeight }).map((_, rowIndex) => {
-        const mascotLineIndex = rowIndex - mascotTopPadding;
-        const mascotLine =
-          mascotLineIndex >= 0 && mascotLineIndex < mascotLines.length
-            ? mascotLines[mascotLineIndex]
-            : "";
-
-        // Show "Connected!" below the mascot when success flag is set
-        const successMessageRow = mascotTopPadding + mascotHeight;
-        const showSuccessOnThisRow = showConnectionSuccess && rowIndex === successMessageRow;
-
-        const contentLine = visibleContent[rowIndex];
-
-        // Show scroll indicators on first/last row of content area
-        let scrollIndicator = "";
-        if (rowIndex === 0 && hasMoreAbove) {
-          scrollIndicator = " ▲";
-        } else if (rowIndex === totalHeight - 1 && hasMoreBelow) {
-          scrollIndicator = " ▼";
-        }
-
-        return (
-          <Box key={rowIndex} flexDirection="row" height={1}>
-            <Text color={BORDER_COLOR}>│</Text>
-            <Box
-              width={mascotDisplayWidth}
-              justifyContent="center"
-              flexShrink={0}
-            >
-              {showSuccessOnThisRow ? (
-                <Text color="green" bold>Connected!</Text>
-              ) : (
-                <Text wrap="truncate-end">{mascotLine}</Text>
-              )}
-            </Box>
-            <Text color={BORDER_COLOR}>│</Text>
-            <Box
-              width={contentWidth}
-              paddingLeft={CONTENT_PADDING}
-              paddingRight={CONTENT_PADDING}
-              flexShrink={0}
-            >
-              {contentLine || <Text> </Text>}
-              {scrollIndicator && <Text color={MUTED_TEXT}>{scrollIndicator}</Text>}
-            </Box>
-            <Text color={BORDER_COLOR}>│</Text>
-          </Box>
-        );
-      })}
-
-      <Box>
-        <Text color={BORDER_COLOR}>╰{"─".repeat(bottomLeftBorder)}</Text>
-        <Text color={ACCENT_COLOR}>[Esc]</Text>
-        <Text color={MUTED_TEXT}> Back</Text>
-        <Text color={BORDER_COLOR}>{"─".repeat(bottomRightBorder)}╯</Text>
-      </Box>
-    </Box>
-  );
-}
-
-// Vertical layout (matching Dashboard.tsx pattern)
-interface SettingsVerticalLayoutProps {
-  content: React.ReactNode[];
-  showVersion: boolean;
-  showConnectionSuccess?: boolean;
-  scrollOffset?: number;
-}
-
-function SettingsVerticalLayout({
-  content,
-  showVersion,
-  showConnectionSuccess = false,
-  scrollOffset = 0,
-}: SettingsVerticalLayoutProps): React.ReactElement {
-  // Apply scroll offset for vertical layout too
-  const visibleContent = content.slice(scrollOffset, scrollOffset + FIXED_CONTENT_HEIGHT);
-
-  return (
-    <Box flexDirection="column">
-      <Text bold color={ACCENT_COLOR}>
-        Jacques
-        {showVersion && <Text color={MUTED_TEXT}> v0.1.0</Text>}
-      </Text>
-
-      <Box marginTop={1}>
-        <Text wrap="truncate-end">{MASCOT_ANSI}</Text>
-      </Box>
-
-      {showConnectionSuccess && (
-        <Box>
-          <Text color="green" bold>Connected!</Text>
-        </Box>
-      )}
-
-      <Box flexDirection="column" marginTop={1}>
-        {visibleContent.map((line, index) => (
-          <Box key={index}>{line}</Box>
-        ))}
-      </Box>
-
-      <Box marginTop={1}>
-        <Text>
-          <Text color={ACCENT_COLOR}>[Esc]</Text>
-          <Text color={MUTED_TEXT}> Back</Text>
-        </Text>
-      </Box>
-    </Box>
+  ) : (
+    <VerticalLayout
+      content={finalContent}
+      title="Jacques"
+      showVersion={showVersion}
+      notification={notification}
+      bottomControls={bottomControls}
+    />
   );
 }
 

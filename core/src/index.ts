@@ -38,6 +38,13 @@ export type {
   ToggleAutoCompactRequest,
   FocusTerminalRequest,
   FocusTerminalResultMessage,
+  TileWindowsRequest,
+  MaximizeWindowRequest,
+  LaunchSessionRequest,
+  CreateWorktreeRequest,
+  ListWorktreesRequest,
+  RemoveWorktreeRequest,
+  WorktreeWithStatus,
 } from "./types.js";
 
 // Client
