@@ -14,7 +14,11 @@ import {
   PROCESS_VERIFY_INTERVAL_MS,
 } from '../connection/constants.js';
 import { extractPid } from '../connection/terminal-key.js';
-import { isProcessRunning, isProcessBypass } from '../connection/process-detection.js';
+import { isProcessRunning, isProcessBypass, getClaudeProcesses } from '../connection/process-detection.js';
+import type { DetectedProcess } from '../connection/process-detection.js';
+
+/** Grace period for newly registered sessions before considering them dead (ms) */
+const NEW_SESSION_GRACE_MS = 60_000; // 60 seconds
 
 export interface ProcessMonitorCallbacks {
   getSession: (sessionId: string) => Session | undefined;
@@ -103,9 +107,11 @@ export class ProcessMonitor {
    * 1. Process is still running (checks all PID sources)
    * 2. CWD is not in Trash
    * 3. Session is not idle beyond timeout
+   * 4. PID-less sessions cross-referenced against running Claude processes
    */
   async verifyProcesses(): Promise<void> {
     const sessionsToRemove: string[] = [];
+    const pidlessSessions: [string, Session][] = [];
     const now = Date.now();
 
     for (const [id, session] of this.callbacks.getAllSessions()) {
@@ -118,6 +124,9 @@ export class ProcessMonitor {
           sessionsToRemove.push(id);
           continue;
         }
+      } else {
+        // Track PID-less sessions for batch process scan
+        pidlessSessions.push([id, session]);
       }
 
       // 2. Check if CWD is in Trash
@@ -136,6 +145,15 @@ export class ProcessMonitor {
       }
     }
 
+    // 4. Process re-scan for PID-less sessions
+    if (pidlessSessions.length > 0) {
+      const removeSet = new Set(sessionsToRemove);
+      const remainingPidless = pidlessSessions.filter(([id]) => !removeSet.has(id));
+      if (remainingPidless.length > 0) {
+        await this.verifyPidlessSessions(remainingPidless, sessionsToRemove, now);
+      }
+    }
+
     for (const id of sessionsToRemove) {
       this.log(`[Registry] Removing stale/dead session: ${id}`);
       this.callbacks.removeSession(id);
@@ -143,6 +161,77 @@ export class ProcessMonitor {
 
     if (sessionsToRemove.length > 0) {
       this.log(`[Registry] Removed ${sessionsToRemove.length} stale/dead session(s)`);
+    }
+  }
+
+  /**
+   * Verify PID-less sessions by scanning running Claude processes.
+   *
+   * For sessions without a PID, we can't use `kill -0`. Instead:
+   * 1. Enumerate all running Claude processes
+   * 2. Exclude PIDs already claimed by verified-alive sessions
+   * 3. Match PID-less sessions to unclaimed processes by CWD
+   * 4. If matched: enrich session with PID for future fast verification
+   * 5. If unmatched: session is dead, mark for removal
+   */
+  private async verifyPidlessSessions(
+    pidlessSessions: [string, Session][],
+    sessionsToRemove: string[],
+    now: number,
+  ): Promise<void> {
+    let processes: DetectedProcess[];
+    try {
+      processes = await getClaudeProcesses();
+    } catch (err) {
+      // If process enumeration fails, don't remove anything (fail-safe)
+      this.warn(`[Registry] Failed to enumerate Claude processes for PID-less verification: ${err}`);
+      return;
+    }
+
+    // Build set of PIDs already claimed by sessions WITH PIDs
+    const claimedPids = new Set<number>();
+    for (const [, session] of this.callbacks.getAllSessions()) {
+      const pid = this.getSessionPid(session);
+      if (pid !== null) {
+        claimedPids.add(pid);
+      }
+    }
+
+    // Build pool of unclaimed processes, indexed by normalized CWD
+    const unclaimedByCwd = new Map<string, DetectedProcess[]>();
+    for (const proc of processes) {
+      if (claimedPids.has(proc.pid)) continue;
+      const normalizedCwd = proc.cwd.replace(/\/+$/, '');
+      const existing = unclaimedByCwd.get(normalizedCwd) || [];
+      existing.push(proc);
+      unclaimedByCwd.set(normalizedCwd, existing);
+    }
+
+    for (const [id, session] of pidlessSessions) {
+      // Grace period: skip sessions registered less than 60s ago
+      if (now - session.registered_at < NEW_SESSION_GRACE_MS) {
+        this.log(`[Registry] Skipping PID-less session ${id} (within grace period)`);
+        continue;
+      }
+
+      const sessionCwd = (session.cwd || '').replace(/\/+$/, '');
+      const candidates = unclaimedByCwd.get(sessionCwd);
+
+      if (candidates && candidates.length > 0) {
+        // Match found — claim the first unclaimed process and enrich with PID
+        const matched = candidates.shift()!;
+        if (candidates.length === 0) {
+          unclaimedByCwd.delete(sessionCwd);
+        }
+
+        this.storeTerminalPid(session, matched.pid);
+        claimedPids.add(matched.pid);
+        this.log(`[Registry] Enriched PID-less session ${id} with PID ${matched.pid} (matched by CWD: ${sessionCwd})`);
+      } else {
+        // No matching Claude process — session is dead
+        this.log(`[Registry] No matching Claude process for PID-less session ${id} (CWD: ${sessionCwd})`);
+        sessionsToRemove.push(id);
+      }
     }
   }
 

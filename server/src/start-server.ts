@@ -92,6 +92,14 @@ export async function startEmbeddedServer(
       // Clean tile state when a session ends
       tileStateManager.removeSession(session.session_id);
 
+      // Broadcast removal to all GUI clients (covers all removal paths:
+      // session_end hook, process monitor dead PID, cleanup service, etc.)
+      broadcastService.broadcastSessionRemovedWithFocus(session.session_id);
+      notificationService.onSessionRemoved(session.session_id);
+
+      // Stop watching for handoff file
+      handoffWatcher.stopWatching(session.session_id);
+
       if (session.transcript_path && session.cwd) {
         logger.log(`Triggering catalog extraction for removed session: ${session.session_id}`);
         extractSessionCatalog(session.transcript_path, session.cwd)

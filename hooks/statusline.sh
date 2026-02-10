@@ -167,7 +167,7 @@ fi
 iterm_session_id="${ITERM_SESSION_ID:-}"
 term_session_id="${TERM_SESSION_ID:-}"
 kitty_window_id="${KITTY_WINDOW_ID:-}"
-terminal_pid="$$"
+terminal_pid="$PPID"
 
 # Build terminal_key (same logic as jacques-register-session.py)
 if [ -n "$iterm_session_id" ]; then

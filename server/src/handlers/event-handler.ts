@@ -207,14 +207,11 @@ export class EventHandler {
    * Handle session end event
    */
   private handleSessionEnd(event: SessionEndEvent): void {
-    // Stop watching for handoff file before removing session
-    const session = this.registry.getSession(event.session_id);
-    if (session) {
-      this.handoffWatcher.stopWatching(session.session_id);
-    }
-
+    // unregisterSession triggers onSessionRemoved callback which handles:
+    // - WebSocket broadcast (session_removed + focus_changed)
+    // - Notification cleanup
+    // - Handoff watcher stop
+    // - Catalog extraction
     this.registry.unregisterSession(event.session_id);
-    this.broadcastService.broadcastSessionRemovedWithFocus(event.session_id);
-    this.notificationService?.onSessionRemoved(event.session_id);
   }
 }

@@ -78,10 +78,20 @@ describe('EventHandler', () => {
   const silentLogger = createLogger({ silent: true });
 
   beforeEach(() => {
-    registry = new SessionRegistry({ silent: true });
     mockBroadcastService = new MockBroadcastService();
     mockHandoffWatcher = new MockHandoffWatcher();
     mockNotificationService = new MockNotificationService();
+
+    // Wire the registry's onSessionRemoved callback to the mocks,
+    // mirroring what start-server.ts does in production
+    registry = new SessionRegistry({
+      silent: true,
+      onSessionRemoved: (session) => {
+        mockBroadcastService.broadcastSessionRemovedWithFocus(session.session_id);
+        mockNotificationService.onSessionRemoved(session.session_id);
+        mockHandoffWatcher.stopWatching(session.session_id);
+      },
+    });
 
     eventHandler = new EventHandler({
       registry,

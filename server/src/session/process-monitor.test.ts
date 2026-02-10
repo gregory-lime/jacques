@@ -7,10 +7,12 @@ import { jest } from '@jest/globals';
 // Mock process-detection module before importing the module under test
 const mockIsProcessRunning = jest.fn<(pid: number) => Promise<boolean>>();
 const mockIsProcessBypass = jest.fn<(pid: number) => Promise<boolean>>();
+const mockGetClaudeProcesses = jest.fn<() => Promise<Array<{ pid: number; tty: string; cwd: string }>>>();
 
 jest.unstable_mockModule('../connection/process-detection.js', () => ({
   isProcessRunning: mockIsProcessRunning,
   isProcessBypass: mockIsProcessBypass,
+  getClaudeProcesses: mockGetClaudeProcesses,
 }));
 
 // Import after mocking
@@ -50,6 +52,7 @@ describe('ProcessMonitor', () => {
     sessions = new Map();
     removedSessionIds = [];
     jest.clearAllMocks();
+    mockGetClaudeProcesses.mockResolvedValue([]);
 
     const callbacks: ProcessMonitorCallbacks = {
       getSession: (id) => sessions.get(id),
@@ -275,6 +278,150 @@ describe('ProcessMonitor', () => {
 
       expect(updated).toHaveLength(0);
       expect(mockIsProcessBypass).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('verifyProcesses - PID-less session verification', () => {
+    it('should remove PID-less session when no Claude processes running', async () => {
+      mockGetClaudeProcesses.mockResolvedValue([]);
+      const session = makeSession({
+        session_id: 's1',
+        terminal_key: 'AUTO:some-uuid',
+        cwd: '/Users/test/project',
+        registered_at: Date.now() - 120_000, // 2 min ago, past grace period
+      });
+      sessions.set('s1', session);
+
+      await monitor.verifyProcesses();
+
+      expect(removedSessionIds).toContain('s1');
+      expect(mockGetClaudeProcesses).toHaveBeenCalledTimes(1);
+    });
+
+    it('should keep PID-less session when matching process found by CWD', async () => {
+      mockIsProcessBypass.mockResolvedValue(false);
+      mockGetClaudeProcesses.mockResolvedValue([
+        { pid: 55555, tty: 'ttys001', cwd: '/Users/test/project' },
+      ]);
+      const session = makeSession({
+        session_id: 's1',
+        terminal_key: 'AUTO:some-uuid',
+        cwd: '/Users/test/project',
+        registered_at: Date.now() - 120_000,
+      });
+      sessions.set('s1', session);
+
+      await monitor.verifyProcesses();
+
+      expect(removedSessionIds).toHaveLength(0);
+      // Verify PID was enriched
+      expect(monitor.getSessionPid(session)).toBe(55555);
+    });
+
+    it('should not remove PID-less session within grace period', async () => {
+      mockGetClaudeProcesses.mockResolvedValue([]); // No matching processes
+      const session = makeSession({
+        session_id: 's1',
+        terminal_key: 'AUTO:some-uuid',
+        cwd: '/Users/test/project',
+        registered_at: Date.now() - 10_000, // 10s ago, within grace period
+      });
+      sessions.set('s1', session);
+
+      await monitor.verifyProcesses();
+
+      expect(removedSessionIds).toHaveLength(0);
+    });
+
+    it('should not claim processes already owned by PID-bearing sessions', async () => {
+      mockIsProcessRunning.mockResolvedValue(true);
+      mockGetClaudeProcesses.mockResolvedValue([
+        { pid: 11111, tty: 'ttys001', cwd: '/Users/test/project' },
+      ]);
+
+      // Session with PID (already claims PID 11111)
+      const sessionWithPid = makeSession({
+        session_id: 's1',
+        terminal_key: 'DISCOVERED:PID:11111',
+        cwd: '/Users/test/project',
+      });
+
+      // PID-less session in same CWD
+      const sessionWithoutPid = makeSession({
+        session_id: 's2',
+        terminal_key: 'AUTO:uuid2',
+        cwd: '/Users/test/project',
+        registered_at: Date.now() - 120_000,
+      });
+
+      sessions.set('s1', sessionWithPid);
+      sessions.set('s2', sessionWithoutPid);
+
+      await monitor.verifyProcesses();
+
+      // s2 should be removed because the only process (PID 11111) is claimed by s1
+      expect(removedSessionIds).toContain('s2');
+      expect(removedSessionIds).not.toContain('s1');
+    });
+
+    it('should handle getClaudeProcesses failure gracefully', async () => {
+      mockGetClaudeProcesses.mockRejectedValue(new Error('pgrep failed'));
+      const session = makeSession({
+        session_id: 's1',
+        terminal_key: 'AUTO:some-uuid',
+        cwd: '/Users/test/project',
+        registered_at: Date.now() - 120_000,
+      });
+      sessions.set('s1', session);
+
+      await monitor.verifyProcesses();
+
+      // Should NOT remove the session (fail-safe)
+      expect(removedSessionIds).toHaveLength(0);
+    });
+
+    it('should match multiple PID-less sessions to multiple processes in same CWD', async () => {
+      mockIsProcessBypass.mockResolvedValue(false);
+      mockGetClaudeProcesses.mockResolvedValue([
+        { pid: 111, tty: 'ttys001', cwd: '/Users/test/project' },
+        { pid: 222, tty: 'ttys002', cwd: '/Users/test/project' },
+      ]);
+
+      const s1 = makeSession({
+        session_id: 's1',
+        terminal_key: 'AUTO:uuid1',
+        cwd: '/Users/test/project',
+        registered_at: Date.now() - 120_000,
+      });
+      const s2 = makeSession({
+        session_id: 's2',
+        terminal_key: 'AUTO:uuid2',
+        cwd: '/Users/test/project',
+        registered_at: Date.now() - 120_000,
+      });
+
+      sessions.set('s1', s1);
+      sessions.set('s2', s2);
+
+      await monitor.verifyProcesses();
+
+      expect(removedSessionIds).toHaveLength(0);
+      // Both sessions should be enriched with PIDs
+      expect(monitor.getSessionPid(s1)).not.toBeNull();
+      expect(monitor.getSessionPid(s2)).not.toBeNull();
+    });
+
+    it('should skip process scan when no PID-less sessions exist', async () => {
+      mockIsProcessRunning.mockResolvedValue(true);
+      const session = makeSession({
+        session_id: 's1',
+        terminal_key: 'DISCOVERED:PID:12345',
+      });
+      sessions.set('s1', session);
+
+      await monitor.verifyProcesses();
+
+      expect(mockGetClaudeProcesses).not.toHaveBeenCalled();
     });
   });
 
