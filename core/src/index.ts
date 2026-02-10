@@ -81,6 +81,10 @@ export {
 // Re-export formatTokenCount from session explicitly
 export { formatTokenCount as formatSessionTokenCount } from "./session/index.js";
 
+// Session title formatting
+export { formatSessionTitle } from "./session/index.js";
+export type { FormattedSessionTitle } from "./session/index.js";
+
 export type {
   SessionFile,
   SubagentFile,

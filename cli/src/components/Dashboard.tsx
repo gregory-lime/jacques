@@ -16,11 +16,13 @@ import { ArchiveBrowserView } from "./ArchiveBrowserView.js";
 import { ArchiveInitProgressView } from "./ArchiveInitProgressView.js";
 import { ProjectDashboardView } from "./ProjectDashboardView.js";
 import { PlanViewerView } from "./PlanViewerView.js";
+import { SessionsExperimentView } from "./SessionsExperimentView.js";
 import type { UseSettingsState } from "../hooks/useSettings.js";
 import type { UseArchiveBrowserState } from "../hooks/useArchiveBrowser.js";
 import type { UseProjectDashboardState } from "../hooks/useProjectDashboard.js";
 import type { UseClaudeTokenState } from "../hooks/useClaudeToken.js";
 import type { WorktreeItem } from "../hooks/useWorktrees.js";
+import type { ContentItem } from "../hooks/useSessionsExperiment.js";
 import type { UsageLimits } from "../hooks/useUsageLimits.js";
 import type { Session, DiscoveredProject } from "@jacques/core";
 import { getProjectGroupKey } from "@jacques/core";
@@ -36,6 +38,7 @@ export type DashboardView =
   | "archive-initializing"
   | "project-dashboard"
   | "plan-viewer"
+  | "sessions-experiment"
   // Legacy view types (kept for hooks still on disk)
   | "save"
   | "load"
@@ -88,6 +91,12 @@ interface DashboardProps {
   archive: UseArchiveBrowserState;
   // Project dashboard
   projectDashboard: UseProjectDashboardState;
+  // Sessions experiment
+  sessionsExpItems: ContentItem[];
+  sessionsExpSelectableIndices: number[];
+  sessionsExpSelectedIndex: number;
+  sessionsExpScrollOffset: number;
+  sessionsExpSelectedIds: Set<string>;
 }
 
 export function Dashboard(props: DashboardProps): React.ReactElement {
@@ -237,6 +246,22 @@ export function Dashboard(props: DashboardProps): React.ReactElement {
         </Box>
       );
     }
+
+    case "sessions-experiment":
+      return (
+        <Box width={tw} height={th} flexDirection="column">
+          <SessionsExperimentView
+            items={props.sessionsExpItems}
+            selectableIndices={props.sessionsExpSelectableIndices}
+            selectedIndex={props.sessionsExpSelectedIndex}
+            scrollOffset={props.sessionsExpScrollOffset}
+            selectedIds={props.sessionsExpSelectedIds}
+            notification={props.notification}
+            terminalWidth={tw}
+            terminalHeight={th}
+          />
+        </Box>
+      );
 
     case "plan-viewer":
       if (!props.projectDashboard.planViewerPlan) break;

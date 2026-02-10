@@ -51,3 +51,6 @@ export {
   countEntryTokens,
 } from "./token-estimator.js";
 export type { TokenEstimate, FilterTokenEstimates } from "./token-estimator.js";
+
+export { formatSessionTitle } from "./format-title.js";
+export type { FormattedSessionTitle } from "./format-title.js";

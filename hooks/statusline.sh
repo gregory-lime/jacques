@@ -95,21 +95,34 @@ if [ -z "$session_title" ]; then
     session_title=$(grep '"type":"summary"' "$transcript_path" 2>/dev/null | tail -1 | jq -r '.summary // empty' 2>/dev/null)
   fi
 
-  # Source 3: Fallback to first REAL user message (skip internal Claude Code messages)
-  if [ -z "$session_title" ] && [ -n "$transcript_path" ] && [ -f "$transcript_path" ]; then
-    raw_title=$(grep '"type":"user"' "$transcript_path" 2>/dev/null | while read -r line; do
+  # Source 3: First REAL user message (skip internal Claude Code messages)
+  # Always extract first user message — needed for plan trigger check even if Source 1/2 found a title
+  first_user_msg=""
+  if [ -n "$transcript_path" ] && [ -f "$transcript_path" ]; then
+    first_user_msg=$(grep '"type":"user"' "$transcript_path" 2>/dev/null | while read -r line; do
       content=$(echo "$line" | jq -r '.message.content // empty' 2>/dev/null)
       [ -z "$content" ] && continue
       first_char="${content:0:1}"
       if [ "$first_char" = "<" ] || [ "$first_char" = "[" ]; then
         continue
       fi
-      echo "$content" | tr '\n' ' ' | head -c 50
+      echo "$content" | head -c 200
       break
     done)
-    if [ -n "$raw_title" ]; then
-      session_title="${raw_title}..."
+  fi
+
+  # If first message is a plan trigger, prefer it over sessions-index summary
+  # (display code needs the trigger + heading to extract plan title)
+  if [ -n "$first_user_msg" ]; then
+    is_plan=$(echo "$first_user_msg" | head -1 | grep -iE '^(implement the following plan|here is the plan|follow this plan)[: ]' 2>/dev/null)
+    if [ -n "$is_plan" ]; then
+      session_title="$first_user_msg"
     fi
+  fi
+
+  # Fallback: use first user message if no title found
+  if [ -z "$session_title" ] && [ -n "$first_user_msg" ]; then
+    session_title="$first_user_msg"
   fi
 
   # Cache the extracted title

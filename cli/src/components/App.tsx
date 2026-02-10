@@ -7,7 +7,7 @@
  */
 
 import React, { useCallback, useState, useEffect, useRef } from "react";
-import { useInput, useApp, useStdin, Box } from "ink";
+import { useInput, useApp, useStdin, useStdout, Box } from "ink";
 import type { Key } from "ink";
 import { exec } from "child_process";
 import { useJacquesClient } from "../hooks/useJacquesClient.js";
@@ -19,6 +19,7 @@ import { useProjectDashboard } from "../hooks/useProjectDashboard.js";
 import { useProjectSelector } from "../hooks/useProjectSelector.js";
 import { useSessions } from "../hooks/useSessions.js";
 import { useWorktrees } from "../hooks/useWorktrees.js";
+import { useSessionsExperiment } from "../hooks/useSessionsExperiment.js";
 import { useUsageLimits } from "../hooks/useUsageLimits.js";
 import { Dashboard } from "./Dashboard.js";
 import type { DashboardView } from "./Dashboard.js";
@@ -102,6 +103,37 @@ export function App(): React.ReactElement {
     sessions: sessions as Array<{ cwd?: string; git_worktree?: string }>,
   });
 
+  // Track terminal height for experiment view viewport calculation
+  const { stdout } = useStdout();
+  const [terminalHeight, setTerminalHeight] = useState(stdout?.rows || 24);
+  useEffect(() => {
+    const handleResize = () => {
+      if (stdout?.rows) setTerminalHeight(stdout.rows);
+    };
+    if (stdout && "on" in stdout && typeof stdout.on === "function") {
+      stdout.on("resize", handleResize);
+      return () => {
+        if ("off" in stdout && typeof stdout.off === "function") {
+          stdout.off("resize", handleResize);
+        }
+      };
+    }
+  }, [stdout]);
+
+  const sessionsExpHook = useSessionsExperiment({
+    sessions,
+    worktrees: worktreesHook.worktrees,
+    focusedSessionId,
+    selectedProject: projectSelector.selectedProject,
+    terminalHeight,
+    focusTerminal,
+    maximizeWindow,
+    tileWindows,
+    launchSession,
+    showNotification,
+    returnToMain: () => returnToMainRef.current(),
+  });
+
   const usageLimits = useUsageLimits(currentView === "settings");
 
   // ---- Define returnToMain ----
@@ -115,6 +147,7 @@ export function App(): React.ReactElement {
     projectSelector.reset();
     sessionsHook.reset();
     worktreesHook.reset();
+    sessionsExpHook.reset();
   }, [
     claudeToken.reset,
     archiveBrowser.reset,
@@ -123,6 +156,7 @@ export function App(): React.ReactElement {
     projectSelector.reset,
     sessionsHook.reset,
     worktreesHook.reset,
+    sessionsExpHook.reset,
   ]);
 
   returnToMainRef.current = returnToMain;
@@ -191,6 +225,13 @@ export function App(): React.ReactElement {
         settings.open();
         claudeToken.loadStatus();
         break;
+
+      case "4": { // Sessions Lab
+        const root = getRepoRoot();
+        worktreesHook.open(root);
+        setCurrentView("sessions-experiment");
+        break;
+      }
     }
   }, [sessionsHook.reset, getRepoRoot, worktreesHook.open, settings.open, claudeToken.loadStatus]);
 
@@ -215,7 +256,7 @@ export function App(): React.ReactElement {
       exit();
       return;
     }
-    if (["1", "2", "3"].includes(input)) {
+    if (["1", "2", "3", "4"].includes(input)) {
       const index = parseInt(input) - 1;
       if (MENU_ITEMS[index]?.enabled) {
         handleMenuSelect(input);
@@ -260,6 +301,10 @@ export function App(): React.ReactElement {
 
         case "worktrees":
           worktreesHook.handleInput(input, key);
+          break;
+
+        case "sessions-experiment":
+          sessionsExpHook.handleInput(input, key);
           break;
 
         case "settings":
@@ -344,6 +389,12 @@ export function App(): React.ReactElement {
         archive={archiveBrowser.state}
         // Project dashboard
         projectDashboard={projectDashboard.state}
+        // Sessions experiment
+        sessionsExpItems={sessionsExpHook.items}
+        sessionsExpSelectableIndices={sessionsExpHook.selectableIndices}
+        sessionsExpSelectedIndex={sessionsExpHook.selectedIndex}
+        sessionsExpScrollOffset={sessionsExpHook.scrollOffset}
+        sessionsExpSelectedIds={sessionsExpHook.selectedIds}
       />
     </Box>
   );
