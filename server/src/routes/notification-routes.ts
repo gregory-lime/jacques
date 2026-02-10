@@ -40,6 +40,25 @@ export async function notificationRoutes(ctx: RouteContext): Promise<boolean> {
     return true;
   }
 
+  // Route: POST /api/notifications/test — Broadcast a test notification (dev only)
+  if (method === 'POST' && url === '/api/notifications/test') {
+    if (!notificationService) {
+      sendJson(res, 503, { error: 'Notification service not available' });
+      return true;
+    }
+    const body = await parseBody<{ category?: string; title?: string; body?: string; priority?: string; sessionId?: string }>(req);
+    const category = (body?.category ?? 'context') as import('@jacques/core/notifications').NotificationCategory;
+    const title = body?.title ?? 'Test Notification';
+    const notifBody = body?.body ?? 'This is a test notification from Jacques';
+    const priority = (body?.priority ?? 'medium') as import('@jacques/core/notifications').NotificationPriority;
+    const sessionId = body?.sessionId ?? 'test-session';
+
+    notificationService.fireTestNotification(category, title, notifBody, priority, sessionId);
+
+    sendJson(res, 200, { ok: true, category, title });
+    return true;
+  }
+
   // Route: GET /api/notifications
   if (method === 'GET' && url === '/api/notifications') {
     if (!notificationService) {

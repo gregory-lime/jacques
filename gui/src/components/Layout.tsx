@@ -21,7 +21,6 @@ import { MultiLogPanel } from './MultiLogPanel';
 import { SidebarSessionList } from './SidebarSessionList';
 import { SectionHeader, ToastContainer, NotificationCenter } from './ui';
 import { NotificationProvider } from '../hooks/useNotifications';
-import { useSessionBadges } from '../hooks/useSessionBadges';
 import { usePersistedState } from '../hooks/usePersistedState';
 import { useOpenSessions } from '../hooks/useOpenSessions';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
@@ -40,7 +39,7 @@ const navItems = [
 export function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { sessions, serverLogs, claudeOperations, apiLogs, launchSession, createWorktree } = useJacquesClient();
+  const { sessions, serverLogs, claudeOperations, apiLogs, launchSession, createWorktree, focusTerminal } = useJacquesClient();
   const { selectedProject, setSelectedProject, archivedProjects, setArchivedProjects, discoveredProjects, refreshProjects } = useProjectScope();
   const [sourceStatus, setSourceStatus] = useState<SourcesStatus>({
     obsidian: { connected: false },
@@ -67,10 +66,6 @@ export function Layout() {
 
   // For nav links: use URL slug when on project pages, fallback to context for global pages
   const navProjectSlug = projectSlug || selectedProject;
-
-  // Session badges for notification detection (plan count, auto-compact)
-  const sessionIds = sessions.map(s => s.session_id);
-  const { badges } = useSessionBadges(sessionIds);
 
   const [sidebarCollapsed, setSidebarCollapsed] = usePersistedState('sidebarCollapsed', false);
   const [showLogs, setShowLogs] = usePersistedState('showLogs', false);
@@ -144,11 +139,7 @@ export function Layout() {
   };
 
   return (
-    <NotificationProvider
-      sessions={sessions}
-      claudeOperations={claudeOperations}
-      badges={badges}
-    >
+    <NotificationProvider>
     <div style={styles.container}>
       <ToastContainer />
       {/* Sidebar */}
@@ -350,7 +341,7 @@ export function Layout() {
               </NavLink>
             )}
 
-            <NotificationCenter />
+            <NotificationCenter onFocusTerminal={(sessionId) => focusTerminal?.(sessionId)} />
 
             <button
               style={{

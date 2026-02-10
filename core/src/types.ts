@@ -140,6 +140,19 @@ export interface FocusTerminalResultMessage {
   error?: string;
 }
 
+export interface NotificationFiredMessage {
+  type: "notification_fired";
+  notification: {
+    id: string;
+    category: string;
+    title: string;
+    body: string;
+    priority: string;
+    timestamp: number;
+    sessionId?: string;
+  };
+}
+
 export type ServerMessage =
   | InitialStateMessage
   | SessionUpdateMessage
@@ -148,7 +161,8 @@ export type ServerMessage =
   | ServerStatusMessage
   | AutoCompactToggledMessage
   | HandoffReadyMessage
-  | FocusTerminalResultMessage;
+  | FocusTerminalResultMessage
+  | NotificationFiredMessage;
 
 export interface SelectSessionRequest {
   type: "select_session";

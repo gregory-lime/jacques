@@ -113,8 +113,8 @@ When multiple sessions have the same plan title, the Dashboard finds the session
 | `useProjectScope` | Select active project (persisted) |
 | `useOpenSessions` | Track open session tabs (persisted) |
 | `useSessionDetails` | Fetch single session details |
-| `useNotifications` | Manage toast notifications (persisted) |
-| `useJacquesClient` | WebSocket client — live sessions, worktree ops, terminal launch |
+| `useNotifications` | Notification settings provider — fetches/saves settings via server HTTP API |
+| `useJacquesClient` | WebSocket client — live sessions, worktree ops, terminal launch, `notification_fired` handler |
 | `useAuth` | OAuth token management |
 
 ### Persisted State Keys

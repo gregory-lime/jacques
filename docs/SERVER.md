@@ -254,7 +254,7 @@ Client messages are routed by `start-server.ts` to domain handler classes:
 ## Services
 
 - `broadcast-service.ts` — Dispatch events to all WebSocket clients
-- `notification-service.ts` — Native OS desktop notifications (node-notifier)
+- `notification-service.ts` — Server-authoritative notification service. Detects events, fires native OS notifications via `node-notifier` with click-to-focus, broadcasts `notification_fired` WebSocket messages. Uses types/constants from `@jacques/core/notifications`. See `docs/NOTIFICATIONS.md`
 - `watchers/handoff-watcher.ts` — Monitor `.jacques/handoffs/` for new files
 
 ## MCP Server (`server/src/mcp/`)

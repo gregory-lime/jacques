@@ -14,12 +14,14 @@ import { ProjectScopeProvider } from './hooks/useProjectScope.js';
 import { OpenSessionsProvider } from './hooks/useOpenSessions';
 import { FocusZoneProvider } from './hooks/useFocusZone';
 import { ShortcutActionsProvider } from './hooks/useShortcutActions';
+import { JacquesClientProvider } from './hooks/useJacquesClient';
 import { ErrorBoundary } from './components/ui';
 
 export function App() {
   return (
     <FocusZoneProvider>
     <ShortcutActionsProvider>
+    <JacquesClientProvider>
     <ProjectScopeProvider>
       <OpenSessionsProvider>
         <ErrorBoundary level="app">
@@ -55,6 +57,7 @@ export function App() {
         </ErrorBoundary>
       </OpenSessionsProvider>
     </ProjectScopeProvider>
+    </JacquesClientProvider>
     </ShortcutActionsProvider>
     </FocusZoneProvider>
   );

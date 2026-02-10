@@ -145,9 +145,17 @@ export async function startEmbeddedServer(
     logger,
   });
 
-  // Create notification service
+  // Create notification service (with click-to-focus callback)
   const notificationService = new NotificationService({
     broadcast: (msg) => wsServer.broadcast(msg),
+    focusTerminal: (sessionId) => {
+      const session = registry.getSession(sessionId);
+      if (session?.terminal_key) {
+        import('./terminal-activator.js').then(({ activateTerminal }) => {
+          activateTerminal(session.terminal_key).catch(() => {});
+        }).catch(() => {});
+      }
+    },
     logger,
   });
 

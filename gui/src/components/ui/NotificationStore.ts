@@ -9,27 +9,19 @@
  */
 
 // ============================================================
-// Types
+// Types (extended from @jacques/core with GUI-specific `read` field)
 // ============================================================
 
-export type NotificationPriority = 'low' | 'medium' | 'high' | 'critical';
+import type {
+  NotificationPriority,
+  NotificationCategory,
+  NotificationItem as CoreNotificationItem,
+} from '@jacques/core/notifications';
 
-export type NotificationCategory =
-  | 'context'
-  | 'operation'
-  | 'plan'
-  | 'auto-compact'
-  | 'handoff';
+export type { NotificationPriority, NotificationCategory };
 
-export interface NotificationItem {
-  id: string;
-  title: string;
-  body: string;
-  priority: NotificationPriority;
-  category: NotificationCategory;
-  timestamp: number;
+export interface NotificationItem extends CoreNotificationItem {
   read: boolean;
-  sessionId?: string;
 }
 
 // ============================================================

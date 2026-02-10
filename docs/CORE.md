@@ -4,7 +4,7 @@ Shared business logic used by server, CLI, and GUI. Must be built first — serv
 
 **Build**: `cd core && npx tsc`
 **Test**: `cd core && npm test`
-**Exports**: 10 submodules via `package.json` exports map
+**Exports**: 11 submodules via `package.json` exports map
 
 ## Module Map
 
@@ -20,6 +20,7 @@ Shared business logic used by server, CLI, and GUI. Must be built first — serv
 | Handoff | `@jacques/core/handoff` | Session handoff generation |
 | Utils | `@jacques/core/utils` | Settings, Claude token management |
 | Cache | `@jacques/core/cache` | Session indexing, project discovery, mode detection |
+| Notifications | `@jacques/core/notifications` | Shared notification types, constants, utilities. See `docs/NOTIFICATIONS.md` |
 | Logging | `core/src/logging/` | Structured logging, error classification (internal) |
 | Project | `core/src/project/` | Aggregation for CLI |
 

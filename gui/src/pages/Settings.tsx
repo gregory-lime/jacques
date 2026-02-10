@@ -5,13 +5,13 @@ import { colors } from '../styles/theme';
 import { SectionHeader, SettingsSection, ToggleSwitch } from '../components/ui';
 import { useNotifications } from '../hooks/useNotifications';
 import { usePersistedState } from '../hooks/usePersistedState';
-import type { NotificationCategory } from '../notifications/types';
+import type { NotificationCategory } from '@jacques/core/notifications';
 import { getRootPath, setRootPath, syncSessions, getUsageLimits, type RootPathConfig, type SyncProgress, type SyncResult } from '../api';
 import { useProjectScope } from '../hooks/useProjectScope';
 import type { UsageLimits } from '../types';
 
 const CATEGORY_LABELS: Record<NotificationCategory, { label: string; description: string }> = {
-  context: { label: 'Context thresholds', description: 'Alert at 50%, 70%, 90% usage' },
+  context: { label: 'Context thresholds', description: 'Alert at 50%, 70% usage' },
   operation: { label: 'Large operations', description: 'Claude operations exceeding token threshold' },
   plan: { label: 'Plan creation', description: 'New plan detected in a session' },
   'auto-compact': { label: 'Auto-compact', description: 'Session automatically compacted' },

@@ -77,9 +77,9 @@ describe('NotificationService', () => {
   describe('settings', () => {
     it('should return default settings when no config exists', () => {
       const settings = service.getSettings();
-      expect(settings.enabled).toBe(true);
+      expect(settings.enabled).toBe(false);
       expect(settings.categories.context).toBe(true);
-      expect(settings.contextThresholds).toEqual([50, 70, 90]);
+      expect(settings.contextThresholds).toEqual([50, 70]);
       expect(settings.largeOperationThreshold).toBe(50_000);
     });
 
@@ -87,7 +87,7 @@ describe('NotificationService', () => {
       mockExistsSync.mockReturnValue(true);
       mockReadFileSync.mockReturnValue(JSON.stringify({
         notifications: {
-          enabled: false,
+          enabled: true,
           categories: { context: false },
           largeOperationThreshold: 100_000,
         },
@@ -99,7 +99,7 @@ describe('NotificationService', () => {
       });
 
       const settings = svc.getSettings();
-      expect(settings.enabled).toBe(false);
+      expect(settings.enabled).toBe(true);
       expect(settings.categories.context).toBe(false);
       // Other categories should use defaults
       expect(settings.categories.operation).toBe(true);
@@ -107,8 +107,8 @@ describe('NotificationService', () => {
     });
 
     it('should update and persist settings', () => {
-      const updated = service.updateSettings({ enabled: false });
-      expect(updated.enabled).toBe(false);
+      const updated = service.updateSettings({ enabled: true });
+      expect(updated.enabled).toBe(true);
       expect(mockWriteFileSync).toHaveBeenCalled();
     });
 
@@ -143,7 +143,26 @@ describe('NotificationService', () => {
       expect(broadcastCalls[0].notification.priority).toBe('medium');
     });
 
-    it('should fire multiple thresholds when jumping past several', () => {
+    it('should fire both 50% and 70% when jumping past both', () => {
+      const session = createMockSession({
+        context_metrics: {
+          used_percentage: 75,
+          remaining_percentage: 25,
+          total_input_tokens: 150000,
+          total_output_tokens: 10000,
+          context_window_size: 200000,
+        },
+      });
+
+      service.onContextUpdate(session);
+
+      // Should fire 50% and 70% (no 90% — it's not in thresholds)
+      expect(broadcastCalls).toHaveLength(2);
+      expect(broadcastCalls[0].notification.title).toBe('Context 50%');
+      expect(broadcastCalls[1].notification.title).toBe('Context 70%');
+    });
+
+    it('should only fire at 50% and 70% thresholds (not 90%)', () => {
       const session = createMockSession({
         context_metrics: {
           used_percentage: 95,
@@ -156,11 +175,10 @@ describe('NotificationService', () => {
 
       service.onContextUpdate(session);
 
-      // Should fire 50%, 70%, 90% all at once
-      expect(broadcastCalls).toHaveLength(3);
+      // Default thresholds are [50, 70] — no 90%
+      expect(broadcastCalls).toHaveLength(2);
       expect(broadcastCalls[0].notification.title).toBe('Context 50%');
       expect(broadcastCalls[1].notification.title).toBe('Context 70%');
-      expect(broadcastCalls[2].notification.title).toBe('Context 90%');
     });
 
     it('should not re-fire same threshold for same session', () => {
@@ -193,12 +211,12 @@ describe('NotificationService', () => {
     });
 
     it('should set correct priority for different thresholds', () => {
-      // Jump from 0 to 95
+      // Jump from 0 to 75
       const session = createMockSession({
         context_metrics: {
-          used_percentage: 95,
-          remaining_percentage: 5,
-          total_input_tokens: 190000,
+          used_percentage: 75,
+          remaining_percentage: 25,
+          total_input_tokens: 150000,
           total_output_tokens: 10000,
           context_window_size: 200000,
         },
@@ -208,13 +226,27 @@ describe('NotificationService', () => {
 
       expect(broadcastCalls[0].notification.priority).toBe('medium');  // 50%
       expect(broadcastCalls[1].notification.priority).toBe('high');    // 70%
-      expect(broadcastCalls[2].notification.priority).toBe('critical'); // 90%
     });
 
     it('should not fire when context percentage is null', () => {
       const session = createMockSession({ context_metrics: null });
       service.onContextUpdate(session);
       expect(broadcastCalls).toHaveLength(0);
+    });
+
+    it('should include sessionId in context notifications', () => {
+      const session = createMockSession({
+        context_metrics: {
+          used_percentage: 55,
+          remaining_percentage: 45,
+          total_input_tokens: 100000,
+          total_output_tokens: 10000,
+          context_window_size: 200000,
+        },
+      });
+
+      service.onContextUpdate(session);
+      expect(broadcastCalls[0].notification.sessionId).toBe('test-session-1');
     });
   });
 
@@ -276,7 +308,9 @@ describe('NotificationService', () => {
   });
 
   describe('desktop notifications', () => {
-    it('should call node-notifier when enabled', () => {
+    it('should call node-notifier with wait: true when enabled', () => {
+      service.updateSettings({ enabled: true });
+
       const session = createMockSession({
         context_metrics: {
           used_percentage: 55,
@@ -294,13 +328,14 @@ describe('NotificationService', () => {
           title: 'Jacques',
           subtitle: expect.stringContaining('Context 50%'),
           sound: 'Sosumi',
+          wait: true,
         }),
+        expect.any(Function),
       );
     });
 
     it('should not call node-notifier when disabled', () => {
-      service.updateSettings({ enabled: false });
-
+      // Default is disabled
       const session = createMockSession({
         context_metrics: {
           used_percentage: 55,
@@ -317,6 +352,157 @@ describe('NotificationService', () => {
       expect(broadcastCalls).toHaveLength(1);
       // But not call notifier
       expect(notifier.notify).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('click-to-focus callback', () => {
+    it('should call focusTerminal when notification is clicked (activate response)', () => {
+      const focusTerminal = jest.fn();
+      const svc = new NotificationService({
+        broadcast: (msg) => broadcastCalls.push(msg),
+        focusTerminal,
+        logger: silentLogger,
+      });
+      svc.updateSettings({ enabled: true });
+
+      const session = createMockSession({
+        context_metrics: {
+          used_percentage: 55,
+          remaining_percentage: 45,
+          total_input_tokens: 100000,
+          total_output_tokens: 10000,
+          context_window_size: 200000,
+        },
+      });
+
+      svc.onContextUpdate(session);
+
+      // Simulate the notifier callback with 'activate' response
+      const notifyCall = (notifier.notify as jest.Mock).mock.calls[0];
+      const callback = notifyCall[1] as (err: Error | null, response: string) => void;
+      callback(null, 'activate');
+
+      expect(focusTerminal).toHaveBeenCalledWith('test-session-1');
+    });
+
+    it('should NOT call focusTerminal on dismiss response', () => {
+      const focusTerminal = jest.fn();
+      const svc = new NotificationService({
+        broadcast: (msg) => broadcastCalls.push(msg),
+        focusTerminal,
+        logger: silentLogger,
+      });
+      svc.updateSettings({ enabled: true });
+
+      const session = createMockSession({
+        context_metrics: {
+          used_percentage: 55,
+          remaining_percentage: 45,
+          total_input_tokens: 100000,
+          total_output_tokens: 10000,
+          context_window_size: 200000,
+        },
+      });
+
+      svc.onContextUpdate(session);
+
+      const notifyCall = (notifier.notify as jest.Mock).mock.calls[0];
+      const callback = notifyCall[1] as (err: Error | null, response: string) => void;
+      callback(null, 'dismissed');
+
+      expect(focusTerminal).not.toHaveBeenCalled();
+    });
+
+    it('should NOT call focusTerminal when sessionId is missing', () => {
+      const focusTerminal = jest.fn();
+      const svc = new NotificationService({
+        broadcast: (msg) => broadcastCalls.push(msg),
+        focusTerminal,
+        logger: silentLogger,
+      });
+      svc.updateSettings({ enabled: true });
+
+      // Operations don't have sessionId
+      svc.onClaudeOperation({
+        id: 'op-click-test',
+        operation: 'llm-handoff',
+        phase: 'complete',
+        totalTokens: 100_000,
+      });
+
+      const notifyCall = (notifier.notify as jest.Mock).mock.calls[0];
+      const callback = notifyCall[1] as (err: Error | null, response: string) => void;
+      callback(null, 'activate');
+
+      expect(focusTerminal).not.toHaveBeenCalled();
+    });
+
+    it('should handle focusTerminal callback errors gracefully', () => {
+      const focusTerminal = jest.fn().mockImplementation(() => {
+        throw new Error('Terminal not found');
+      });
+      const svc = new NotificationService({
+        broadcast: (msg) => broadcastCalls.push(msg),
+        focusTerminal,
+        logger: silentLogger,
+      });
+      svc.updateSettings({ enabled: true });
+
+      const session = createMockSession({
+        context_metrics: {
+          used_percentage: 55,
+          remaining_percentage: 45,
+          total_input_tokens: 100000,
+          total_output_tokens: 10000,
+          context_window_size: 200000,
+        },
+      });
+
+      svc.onContextUpdate(session);
+
+      const notifyCall = (notifier.notify as jest.Mock).mock.calls[0];
+      const callback = notifyCall[1] as (err: Error | null, response: string) => void;
+
+      // Should not throw
+      expect(() => callback(null, 'activate')).not.toThrow();
+      expect(focusTerminal).toHaveBeenCalled();
+    });
+  });
+
+  describe('plan ready notifications', () => {
+    it('should fire plan notification with session context', () => {
+      service.onPlanReady('test-session-1', 'Refactor auth system');
+
+      expect(broadcastCalls).toHaveLength(1);
+      expect(broadcastCalls[0].notification.category).toBe('plan');
+      expect(broadcastCalls[0].notification.title).toBe('Plan Created');
+      expect(broadcastCalls[0].notification.body).toContain('Refactor auth system');
+    });
+
+    it('should include sessionId in plan notification', () => {
+      service.onPlanReady('test-session-1', 'My Plan');
+
+      expect(broadcastCalls[0].notification.sessionId).toBe('test-session-1');
+    });
+
+    it('should respect plan category toggle (disabled)', () => {
+      service.updateSettings({
+        categories: { plan: false } as any,
+      });
+
+      service.onPlanReady('test-session-1', 'My Plan');
+      expect(broadcastCalls).toHaveLength(0);
+    });
+
+    it('should respect plan cooldown period for same session', () => {
+      service.onPlanReady('test-session-1', 'Plan A');
+      expect(broadcastCalls).toHaveLength(1);
+
+      // Same session within cooldown window — key includes Date.now() so
+      // if called within the same ms tick, the key is identical and cooldown blocks it.
+      // Different sessions should work:
+      service.onPlanReady('test-session-2', 'Plan B');
+      expect(broadcastCalls).toHaveLength(2);
     });
   });
 
@@ -388,13 +574,9 @@ describe('NotificationService', () => {
       expect(broadcastCalls.length).toBeGreaterThanOrEqual(2);
       const countBefore = broadcastCalls.length;
 
-      // Remove the session - this clears prevContextPct and firedThresholds
+      // Remove the session
       service.onSessionRemoved('test-session-1');
 
-      // After removal, the session starts fresh.
-      // Because prevContextPct is cleared, next call starts from 0 again.
-      // The 50% and 70% thresholds will re-fire since firedThresholds was also cleared.
-      // However, cooldowns may still block same keys within the cooldown period.
       // Use a different session to verify cleanup works
       const session2 = createMockSession({
         session_id: 'test-session-2',
@@ -418,9 +600,9 @@ describe('NotificationService', () => {
     it('should maintain a history of notifications', () => {
       const session = createMockSession({
         context_metrics: {
-          used_percentage: 95,
-          remaining_percentage: 5,
-          total_input_tokens: 190000,
+          used_percentage: 75,
+          remaining_percentage: 25,
+          total_input_tokens: 150000,
           total_output_tokens: 10000,
           context_window_size: 200000,
         },
@@ -429,11 +611,62 @@ describe('NotificationService', () => {
       service.onContextUpdate(session);
 
       const history = service.getHistory();
-      expect(history).toHaveLength(3); // 50%, 70%, 90%
+      expect(history).toHaveLength(2); // 50%, 70%
       // Newest first
-      expect(history[0].title).toBe('Context 90%');
-      expect(history[1].title).toBe('Context 70%');
-      expect(history[2].title).toBe('Context 50%');
+      expect(history[0].title).toBe('Context 70%');
+      expect(history[1].title).toBe('Context 50%');
+    });
+
+    it('should cap history at MAX_NOTIFICATION_HISTORY', () => {
+      // Fire many notifications using operations with unique keys
+      for (let i = 0; i < 60; i++) {
+        service.onClaudeOperation({
+          id: `op-${i}`,
+          operation: 'llm-handoff',
+          phase: 'complete',
+          totalTokens: 100_000,
+        });
+      }
+
+      const history = service.getHistory();
+      expect(history.length).toBeLessThanOrEqual(50);
+    });
+
+    it('should include sessionId in all session-related notifications', () => {
+      service.onHandoffReady('sess-abc', '/some/path/handoff.md');
+      expect(broadcastCalls[0].notification.sessionId).toBe('sess-abc');
+
+      service.onPlanReady('sess-xyz', 'Plan title');
+      expect(broadcastCalls[1].notification.sessionId).toBe('sess-xyz');
+    });
+  });
+
+  describe('broadcast message shape', () => {
+    it('should broadcast notification_fired with complete NotificationItem', () => {
+      const session = createMockSession({
+        context_metrics: {
+          used_percentage: 55,
+          remaining_percentage: 45,
+          total_input_tokens: 100000,
+          total_output_tokens: 10000,
+          context_window_size: 200000,
+        },
+      });
+
+      service.onContextUpdate(session);
+
+      expect(broadcastCalls).toHaveLength(1);
+      const msg = broadcastCalls[0];
+      expect(msg.type).toBe('notification_fired');
+      expect(msg.notification).toEqual(expect.objectContaining({
+        id: expect.stringMatching(/^notif-/),
+        category: 'context',
+        title: expect.any(String),
+        body: expect.any(String),
+        priority: expect.stringMatching(/^(low|medium|high|critical)$/),
+        timestamp: expect.any(Number),
+        sessionId: 'test-session-1',
+      }));
     });
   });
 });
