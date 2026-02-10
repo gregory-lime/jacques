@@ -83,7 +83,7 @@ export function useWorktrees({
       const items: WorktreeItem[] = listWorktreesResult.worktrees.map((wt) => {
         // Count sessions in this worktree
         const count = sessions.filter(
-          (s) => s.cwd?.startsWith(wt.path) || s.git_worktree === wt.name
+          (s) => (s.cwd && (s.cwd === wt.path || s.cwd.startsWith(wt.path + '/'))) || s.git_worktree === wt.name
         ).length;
         return { ...wt, sessionCount: count };
       });

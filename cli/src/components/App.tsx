@@ -132,6 +132,10 @@ export function App(): React.ReactElement {
     launchSession,
     showNotification,
     returnToMain: () => returnToMainRef.current(),
+    createWorktreeWs,
+    repoRoot: worktreesHook.repoRoot,
+    createWorktreeResult,
+    skipPermissions: settings.state.skipPermissions,
   });
 
   const usageLimits = useUsageLimits(currentView === "settings");
@@ -395,6 +399,10 @@ export function App(): React.ReactElement {
         sessionsExpSelectedIndex={sessionsExpHook.selectedIndex}
         sessionsExpScrollOffset={sessionsExpHook.scrollOffset}
         sessionsExpSelectedIds={sessionsExpHook.selectedIds}
+        sessionsExpIsCreatingWorktree={sessionsExpHook.isCreatingWorktree}
+        sessionsExpNewWorktreeName={sessionsExpHook.newWorktreeName}
+        sessionsExpWorktreeCreateError={sessionsExpHook.worktreeCreateError}
+        sessionsExpRepoRoot={worktreesHook.repoRoot}
       />
     </Box>
   );

@@ -14,6 +14,8 @@ import {
   toggleAutoArchive,
   getArchiveStats,
   getArchivePath,
+  getSkipPermissions,
+  toggleSkipPermissions,
 } from "@jacques/core";
 import { SETTINGS_TOTAL_ITEMS } from "../components/SettingsView.js";
 import type { ArchiveStatsData } from "../components/SettingsView.js";
@@ -72,6 +74,7 @@ export function useSettings({
   const open = useCallback(() => {
     const settings = getArchiveSettings();
     setAutoArchiveEnabled(settings.autoArchive);
+    setSkipPermissions(getSkipPermissions());
     setSettingsIndex(0);
     setSettingsScrollOffset(0);
     setCurrentView("settings");
@@ -206,7 +209,8 @@ export function useSettings({
         const newValue = toggleAutoArchive();
         setAutoArchiveEnabled(newValue);
       } else if (settingsIndex === 2) {
-        setSkipPermissions((prev) => !prev);
+        const newValue = toggleSkipPermissions();
+        setSkipPermissions(newValue);
       } else if (settingsIndex === 3) {
         startSync(false);
       } else if (settingsIndex === 4) {

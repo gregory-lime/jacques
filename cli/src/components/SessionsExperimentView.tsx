@@ -44,6 +44,10 @@ interface SessionsExperimentViewProps {
   notification: string | null;
   terminalWidth: number;
   terminalHeight: number;
+  isCreatingWorktree: boolean;
+  newWorktreeName: string;
+  worktreeCreateError: string | null;
+  repoRoot: string | null;
 }
 
 export function SessionsExperimentView({
@@ -55,6 +59,10 @@ export function SessionsExperimentView({
   notification,
   terminalWidth,
   terminalHeight,
+  isCreatingWorktree,
+  newWorktreeName,
+  worktreeCreateError,
+  repoRoot,
 }: SessionsExperimentViewProps): React.ReactElement {
   const currentItemIndex = selectableIndices[selectedIndex] ?? -1;
 
@@ -92,8 +100,6 @@ export function SessionsExperimentView({
             <Text bold color="white">{name}</Text>
           </Text>
         );
-        // Breathing space after header
-        allContentLines.push(<Text key={`whsp-${idx}`}> </Text>);
         break;
       }
 
@@ -102,9 +108,9 @@ export function SessionsExperimentView({
         const isSelected = idx === currentItemIndex;
         const isMultiSelected = selectedIds.has(session.session_id);
 
-        // Tree branch: └ for last session in group, ├ for others
+        // Tree branch: use ├ if next item is also a session or new-session-button, └ otherwise
         const nextItem = items[idx + 1];
-        const isLastInGroup = !nextItem || nextItem.kind !== "session";
+        const isLastInGroup = !nextItem || (nextItem.kind !== "session" && nextItem.kind !== "new-session-button");
         const treeCh = isLastInGroup ? "\u2514" : "\u251C";
 
         const cursor = isSelected ? "\u25B6" : " ";
@@ -165,6 +171,68 @@ export function SessionsExperimentView({
         break;
       }
 
+      case "new-session-button": {
+        const isSelected = idx === currentItemIndex;
+        allContentLines.push(
+          <Text key={`nsb-${idx}`} wrap="truncate-end">
+            <Text color={MUTED_TEXT}>{"\u2514"} </Text>
+            <Text color={isSelected ? ACCENT_COLOR : MUTED_TEXT}>{isSelected ? "\u25B6" : " "} </Text>
+            <Text color={isSelected ? ACCENT_COLOR : MUTED_TEXT}>+ New Session</Text>
+          </Text>
+        );
+        break;
+      }
+
+      case "new-worktree-button": {
+        const isSelected = idx === currentItemIndex;
+        allContentLines.push(
+          <Text key={`nwb-${idx}`} wrap="truncate-end">
+            <Text color={isSelected ? ACCENT_COLOR : "white"}>{isSelected ? "\u25B6" : " "} </Text>
+            <Text bold color={isSelected ? ACCENT_COLOR : "white"}>+ New Worktree</Text>
+          </Text>
+        );
+        break;
+      }
+
+      case "new-worktree-input": {
+        allContentLines.push(
+          <Text key={`nwi-${idx}`} wrap="truncate-end">
+            <Text color={ACCENT_COLOR}>{"\u25B6"} New: </Text>
+            <Text color="white">{newWorktreeName}</Text>
+            <Text color={ACCENT_COLOR}>_</Text>
+          </Text>
+        );
+        if (repoRoot) {
+          allContentLines.push(
+            <Text key={`nwi-path-${idx}`} color={MUTED_TEXT}>
+              {"  "}{repoRoot}/{newWorktreeName || "..."}
+            </Text>
+          );
+        }
+        if (worktreeCreateError) {
+          allContentLines.push(
+            <Text key={`nwi-err-${idx}`} color="red">
+              {"  "}{worktreeCreateError}
+            </Text>
+          );
+        }
+        break;
+      }
+
+      case "show-all-worktrees-button": {
+        const isSelected = idx === currentItemIndex;
+        const isShowingAll = item.hiddenCount === 0;
+        const arrow = isShowingAll ? "\u25BE" : "\u25B8";
+        const label = isShowingAll ? "Hide empty worktrees" : `Show ${item.hiddenCount} more worktree${item.hiddenCount === 1 ? "" : "s"}`;
+        allContentLines.push(
+          <Text key={`sawb-${idx}`} wrap="truncate-end">
+            <Text color={isSelected ? ACCENT_COLOR : MUTED_TEXT}>{isSelected ? "\u25B6" : " "} </Text>
+            <Text color={isSelected ? ACCENT_COLOR : MUTED_TEXT}>{arrow} {label}</Text>
+          </Text>
+        );
+        break;
+      }
+
       case "spacer": {
         allContentLines.push(<Text key={`sp-${idx}`}> </Text>);
         break;
@@ -199,6 +267,8 @@ export function SessionsExperimentView({
     const isError = notification.startsWith("!");
     const cleanMsg = isError ? notification.slice(1) : notification;
     footerText = isError ? ` \u2717 ${cleanMsg} ` : ` \u2713 ${cleanMsg} `;
+  } else if (isCreatingWorktree) {
+    footerText = ` Type name  \u23CE create  Esc cancel `;
   } else if (selectedCount > 0) {
     footerText = ` ${selectedCount} selected  \u2191\u2193 navigate  \u2423 toggle  a all  x clear  t tile  Esc back `;
   } else {

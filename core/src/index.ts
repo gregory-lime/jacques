@@ -356,6 +356,9 @@ export {
   setAutoArchiveEnabled,
   toggleAutoArchive,
   getArchivePath,
+  getSkipPermissions,
+  setSkipPermissions,
+  toggleSkipPermissions,
   // Claude token management
   validateToken,
   verifyToken,

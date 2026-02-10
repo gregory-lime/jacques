@@ -2,21 +2,28 @@
  * useSessionsExperiment Hook
  *
  * Scrollable list of active sessions grouped by worktree.
- * Supports multi-select for tiling and vim-style keyboard navigation.
+ * Supports multi-select for tiling, vim-style keyboard navigation,
+ * new-session/new-worktree buttons, and worktree visibility toggle.
  */
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import type { Key } from "ink";
 import type { Session } from "@jacques/core";
 import { getProjectGroupKey } from "@jacques/core";
 import type { WorktreeItem } from "./useWorktrees.js";
+import { validateWorktreeName } from "./useWorktrees.js";
+import type { CreateWorktreeResult } from "./useJacquesClient.js";
 
 // ---- Content item types ----
 
 export type ContentItem =
   | { kind: "worktree-header"; name: string; branch: string | null; isMain: boolean; sessionCount: number }
   | { kind: "session"; session: Session }
-  | { kind: "spacer" };
+  | { kind: "spacer" }
+  | { kind: "new-session-button"; worktreePath: string }
+  | { kind: "new-worktree-button" }
+  | { kind: "new-worktree-input" }
+  | { kind: "show-all-worktrees-button"; hiddenCount: number };
 
 // ---- Params & Return ----
 
@@ -32,6 +39,10 @@ export interface UseSessionsExperimentParams {
   launchSession: (cwd: string, dangerouslySkipPermissions?: boolean) => void;
   showNotification: (msg: string) => void;
   returnToMain: () => void;
+  createWorktreeWs: (repoRoot: string, name: string, baseBranch?: string, dangerouslySkipPermissions?: boolean) => void;
+  repoRoot: string | null;
+  createWorktreeResult: CreateWorktreeResult | null;
+  skipPermissions: boolean;
 }
 
 export interface UseSessionsExperimentReturn {
@@ -40,6 +51,9 @@ export interface UseSessionsExperimentReturn {
   selectedIndex: number;
   scrollOffset: number;
   selectedIds: Set<string>;
+  isCreatingWorktree: boolean;
+  newWorktreeName: string;
+  worktreeCreateError: string | null;
   handleInput: (input: string, key: Key) => void;
   reset: () => void;
 }
@@ -56,13 +70,34 @@ export function useSessionsExperiment({
   launchSession,
   showNotification,
   returnToMain,
+  createWorktreeWs,
+  repoRoot,
+  createWorktreeResult,
+  skipPermissions,
 }: UseSessionsExperimentParams): UseSessionsExperimentReturn {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [scrollOffset, setScrollOffset] = useState(0);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showAllWorktrees, setShowAllWorktrees] = useState(false);
+  const [isCreatingWorktree, setIsCreatingWorktree] = useState(false);
+  const [newWorktreeName, setNewWorktreeName] = useState("");
+  const [worktreeCreateError, setWorktreeCreateError] = useState<string | null>(null);
 
   // Viewport = content area height (terminal minus borders + footer)
   const viewport = Math.max(8, terminalHeight - 3);
+
+  // Handle createWorktreeResult
+  useEffect(() => {
+    if (!createWorktreeResult) return;
+    if (createWorktreeResult.success) {
+      showNotification(`Worktree created: ${createWorktreeResult.branch || newWorktreeName}`);
+      setIsCreatingWorktree(false);
+      setNewWorktreeName("");
+      setWorktreeCreateError(null);
+    } else {
+      setWorktreeCreateError(createWorktreeResult.error || "Failed to create worktree");
+    }
+  }, [createWorktreeResult]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Filter sessions by selected project
   const filteredSessions = useMemo(() => {
@@ -93,7 +128,7 @@ export function useSessionsExperiment({
         if (
           (wtId === null && wt.isMain) ||
           (wtId !== null && (wtId === wt.name || wtId === wt.branch)) ||
-          (session.cwd && session.cwd.startsWith(wt.path))
+          (session.cwd && (session.cwd === wt.path || session.cwd.startsWith(wt.path + '/')))
         ) {
           const existing = sessionsByWorktree.get(wt.name) || [];
           existing.push(session);
@@ -107,10 +142,21 @@ export function useSessionsExperiment({
       }
     }
 
-    // Build items per worktree (skip empty ones)
-    worktrees.forEach((wt) => {
+    // Determine which worktrees are visible
+    let hiddenEmptyCount = 0;
+    const visibleWorktrees: WorktreeItem[] = [];
+    for (const wt of worktrees) {
       const wtSessions = sessionsByWorktree.get(wt.name) || [];
-      if (wtSessions.length === 0) return;
+      if (wt.isMain || wtSessions.length > 0 || showAllWorktrees) {
+        visibleWorktrees.push(wt);
+      } else {
+        hiddenEmptyCount++;
+      }
+    }
+
+    // Build items per visible worktree
+    visibleWorktrees.forEach((wt) => {
+      const wtSessions = sessionsByWorktree.get(wt.name) || [];
 
       // Spacer before group (not first visible)
       if (result.length > 0) {
@@ -130,27 +176,31 @@ export function useSessionsExperiment({
         selectable.push(result.length);
         result.push({ kind: "session", session });
       }
+
+      // New session button after each worktree's sessions
+      selectable.push(result.length);
+      result.push({ kind: "new-session-button", worktreePath: wt.path });
     });
 
     // Unmatched sessions
     if (unmatched.length > 0) {
-      if (worktrees.length > 0) {
+      if (visibleWorktrees.length > 0) {
         result.push({ kind: "spacer" });
-        result.push({
-          kind: "worktree-header",
-          name: "other",
-          branch: null,
-          isMain: false,
-          sessionCount: unmatched.length,
-        });
       }
+      result.push({
+        kind: "worktree-header",
+        name: "other",
+        branch: null,
+        isMain: false,
+        sessionCount: unmatched.length,
+      });
       for (const session of unmatched) {
         selectable.push(result.length);
         result.push({ kind: "session", session });
       }
     }
 
-    // No worktrees at all — show sessions flat
+    // No worktrees at all -- show sessions flat
     if (worktrees.length === 0 && unmatched.length === 0) {
       for (const session of filteredSessions) {
         selectable.push(result.length);
@@ -158,8 +208,26 @@ export function useSessionsExperiment({
       }
     }
 
+    // Show/hide empty worktrees toggle
+    if (hiddenEmptyCount > 0 || showAllWorktrees) {
+      result.push({ kind: "spacer" });
+      selectable.push(result.length);
+      result.push({ kind: "show-all-worktrees-button", hiddenCount: hiddenEmptyCount });
+    }
+
+    // New worktree button (or input if creating)
+    if (repoRoot) {
+      result.push({ kind: "spacer" });
+      selectable.push(result.length);
+      if (isCreatingWorktree) {
+        result.push({ kind: "new-worktree-input" });
+      } else {
+        result.push({ kind: "new-worktree-button" });
+      }
+    }
+
     return { items: result, selectableIndices: selectable };
-  }, [filteredSessions, worktrees]);
+  }, [filteredSessions, worktrees, showAllWorktrees, repoRoot, isCreatingWorktree]);
 
   // Current selectable item's position in the items array
   const currentItemIndex = selectableIndices[selectedIndex] ?? -1;
@@ -175,6 +243,39 @@ export function useSessionsExperiment({
   }, [viewport]);
 
   const handleInput = useCallback((input: string, key: Key) => {
+    // Creation mode guard
+    if (isCreatingWorktree) {
+      if (key.escape) {
+        setIsCreatingWorktree(false);
+        setNewWorktreeName("");
+        setWorktreeCreateError(null);
+        return;
+      }
+      if (key.return) {
+        const validationError = validateWorktreeName(newWorktreeName);
+        if (validationError) {
+          setWorktreeCreateError(validationError);
+          return;
+        }
+        if (repoRoot) {
+          createWorktreeWs(repoRoot, newWorktreeName, undefined, skipPermissions || undefined);
+          showNotification("Creating worktree...");
+        }
+        return;
+      }
+      if (key.backspace || key.delete) {
+        setNewWorktreeName((prev) => prev.slice(0, -1));
+        setWorktreeCreateError(null);
+        return;
+      }
+      if (input && input.length === 1 && !key.ctrl && !key.meta) {
+        setNewWorktreeName((prev) => prev + input);
+        setWorktreeCreateError(null);
+        return;
+      }
+      return;
+    }
+
     if (key.escape) {
       returnToMain();
       return;
@@ -198,12 +299,22 @@ export function useSessionsExperiment({
       return;
     }
 
-    // Enter — focus terminal
+    // Enter — context-dependent action
     if (key.return) {
       const item = items[currentItemIndex];
-      if (item?.kind === "session") {
+      if (!item) return;
+      if (item.kind === "session") {
         showNotification("Focusing terminal...");
         focusTerminal(item.session.session_id);
+      } else if (item.kind === "new-session-button") {
+        showNotification("Launching new session...");
+        launchSession(item.worktreePath, skipPermissions || undefined);
+      } else if (item.kind === "new-worktree-button") {
+        setIsCreatingWorktree(true);
+        setNewWorktreeName("");
+        setWorktreeCreateError(null);
+      } else if (item.kind === "show-all-worktrees-button") {
+        setShowAllWorktrees((prev) => !prev);
       }
       return;
     }
@@ -253,7 +364,7 @@ export function useSessionsExperiment({
         const cwd = item.session.cwd || item.session.workspace?.project_dir;
         if (cwd) {
           showNotification("Launching new session...");
-          launchSession(cwd);
+          launchSession(cwd, skipPermissions || undefined);
         }
       }
       return;
@@ -277,13 +388,18 @@ export function useSessionsExperiment({
   }, [
     selectableIndices, items, currentItemIndex, selectedIds, viewport,
     returnToMain, focusTerminal, maximizeWindow, tileWindows, launchSession,
-    showNotification, adjustScroll,
+    showNotification, adjustScroll, isCreatingWorktree, newWorktreeName,
+    repoRoot, createWorktreeWs, skipPermissions,
   ]);
 
   const reset = useCallback(() => {
     setSelectedIndex(0);
     setScrollOffset(0);
     setSelectedIds(new Set());
+    setShowAllWorktrees(false);
+    setIsCreatingWorktree(false);
+    setNewWorktreeName("");
+    setWorktreeCreateError(null);
   }, []);
 
   return {
@@ -292,6 +408,9 @@ export function useSessionsExperiment({
     selectedIndex,
     scrollOffset,
     selectedIds,
+    isCreatingWorktree,
+    newWorktreeName,
+    worktreeCreateError,
     handleInput,
     reset,
   };

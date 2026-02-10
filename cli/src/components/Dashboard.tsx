@@ -97,6 +97,10 @@ interface DashboardProps {
   sessionsExpSelectedIndex: number;
   sessionsExpScrollOffset: number;
   sessionsExpSelectedIds: Set<string>;
+  sessionsExpIsCreatingWorktree: boolean;
+  sessionsExpNewWorktreeName: string;
+  sessionsExpWorktreeCreateError: string | null;
+  sessionsExpRepoRoot: string | null;
 }
 
 export function Dashboard(props: DashboardProps): React.ReactElement {
@@ -259,6 +263,10 @@ export function Dashboard(props: DashboardProps): React.ReactElement {
             notification={props.notification}
             terminalWidth={tw}
             terminalHeight={th}
+            isCreatingWorktree={props.sessionsExpIsCreatingWorktree}
+            newWorktreeName={props.sessionsExpNewWorktreeName}
+            worktreeCreateError={props.sessionsExpWorktreeCreateError}
+            repoRoot={props.sessionsExpRepoRoot}
           />
         </Box>
       );

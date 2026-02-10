@@ -44,7 +44,7 @@ export function RemoveWorktreeModal({
     const wtBasename = worktreePath.split('/').pop() || '';
     return activeSessions.filter(s => {
       if (s.git_worktree === wtBasename) return true;
-      if (s.cwd && s.cwd.startsWith(worktreePath)) return true;
+      if (s.cwd && (s.cwd === worktreePath || s.cwd.startsWith(worktreePath + '/'))) return true;
       return false;
     }).length;
   }, [activeSessions]);
