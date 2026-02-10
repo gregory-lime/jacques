@@ -19,8 +19,11 @@ import type { SessionRegistry } from '../session-registry.js';
 import type { BroadcastService } from '../services/broadcast-service.js';
 import type { NotificationService } from '../services/notification-service.js';
 import type { HandoffWatcher } from '../watchers/handoff-watcher.js';
+import type { Session } from '../types.js';
 import type { Logger } from '../logging/logger-factory.js';
 import { createLogger } from '../logging/logger-factory.js';
+import { isContinueSession } from '@jacques/core/session';
+import { extractContinueTitleFromHandoff } from '@jacques/core/cache';
 
 /**
  * Configuration for EventHandler
@@ -147,6 +150,28 @@ export class EventHandler {
       // Note: Mode detection is NOT done here. permission_mode from hooks
       // (PreToolUse, Activity, Idle, SessionStart) is the authoritative source.
       // JSONL-based detection is only used at session registration time.
+
+      // Resolve jacques-continue skill titles from handoff data (async, fire-and-forget)
+      if (session.session_title && isContinueSession(session.session_title)) {
+        this.resolveContinueTitle(session);
+      }
+    }
+  }
+
+  /**
+   * Resolve a continue session title by reading the handoff file.
+   * Updates session title and broadcasts when resolved.
+   */
+  private async resolveContinueTitle(session: Session): Promise<void> {
+    try {
+      const startedAt = new Date(session.registered_at).toISOString();
+      const resolved = await extractContinueTitleFromHandoff(session.cwd, startedAt);
+      if (resolved) {
+        session.session_title = resolved;
+        this.broadcastService.broadcastSessionUpdate(session);
+      }
+    } catch {
+      // Silent — formatSessionTitle handles the fallback display
     }
   }
 

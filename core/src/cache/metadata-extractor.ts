@@ -17,10 +17,53 @@ import { CLAUDE_PROJECTS_PATH } from "./types.js";
 import { detectGitInfo, readGitBranchFromJsonl } from "./git-utils.js";
 import { detectModeAndPlans } from "./mode-detector.js";
 import { writeSessionIndex } from "./persistence.js";
+import { isContinueSession } from "../session/format-title.js";
 import { isNotFoundError, getErrorMessage } from "../logging/error-utils.js";
 import { createLogger, type Logger } from "../logging/logger.js";
 
 const logger: Logger = createLogger({ prefix: "[Metadata]" });
+
+/**
+ * Extract "## Current Task" from the most recent handoff created before sessionStartedAt.
+ * Returns "Cont: <task>" or null if no matching handoff found.
+ */
+export async function extractContinueTitleFromHandoff(
+  projectPath: string,
+  sessionStartedAt: string,
+): Promise<string | null> {
+  const handoffsDir = path.join(projectPath, ".jacques", "handoffs");
+  try {
+    const files = await fs.readdir(handoffsDir);
+    const handoffFiles = files
+      .filter((f) => f.endsWith("-handoff.md"))
+      .sort()
+      .reverse(); // newest first (filenames are ISO-ish timestamps)
+
+    for (const file of handoffFiles) {
+      // Filename: YYYY-MM-DDTHH-mm-ss-handoff.md → stat for reliable mtime comparison
+      const filePath = path.join(handoffsDir, file);
+      const stat = await fs.stat(filePath);
+      if (stat.mtime.getTime() > new Date(sessionStartedAt).getTime()) {
+        continue; // handoff created after session started — skip
+      }
+
+      const content = await fs.readFile(filePath, "utf-8");
+      const taskMatch = content.match(/## Current Task\n+(.+?)(?=\n## |\n*$)/s);
+      if (taskMatch) {
+        const task = taskMatch[1].trim();
+        const firstLine = task.split("\n")[0].trim();
+        if (firstLine) {
+          return `Cont: ${firstLine}`;
+        }
+      }
+    }
+  } catch (err) {
+    if (!isNotFoundError(err)) {
+      logger.warn("Failed to read handoffs for continue title:", getErrorMessage(err));
+    }
+  }
+  return null;
+}
 
 /**
  * Extract session title from parsed JSONL entries.
@@ -242,8 +285,12 @@ export async function extractSessionMetadata(
     // Get timestamps
     const { startedAt, endedAt } = extractTimestamps(entries);
 
-    // Get title
-    const title = extractTitle(entries);
+    // Get title — resolve continue sessions from handoff data
+    let title = extractTitle(entries);
+    if (isContinueSession(title)) {
+      const continueTitle = await extractContinueTitleFromHandoff(projectPath, startedAt);
+      if (continueTitle) title = continueTitle;
+    }
 
     // Check for subagents
     const subagentFiles = await listSubagentFiles(jsonlPath);
@@ -505,13 +552,23 @@ async function buildFromCatalog(
       const exploreAgents = exploreSubagents.map(catalogSubagentToExploreRef);
       const webSearches = searchSubagents.map(catalogSubagentToSearchRef);
 
+      // Resolve continue session titles from handoff data
+      let resolvedTitle = catalogSession.title;
+      if (resolvedTitle && isContinueSession(resolvedTitle)) {
+        const continueTitle = await extractContinueTitleFromHandoff(
+          project.projectPath,
+          catalogSession.startedAt,
+        );
+        if (continueTitle) resolvedTitle = continueTitle;
+      }
+
       // Build SessionEntry from catalog data + file stats
       const entry: SessionEntry = {
         id: sessionId,
         jsonlPath,
         projectPath: project.projectPath,
         projectSlug: project.projectSlug,
-        title: catalogSession.title,
+        title: resolvedTitle,
         startedAt: catalogSession.startedAt,
         endedAt: catalogSession.endedAt,
         messageCount: catalogSession.messageCount,

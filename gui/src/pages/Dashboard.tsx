@@ -76,17 +76,23 @@ const PLAN_TITLE_PATTERNS = [
   /^follow this plan[:\s]*/i,
 ];
 
-function formatSessionTitle(rawTitle: string | null): { isPlan: boolean; displayTitle: string } {
-  if (!rawTitle) return { isPlan: false, displayTitle: 'Untitled' };
+function formatSessionTitle(rawTitle: string | null): { isPlan: boolean; isContinue: boolean; displayTitle: string } {
+  if (!rawTitle) return { isPlan: false, isContinue: false, displayTitle: 'Untitled' };
+  const trimmed = rawTitle.trim();
+  // Detect jacques-continue skill sessions
+  if (trimmed.startsWith('Base directory for this skill:') && trimmed.includes('jacques-continue')) {
+    return { isPlan: false, isContinue: true, displayTitle: 'Continue Session' };
+  }
   for (const pattern of PLAN_TITLE_PATTERNS) {
     if (pattern.test(rawTitle)) {
       const cleaned = rawTitle.replace(pattern, '').trim();
       const headingMatch = cleaned.match(/^#\s+(.+)/m);
       const planName = headingMatch ? headingMatch[1].trim() : cleaned.split('\n')[0].trim();
-      return { isPlan: true, displayTitle: planName || 'Unnamed Plan' };
+      return { isPlan: true, isContinue: false, displayTitle: planName || 'Unnamed Plan' };
     }
   }
-  return { isPlan: false, displayTitle: rawTitle };
+  const isContinue = rawTitle.startsWith('Cont: ');
+  return { isPlan: false, isContinue, displayTitle: rawTitle };
 }
 
 // ─── Types ───────────────────────────────────────────────────

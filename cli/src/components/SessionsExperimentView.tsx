@@ -102,7 +102,12 @@ export function SessionsExperimentView({
         const isSelected = idx === currentItemIndex;
         const isMultiSelected = selectedIds.has(session.session_id);
 
-        const cursor = isSelected ? "\u25B8" : " ";
+        // Tree branch: └ for last session in group, ├ for others
+        const nextItem = items[idx + 1];
+        const isLastInGroup = !nextItem || nextItem.kind !== "session";
+        const treeCh = isLastInGroup ? "\u2514" : "\u251C";
+
+        const cursor = isSelected ? "\u25B6" : " ";
 
         // Colors: invert when multi-selected
         const fg = isMultiSelected ? "#1a1a1a" : undefined;
@@ -118,7 +123,7 @@ export function SessionsExperimentView({
         const modeLabel = mode === "acceptEdits" ? "edit" : mode;
 
         // Title (with plan detection)
-        const maxTitleLen = Math.max(5, contentWidth - 38);
+        const maxTitleLen = Math.max(5, contentWidth - 40);
         const { isPlan, displayTitle } = formatSessionTitle(session.session_title, maxTitleLen);
         const titleColor = fg || (isPlan ? "green" : (isSelected ? ACCENT_COLOR : "white"));
 
@@ -147,6 +152,7 @@ export function SessionsExperimentView({
             backgroundColor={isMultiSelected ? ACCENT_COLOR : undefined}
             color={isMultiSelected ? "#1a1a1a" : undefined}
           >
+            <Text color={fg || MUTED_TEXT}>{treeCh} </Text>
             <Text color={fg || (isSelected ? ACCENT_COLOR : "white")}>{cursor} </Text>
             <Text color={fg || statusColor}>{icon}</Text>
             <Text color={fg || statusColor}> {displayStatus.padEnd(8)}</Text>

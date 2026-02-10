@@ -35,11 +35,15 @@ const PLAN_TITLE_PATTERNS = [
   /^follow this plan[:\s]*/i,
 ];
 
-function formatSessionTitle(rawTitle: string | null): { isPlan: boolean; displayTitle: string } {
-  if (!rawTitle) return { isPlan: false, displayTitle: 'Untitled' };
+function formatSessionTitle(rawTitle: string | null): { isPlan: boolean; isContinue: boolean; displayTitle: string } {
+  if (!rawTitle) return { isPlan: false, isContinue: false, displayTitle: 'Untitled' };
   const trimmed = rawTitle.trim();
   if (trimmed.startsWith('<local-command') || trimmed.startsWith('<command-')) {
-    return { isPlan: false, displayTitle: 'Active Session' };
+    return { isPlan: false, isContinue: false, displayTitle: 'Active Session' };
+  }
+  // Detect jacques-continue skill sessions
+  if (trimmed.startsWith('Base directory for this skill:') && trimmed.includes('jacques-continue')) {
+    return { isPlan: false, isContinue: true, displayTitle: 'Continue Session' };
   }
   for (const pattern of PLAN_TITLE_PATTERNS) {
     if (pattern.test(rawTitle)) {
@@ -49,10 +53,11 @@ function formatSessionTitle(rawTitle: string | null): { isPlan: boolean; display
         ? headingMatch[1].trim()
         : cleaned.split('\n')[0].trim();
       const display = planName.length > 60 ? planName.slice(0, 57) + '...' : planName;
-      return { isPlan: true, displayTitle: display || 'Unnamed Plan' };
+      return { isPlan: true, isContinue: false, displayTitle: display || 'Unnamed Plan' };
     }
   }
-  return { isPlan: false, displayTitle: rawTitle };
+  const isContinue = rawTitle.startsWith('Cont: ');
+  return { isPlan: false, isContinue, displayTitle: rawTitle };
 }
 
 function formatTokens(tokens: number): string {

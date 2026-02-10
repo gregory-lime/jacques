@@ -1,6 +1,6 @@
 /**
  * Format session titles for display.
- * Detects plan-triggered sessions and extracts clean plan names.
+ * Detects plan-triggered sessions, continue sessions, and extracts clean names.
  *
  * Truncation is applied once at the end to avoid stacking ellipses from
  * multiple upstream sources (Claude Code title truncation, extractPlanTitle).
@@ -10,7 +10,16 @@ import { PLAN_TRIGGER_PATTERNS, extractPlanTitle } from "../archive/plan-extract
 
 export interface FormattedSessionTitle {
   isPlan: boolean;
+  isContinue: boolean;
   displayTitle: string;
+}
+
+/** Prefix used by skill expansions in Claude Code. */
+const SKILL_PREFIX = "Base directory for this skill:";
+
+/** Detect a jacques-continue skill invocation in the raw title. */
+export function isContinueSession(rawTitle: string): boolean {
+  return rawTitle.startsWith(SKILL_PREFIX) && rawTitle.includes("jacques-continue");
 }
 
 /** Strip trailing triple-dot or unicode ellipsis added by upstream truncators. */
@@ -22,12 +31,18 @@ export function formatSessionTitle(
   rawTitle: string | null,
   maxLength?: number,
 ): FormattedSessionTitle {
-  if (!rawTitle) return { isPlan: false, displayTitle: "Untitled" };
+  if (!rawTitle) return { isPlan: false, isContinue: false, displayTitle: "Untitled" };
 
   const trimmed = rawTitle.trim();
 
   if (trimmed.startsWith("<local-command") || trimmed.startsWith("<command-")) {
-    return { isPlan: false, displayTitle: "Active Session" };
+    return { isPlan: false, isContinue: false, displayTitle: "Active Session" };
+  }
+
+  // Detect jacques-continue skill — raw title is the skill instructions,
+  // not the handoff content. Show fallback; extractTitle resolves the real title.
+  if (isContinueSession(trimmed)) {
+    return { isPlan: false, isContinue: true, displayTitle: "Continue Session" };
   }
 
   let title: string = rawTitle;
@@ -42,6 +57,9 @@ export function formatSessionTitle(
     }
   }
 
+  // Titles starting with "Cont: " were resolved by extractTitle from handoff data
+  const isContinue = title.startsWith("Cont: ");
+
   // Collapse newlines to spaces for single-line display
   // (must happen after plan detection — extractPlanTitle needs newlines for headings)
   title = title.replace(/\n+/g, " ").trim();
@@ -54,5 +72,5 @@ export function formatSessionTitle(
     title = title.slice(0, maxLength - 1) + "\u2026";
   }
 
-  return { isPlan, displayTitle: title };
+  return { isPlan, isContinue, displayTitle: title };
 }

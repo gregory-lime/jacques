@@ -43,6 +43,7 @@ export {
   extractTitle,
   extractTimestamps,
   extractSessionMetadata,
+  extractContinueTitleFromHandoff,
   listAllProjects,
   buildSessionIndex,
 } from "./metadata-extractor.js";

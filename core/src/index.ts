@@ -82,7 +82,7 @@ export {
 export { formatTokenCount as formatSessionTokenCount } from "./session/index.js";
 
 // Session title formatting
-export { formatSessionTitle } from "./session/index.js";
+export { formatSessionTitle, isContinueSession } from "./session/index.js";
 export type { FormattedSessionTitle } from "./session/index.js";
 
 export type {
@@ -438,6 +438,7 @@ export {
   extractSessionMetadata,
   listAllProjects as listCacheProjects,
   buildSessionIndex,
+  extractContinueTitleFromHandoff,
   getSessionIndex,
   getProjectGroupKey,
   getSessionEntry,
