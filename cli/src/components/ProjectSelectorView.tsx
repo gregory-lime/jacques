@@ -16,7 +16,7 @@ import {
   FIXED_CONTENT_HEIGHT,
 } from "./layout/index.js";
 import { buildBottomControls } from "../utils/bottom-controls.js";
-import type { DiscoveredProject } from "../hooks/useProjectSelector.js";
+import type { DiscoveredProject } from "@jacques/core";
 
 interface ProjectSelectorViewProps {
   projects: DiscoveredProject[];
@@ -95,7 +95,7 @@ export function ProjectSelectorView({
       contentLines.push(
         <Text key={`proj-${actualIndex}`} wrap="truncate-end">
           <Text color={nameColor} bold={isSelected}>
-            {cursor}{project.displayName}
+            {cursor}{project.name}
           </Text>
           <Text color={MUTED_TEXT}>
             {"  "}{countText}

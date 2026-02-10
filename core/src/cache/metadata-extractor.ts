@@ -343,18 +343,22 @@ export async function listAllProjects(): Promise<
       withFileTypes: true,
     });
 
-    for (const entry of entries) {
-      if (entry.isDirectory()) {
+    const dirs = entries.filter((e) => e.isDirectory());
+
+    // Decode all project paths in parallel (each reads sessions-index.json or first JSONL)
+    const results = await Promise.all(
+      dirs.map(async (entry) => {
         const projectPath = await decodeProjectPath(entry.name);
         const projectSlug = path.basename(projectPath);
-
-        projects.push({
+        return {
           encodedPath: path.join(CLAUDE_PROJECTS_PATH, entry.name),
           projectPath,
           projectSlug,
-        });
-      }
-    }
+        };
+      })
+    );
+
+    projects.push(...results);
   } catch (err) {
     if (!isNotFoundError(err)) {
       logger.warn("Failed to list projects:", getErrorMessage(err));
@@ -417,6 +421,15 @@ async function buildFromCatalog(
         }
       })
     );
+
+    // Detect git info ONCE per project (not per session) — avoids spawning
+    // a git subprocess for every JSONL file in the same project directory.
+    const projectGitInfo = detectGitInfo(project.projectPath);
+    if (!projectGitInfo.branch && jsonlFilenames.length > 0) {
+      projectGitInfo.branch = await readGitBranchFromJsonl(
+        path.join(project.encodedPath, jsonlFilenames[0])
+      ) || undefined;
+    }
 
     for (const result of statResults) {
       if (!result) continue;
@@ -492,12 +505,6 @@ async function buildFromCatalog(
       const exploreAgents = exploreSubagents.map(catalogSubagentToExploreRef);
       const webSearches = searchSubagents.map(catalogSubagentToSearchRef);
 
-      // Detect git info — probe filesystem first, fall back to JSONL
-      const gitInfo = detectGitInfo(project.projectPath);
-      if (!gitInfo.branch) {
-        gitInfo.branch = await readGitBranchFromJsonl(jsonlPath) || undefined;
-      }
-
       // Build SessionEntry from catalog data + file stats
       const entry: SessionEntry = {
         id: sessionId,
@@ -518,9 +525,9 @@ async function buildFromCatalog(
         mode: catalogSession.mode || undefined,
         planCount: planRefs.length > 0 ? planRefs.length : (catalogSession.planCount || undefined),
         planRefs: planRefs.length > 0 ? planRefs : undefined,
-        gitRepoRoot: gitInfo.repoRoot || undefined,
-        gitBranch: gitInfo.branch || undefined,
-        gitWorktree: gitInfo.worktree || undefined,
+        gitRepoRoot: projectGitInfo.repoRoot || undefined,
+        gitBranch: projectGitInfo.branch || undefined,
+        gitWorktree: projectGitInfo.worktree || undefined,
         exploreAgents: exploreAgents.length > 0 ? exploreAgents : undefined,
         webSearches: webSearches.length > 0 ? webSearches : undefined,
       };

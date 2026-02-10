@@ -49,6 +49,7 @@ export {
 
 // Project discovery & query
 export {
+  getProjectGroupKey,
   discoverProjects,
   getSessionEntry,
   getSessionsByProject,

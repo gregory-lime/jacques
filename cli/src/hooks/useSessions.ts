@@ -8,7 +8,7 @@
 import { useState, useCallback } from "react";
 import type { Key } from "ink";
 import type { Session } from "@jacques/core";
-import { getProjectGroupKey } from "../utils/project.js";
+import { getProjectGroupKey } from "@jacques/core";
 
 export interface UseSessionsParams {
   sessions: Session[];

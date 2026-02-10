@@ -20,11 +20,10 @@ import type { UseSettingsState } from "../hooks/useSettings.js";
 import type { UseArchiveBrowserState } from "../hooks/useArchiveBrowser.js";
 import type { UseProjectDashboardState } from "../hooks/useProjectDashboard.js";
 import type { UseClaudeTokenState } from "../hooks/useClaudeToken.js";
-import type { DiscoveredProject } from "../hooks/useProjectSelector.js";
 import type { WorktreeItem } from "../hooks/useWorktrees.js";
 import type { UsageLimits } from "../hooks/useUsageLimits.js";
-import type { Session } from "@jacques/core";
-import { getProjectGroupKey } from "../utils/project.js";
+import type { Session, DiscoveredProject } from "@jacques/core";
+import { getProjectGroupKey } from "@jacques/core";
 
 // View types for the dashboard
 export type DashboardView =

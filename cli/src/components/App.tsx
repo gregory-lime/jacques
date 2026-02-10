@@ -151,6 +151,11 @@ export function App(): React.ReactElement {
     }
   }, [launchSessionResult, showNotification]);
 
+  // ---- Eager-load projects on mount ----
+  useEffect(() => {
+    projectSelector.init();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ---- Resolve worktree repo root from project or session ----
   const getRepoRoot = useCallback((): string | null => {
     // From selected project's git repo root

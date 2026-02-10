@@ -17,8 +17,8 @@ import {
   HORIZONTAL_LAYOUT_MIN_WIDTH,
 } from "./layout/index.js";
 import { MENU_ITEMS } from "../utils/constants.js";
+import { getProjectGroupKey } from "@jacques/core";
 import type { Session } from "@jacques/core";
-import { getProjectGroupKey } from "../utils/project.js";
 
 interface MainMenuViewProps {
   sessions: Session[];

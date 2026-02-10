@@ -5,13 +5,17 @@
  */
 
 import { describe, it, expect } from "@jest/globals";
-import type { DiscoveredProject } from "./useProjectSelector.js";
+import type { DiscoveredProject } from "@jacques/core";
 
 function makeProject(overrides: Partial<DiscoveredProject> = {}): DiscoveredProject {
   return {
     name: "test-project",
-    displayName: "Test Project",
+    gitRepoRoot: null,
+    isGitProject: false,
+    projectPaths: [],
+    encodedPaths: [],
     sessionCount: 0,
+    lastActivity: null,
     ...overrides,
   };
 }
@@ -19,13 +23,13 @@ function makeProject(overrides: Partial<DiscoveredProject> = {}): DiscoveredProj
 describe("project sorting", () => {
   it("sorts by session count descending", () => {
     const projects = [
-      makeProject({ name: "a", displayName: "A", sessionCount: 1 }),
-      makeProject({ name: "b", displayName: "B", sessionCount: 5 }),
-      makeProject({ name: "c", displayName: "C", sessionCount: 3 }),
+      makeProject({ name: "a", sessionCount: 1 }),
+      makeProject({ name: "b", sessionCount: 5 }),
+      makeProject({ name: "c", sessionCount: 3 }),
     ];
 
     projects.sort(
-      (a, b) => b.sessionCount - a.sessionCount || a.displayName.localeCompare(b.displayName)
+      (a, b) => b.sessionCount - a.sessionCount || a.name.localeCompare(b.name)
     );
 
     expect(projects[0].name).toBe("b");
@@ -33,26 +37,26 @@ describe("project sorting", () => {
     expect(projects[2].name).toBe("a");
   });
 
-  it("breaks ties alphabetically by displayName", () => {
+  it("breaks ties alphabetically by name", () => {
     const projects = [
-      makeProject({ name: "z", displayName: "Zebra", sessionCount: 2 }),
-      makeProject({ name: "a", displayName: "Alpha", sessionCount: 2 }),
-      makeProject({ name: "m", displayName: "Mango", sessionCount: 2 }),
+      makeProject({ name: "zebra", sessionCount: 2 }),
+      makeProject({ name: "alpha", sessionCount: 2 }),
+      makeProject({ name: "mango", sessionCount: 2 }),
     ];
 
     projects.sort(
-      (a, b) => b.sessionCount - a.sessionCount || a.displayName.localeCompare(b.displayName)
+      (a, b) => b.sessionCount - a.sessionCount || a.name.localeCompare(b.name)
     );
 
-    expect(projects[0].displayName).toBe("Alpha");
-    expect(projects[1].displayName).toBe("Mango");
-    expect(projects[2].displayName).toBe("Zebra");
+    expect(projects[0].name).toBe("alpha");
+    expect(projects[1].name).toBe("mango");
+    expect(projects[2].name).toBe("zebra");
   });
 
   it("handles empty project list", () => {
     const projects: DiscoveredProject[] = [];
     projects.sort(
-      (a, b) => b.sessionCount - a.sessionCount || a.displayName.localeCompare(b.displayName)
+      (a, b) => b.sessionCount - a.sessionCount || a.name.localeCompare(b.name)
     );
     expect(projects).toHaveLength(0);
   });
@@ -62,49 +66,36 @@ describe("project data mapping from API", () => {
   it("maps API response to DiscoveredProject", () => {
     const raw = {
       name: "my-project",
-      displayName: "My Project",
+      gitRepoRoot: "/home/user/my-project",
+      isGitProject: true,
+      projectPaths: ["/home/user/my-project", "/home/user/my-project-feature"],
+      encodedPaths: ["-home-user-my-project", "-home-user-my-project-feature"],
       sessionCount: 3,
       lastActivity: "2026-02-09T12:00:00Z",
-      gitRepoRoot: "/home/user/my-project",
-      worktrees: ["/home/user/my-project", "/home/user/my-project-feature"],
     };
 
-    const project: DiscoveredProject = {
-      name: raw.name,
-      displayName: raw.displayName || raw.name,
-      sessionCount: raw.sessionCount || 0,
-      lastActivity: raw.lastActivity,
-      gitRepoRoot: raw.gitRepoRoot,
-      worktrees: raw.worktrees,
-    };
+    const project: DiscoveredProject = raw;
 
     expect(project.name).toBe("my-project");
-    expect(project.displayName).toBe("My Project");
     expect(project.sessionCount).toBe(3);
-    expect(project.worktrees).toHaveLength(2);
+    expect(project.projectPaths).toHaveLength(2);
+    expect(project.isGitProject).toBe(true);
+    expect(project.gitRepoRoot).toBe("/home/user/my-project");
   });
 
-  it("uses name as displayName fallback", () => {
-    const raw = { name: "my-project" };
+  it("handles non-git project without gitRepoRoot", () => {
+    const project = makeProject({
+      name: "standalone",
+      gitRepoRoot: null,
+      isGitProject: false,
+    });
 
-    const project: DiscoveredProject = {
-      name: raw.name,
-      displayName: (raw as { displayName?: string }).displayName || raw.name,
-      sessionCount: 0,
-    };
-
-    expect(project.displayName).toBe("my-project");
+    expect(project.gitRepoRoot).toBeNull();
+    expect(project.isGitProject).toBe(false);
   });
 
   it("defaults sessionCount to 0 when missing", () => {
-    const raw = { name: "test" };
-
-    const project: DiscoveredProject = {
-      name: raw.name,
-      displayName: raw.name,
-      sessionCount: (raw as { sessionCount?: number }).sessionCount || 0,
-    };
-
+    const project = makeProject({ name: "test" });
     expect(project.sessionCount).toBe(0);
   });
 });

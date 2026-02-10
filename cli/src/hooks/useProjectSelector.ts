@@ -7,16 +7,10 @@
 
 import { useState, useCallback } from "react";
 import type { Key } from "ink";
+import type { DiscoveredProject } from "@jacques/core";
 import type { DashboardView } from "../components/Dashboard.js";
 
-export interface DiscoveredProject {
-  name: string;
-  displayName: string;
-  sessionCount: number;
-  lastActivity?: string;
-  gitRepoRoot?: string;
-  worktrees?: string[];
-}
+export type { DiscoveredProject };
 
 export interface UseProjectSelectorReturn {
   projects: DiscoveredProject[];
@@ -25,6 +19,7 @@ export interface UseProjectSelectorReturn {
   error: string | null;
   selectedIndex: number;
   scrollOffset: number;
+  init: () => void;
   open: () => void;
   handleInput: (input: string, key: Key, setCurrentView: (view: DashboardView) => void) => void;
   reset: () => void;
@@ -41,29 +36,17 @@ export function useProjectSelector(): UseProjectSelectorReturn {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [scrollOffset, setScrollOffset] = useState(0);
 
-  const open = useCallback(() => {
-    setLoading(true);
-    setError(null);
-    setSelectedIndex(0);
-    setScrollOffset(0);
-
+  const fetchProjects = useCallback(() => {
     fetch(`${API_BASE}/api/projects`)
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
       })
       .then((raw: unknown) => {
-        const data = raw as { projects?: Array<{ name: string; displayName?: string; sessionCount?: number; lastActivity?: string; gitRepoRoot?: string; worktrees?: string[] }> };
-        const list: DiscoveredProject[] = (data.projects || []).map((p) => ({
-          name: p.name,
-          displayName: p.displayName || p.name,
-          sessionCount: p.sessionCount || 0,
-          lastActivity: p.lastActivity,
-          gitRepoRoot: p.gitRepoRoot,
-          worktrees: p.worktrees,
-        }));
+        const data = raw as { projects?: DiscoveredProject[] };
+        const list: DiscoveredProject[] = data.projects || [];
         // Sort by session count (most active first), then alphabetically
-        list.sort((a, b) => b.sessionCount - a.sessionCount || a.displayName.localeCompare(b.displayName));
+        list.sort((a, b) => b.sessionCount - a.sessionCount || a.name.localeCompare(b.name));
         setProjects(list);
         setLoading(false);
       })
@@ -72,6 +55,23 @@ export function useProjectSelector(): UseProjectSelectorReturn {
         setLoading(false);
       });
   }, []);
+
+  // Eager fetch on mount — called from App.tsx so data is ready before user opens view
+  const init = useCallback(() => {
+    fetchProjects();
+  }, [fetchProjects]);
+
+  const open = useCallback(() => {
+    setError(null);
+    setSelectedIndex(0);
+    setScrollOffset(0);
+
+    // Show cached projects immediately; only show loading if we have none yet
+    if (projects.length === 0) {
+      setLoading(true);
+    }
+    fetchProjects();
+  }, [projects.length, fetchProjects]);
 
   const handleInput = useCallback((input: string, key: Key, setCurrentView: (view: DashboardView) => void) => {
     if (key.escape) {
@@ -124,6 +124,7 @@ export function useProjectSelector(): UseProjectSelectorReturn {
     error,
     selectedIndex,
     scrollOffset,
+    init,
     open,
     handleInput,
     reset,

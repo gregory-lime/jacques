@@ -435,6 +435,7 @@ export {
   listAllProjects as listCacheProjects,
   buildSessionIndex,
   getSessionIndex,
+  getProjectGroupKey,
   getSessionEntry,
   getSessionsByProject,
   discoverProjects,
