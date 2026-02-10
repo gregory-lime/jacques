@@ -1,11 +1,15 @@
 /**
  * SessionsExperimentView Component
  *
- * Active sessions grouped by worktree with mascot, scrollbar,
- * breathable layout, and vim-style orange footer bar.
+ * Active sessions grouped by worktree. Responsive layout:
+ * - Wide (≥62): bordered box with mascot column + shortcuts
+ * - Narrow (<62): flat vertical with mascot at top, no border
+ *
+ * Both layouts render at natural/minimum height and scroll
+ * when the terminal is shorter than the content.
  */
 
-import React from "react";
+import React, { useRef } from "react";
 import { Box, Text } from "ink";
 import { MASCOT_ANSI } from "../assets/mascot-ansi.js";
 import {
@@ -15,6 +19,7 @@ import {
   MASCOT_WIDTH,
   CONTENT_PADDING,
   FIXED_CONTENT_HEIGHT,
+  HORIZONTAL_LAYOUT_MIN_WIDTH,
 } from "./layout/theme.js";
 import { formatSessionTitle } from "@jacques/core";
 import type { ContentItem } from "../hooks/useSessionsExperiment.js";
@@ -34,8 +39,9 @@ interface SessionsExperimentViewProps {
   items: ContentItem[];
   selectableIndices: number[];
   selectedIndex: number;
-  scrollOffset: number;
   selectedIds: Set<string>;
+  showHelp: boolean;
+  scrollBias: number;
   notification: string | null;
   terminalWidth: number;
   terminalHeight: number;
@@ -46,12 +52,29 @@ interface SessionsExperimentViewProps {
   projectName: string | null;
 }
 
+/**
+ * Compute a follow-cursor scroll offset.
+ * Adjusts the offset only when the selected line is outside the visible window.
+ */
+function computeScroll(
+  prevOffset: number,
+  selectedLine: number,
+  visibleRows: number,
+  totalRows: number,
+): number {
+  let offset = prevOffset;
+  if (selectedLine < offset) offset = selectedLine;
+  if (selectedLine >= offset + visibleRows) offset = selectedLine - visibleRows + 1;
+  return Math.max(0, Math.min(offset, totalRows - visibleRows));
+}
+
 export function SessionsExperimentView({
   items,
   selectableIndices,
   selectedIndex,
-  scrollOffset,
   selectedIds,
+  showHelp,
+  scrollBias,
   notification,
   terminalWidth,
   terminalHeight,
@@ -61,16 +84,26 @@ export function SessionsExperimentView({
   repoRoot,
   projectName,
 }: SessionsExperimentViewProps): React.ReactElement {
+  const isWide = terminalWidth >= HORIZONTAL_LAYOUT_MIN_WIDTH;
   const currentItemIndex = selectableIndices[selectedIndex] ?? -1;
+  const scrollRef = useRef(0);
 
   // --- Layout dimensions ---
   const mascotPadding = 3;
   const mascotDisplayWidth = MASCOT_WIDTH + mascotPadding;
-  const contentWidth = Math.max(30, terminalWidth - mascotDisplayWidth - 3);
-  const contentHeight = Math.max(8, terminalHeight - 3);
+  const wideContentWidth = Math.max(30, terminalWidth - mascotDisplayWidth - 3);
+  const availableWidth = isWide
+    ? wideContentWidth - CONTENT_PADDING * 2
+    : terminalWidth;
 
-  // Mascot + shortcuts column
+  // Responsive column visibility
+  const showBar = availableWidth >= 45;
+  const showActivityLabel = availableWidth >= 30;
+
+  // Mascot
   const mascotLines = MASCOT_ANSI.split("\n").filter((l) => l.trim().length > 0);
+
+  // Shortcut legend (wide layout only)
   const shortcutRows = [
     { key: "\u2191\u2193", label: "nav" },
     { key: "\u23CE", label: "foc" },
@@ -78,30 +111,27 @@ export function SessionsExperimentView({
     { key: "f", label: "full" },
     { key: "t", label: "tile" },
   ];
-  // Match main view: mascot starts at row 1 (same as HorizontalLayout)
-  const mascotTopPad = Math.floor((FIXED_CONTENT_HEIGHT - mascotLines.length) / 2);
-  const shortcutsStart = mascotTopPad + mascotLines.length + 2;
 
-  // --- Build content lines ---
-  const allContentLines: React.ReactNode[] = [];
-
-  // Content header
+  // --- Header ---
   const headerLabel = projectName ? `${projectName}/sessions` : "Sessions";
-  allContentLines.push(<Text key="header" bold color={ACCENT_COLOR}>{headerLabel}</Text>);
-  allContentLines.push(<Text key="header-spacer"> </Text>);
+
+  // --- Build session content lines with position tracking ---
+  const contentLines: React.ReactNode[] = [];
+  const itemToContentLine = new Map<number, number>();
 
   if (items.length === 0) {
-    allContentLines.push(
+    contentLines.push(
       <Text key="empty" color={MUTED_TEXT}>No active sessions</Text>
     );
   }
 
   items.forEach((item, idx) => {
+    itemToContentLine.set(idx, contentLines.length);
     switch (item.kind) {
       case "worktree-header": {
         const dot = item.isMain ? "\u25CF " : "";
         const name = item.branch || item.name;
-        allContentLines.push(
+        contentLines.push(
           <Text key={`wh-${idx}`} wrap="truncate-end">
             <Text color={ACCENT_COLOR}>{dot}</Text>
             <Text bold color="white">{name}</Text>
@@ -115,48 +145,49 @@ export function SessionsExperimentView({
         const isSelected = idx === currentItemIndex;
         const isMultiSelected = selectedIds.has(session.session_id);
 
-        // Tree branch: use ├ if next item is also a session or new-session-button, └ otherwise
         const nextItem = items[idx + 1];
         const isLastInGroup = !nextItem || (nextItem.kind !== "session" && nextItem.kind !== "new-session-button");
         const treeCh = isLastInGroup ? "\u2514" : "\u251C";
-
         const cursor = isSelected ? "\u25B6" : " ";
-
-        // Colors: invert when multi-selected
         const fg = isMultiSelected ? "#1a1a1a" : undefined;
 
-        // Status (uses last_tool_name for awaiting differentiation)
         const activity = getCliActivity(session.status, session.last_tool_name);
 
-        // Mode
         const mode = session.is_bypass ? "bypass" : (session.mode || "default");
         const modeColor = MODE_COLORS[mode] || MUTED_TEXT;
         const modeLabel = mode === "acceptEdits" ? "edit" : mode;
 
-        // Title (with plan detection)
-        const maxTitleLen = Math.max(5, contentWidth - 40);
-        const { isPlan, displayTitle } = formatSessionTitle(session.session_title, maxTitleLen);
-        const titleColor = fg || "white";
+        // Responsive fixed columns budget
+        // tree(2) + cursor(2) + icon(1) + activityLabel(10 or 1) + mode(8) + progress(varies)
+        const fixedWidth = showBar ? 38 : showActivityLabel ? 29 : 20;
+        const maxTitleLen = Math.max(0, availableWidth - fixedWidth);
+        const { displayTitle } = formatSessionTitle(session.session_title, maxTitleLen);
 
         // Progress
+        const pct = session.context_metrics?.used_percentage;
+        const pctStr = pct != null
+          ? `${session.context_metrics!.is_estimate ? "~" : ""}${pct.toFixed(0)}%`
+          : "N/A";
+
         let progressNode: React.ReactNode;
-        if (session.context_metrics) {
-          const pct = session.context_metrics.used_percentage;
+        if (showBar && session.context_metrics) {
           const barW = 7;
-          const filled = Math.round((pct / 100) * barW);
+          const filled = Math.round((pct! / 100) * barW);
           const empty = barW - filled;
           progressNode = (
             <>
               <Text color={fg || (isSelected ? "white" : ACCENT_COLOR)}>{"\u2588".repeat(filled)}</Text>
               <Text color={fg || (isSelected ? "gray" : MUTED_TEXT)}>{"\u2591".repeat(empty)}</Text>
-              <Text color={fg || (isSelected ? "white" : ACCENT_COLOR)}> {session.context_metrics.is_estimate ? "~" : ""}{pct.toFixed(0)}%</Text>
+              <Text color={fg || (isSelected ? "white" : ACCENT_COLOR)}> {pctStr}</Text>
             </>
           );
+        } else if (showBar) {
+          progressNode = <Text color={fg || (isSelected ? "gray" : MUTED_TEXT)}>{"\u2591".repeat(7)} {pctStr}</Text>;
         } else {
-          progressNode = <Text color={fg || (isSelected ? "gray" : MUTED_TEXT)}>{"\u2591".repeat(7)} N/A</Text>;
+          progressNode = <Text color={fg || (isSelected ? "white" : ACCENT_COLOR)}> {pctStr}</Text>;
         }
 
-        allContentLines.push(
+        contentLines.push(
           <Text
             key={`s-${idx}`}
             wrap="truncate-end"
@@ -166,10 +197,14 @@ export function SessionsExperimentView({
             <Text color={fg || MUTED_TEXT}>{treeCh} </Text>
             <Text color={fg || (isSelected ? ACCENT_COLOR : "white")}>{cursor} </Text>
             <Text color={fg || activity.color}>{activity.icon}</Text>
-            <Text color={fg || activity.color}> {activity.label.padEnd(9)}</Text>
+            {showActivityLabel ? (
+              <Text color={fg || activity.color}> {activity.label.padEnd(9)}</Text>
+            ) : (
+              <Text> </Text>
+            )}
             <Text color={fg || modeColor}>{modeLabel.padEnd(8)}</Text>
-            <Text color={titleColor}>{displayTitle}</Text>
-            <Text>  </Text>
+            {maxTitleLen > 0 && <Text color={fg || "white"}>{displayTitle}</Text>}
+            {showBar && <Text>  </Text>}
             {progressNode}
           </Text>
         );
@@ -178,7 +213,7 @@ export function SessionsExperimentView({
 
       case "new-session-button": {
         const isSelected = idx === currentItemIndex;
-        allContentLines.push(
+        contentLines.push(
           <Text key={`nsb-${idx}`} wrap="truncate-end">
             <Text color={MUTED_TEXT}>{"\u2514"} </Text>
             <Text color={isSelected ? ACCENT_COLOR : MUTED_TEXT}>{isSelected ? "\u25B6" : " "} </Text>
@@ -190,7 +225,7 @@ export function SessionsExperimentView({
 
       case "new-worktree-button": {
         const isSelected = idx === currentItemIndex;
-        allContentLines.push(
+        contentLines.push(
           <Text key={`nwb-${idx}`} wrap="truncate-end">
             <Text color={isSelected ? ACCENT_COLOR : "white"}>{isSelected ? "\u25B6" : " "} </Text>
             <Text bold color={isSelected ? ACCENT_COLOR : "white"}>+ New Worktree</Text>
@@ -200,7 +235,7 @@ export function SessionsExperimentView({
       }
 
       case "new-worktree-input": {
-        allContentLines.push(
+        contentLines.push(
           <Text key={`nwi-${idx}`} wrap="truncate-end">
             <Text color={ACCENT_COLOR}>{"\u25B6"} New: </Text>
             <Text color="white">{newWorktreeName}</Text>
@@ -208,14 +243,14 @@ export function SessionsExperimentView({
           </Text>
         );
         if (repoRoot) {
-          allContentLines.push(
+          contentLines.push(
             <Text key={`nwi-path-${idx}`} color={MUTED_TEXT}>
               {"  "}{repoRoot}/{newWorktreeName || "..."}
             </Text>
           );
         }
         if (worktreeCreateError) {
-          allContentLines.push(
+          contentLines.push(
             <Text key={`nwi-err-${idx}`} color="red">
               {"  "}{worktreeCreateError}
             </Text>
@@ -229,7 +264,7 @@ export function SessionsExperimentView({
         const isShowingAll = item.hiddenCount === 0;
         const arrow = isShowingAll ? "\u25BE" : "\u25B8";
         const label = isShowingAll ? "Hide empty worktrees" : `Show ${item.hiddenCount} more worktree${item.hiddenCount === 1 ? "" : "s"}`;
-        allContentLines.push(
+        contentLines.push(
           <Text key={`sawb-${idx}`} wrap="truncate-end">
             <Text color={isSelected ? ACCENT_COLOR : MUTED_TEXT}>{isSelected ? "\u25B6" : " "} </Text>
             <Text color={isSelected ? ACCENT_COLOR : MUTED_TEXT}>{arrow} {label}</Text>
@@ -239,127 +274,252 @@ export function SessionsExperimentView({
       }
 
       case "spacer": {
-        allContentLines.push(<Text key={`sp-${idx}`}> </Text>);
+        contentLines.push(<Text key={`sp-${idx}`}> </Text>);
         break;
       }
     }
   });
 
-  // --- Scrollbar ---
-  const totalLines = allContentLines.length;
-  const needsScrollbar = totalLines > contentHeight;
-  let thumbStart = 0;
-  let thumbEnd = 0;
-  if (needsScrollbar) {
-    const thumbSize = Math.max(1, Math.round((contentHeight / totalLines) * contentHeight));
-    const maxScroll = Math.max(1, totalLines - contentHeight);
-    thumbStart = Math.round((scrollOffset / maxScroll) * (contentHeight - thumbSize));
-    thumbEnd = Math.min(contentHeight, thumbStart + thumbSize);
-  }
+  // --- Bottom controls ---
+  const { element: bottomControlsElement, width: controlsWidth } = buildBottomControls([
+    { key: "Esc", label: " back " },
+    { key: "h", label: "elp" },
+  ]);
 
-  // Visible slice
-  const visibleLines = allContentLines.slice(scrollOffset, scrollOffset + contentHeight);
-
-  // --- Top border ---
-  const borderTitle = "\u2500 Jacques";
-  const borderVersion = " v0.1.0 ";
-  const topRemaining = Math.max(0, terminalWidth - borderTitle.length - borderVersion.length - 2);
-
-  // --- Bottom border controls ---
+  // --- Notification ---
+  let bottomNotificationText = "";
   let bottomIsNotification = false;
   let bottomIsError = false;
-  let bottomNotificationText = "";
-  const { element: bottomControls, width: controlsWidth } = buildBottomControls([
-    { key: "Esc", label: " back" },
-  ]);
-  let bottomTextWidth: number;
-
   if (notification) {
     const isError = notification.startsWith("!");
     const cleanMsg = isError ? notification.slice(1) : notification;
     const maxLen = terminalWidth - 6;
     const truncated = cleanMsg.length > maxLen ? cleanMsg.substring(0, maxLen - 3) + "..." : cleanMsg;
     bottomNotificationText = isError ? `\u2717 ${truncated}` : `\u2713 ${truncated}`;
-    bottomTextWidth = bottomNotificationText.length;
     bottomIsNotification = true;
     bottomIsError = isError;
-  } else {
-    bottomTextWidth = controlsWidth;
   }
 
-  const totalBottomDashes = Math.max(0, terminalWidth - bottomTextWidth - 2);
-  const bottomLeftBorder = Math.max(1, Math.floor(totalBottomDashes / 2));
-  const bottomRightBorder = Math.max(1, totalBottomDashes - bottomLeftBorder);
+  // ========== WIDE LAYOUT (≥62) ==========
+  if (isWide) {
+    const showVersion = terminalWidth >= 70;
+
+    // Right column: header + spacer + session content
+    const allLines: React.ReactNode[] = [
+      <Text key="header" bold color={ACCENT_COLOR}>{headerLabel}</Text>,
+      <Text key="header-spacer"> </Text>,
+      ...contentLines,
+    ];
+
+    const mascotTopPad = Math.floor((FIXED_CONTENT_HEIGHT - mascotLines.length) / 2);
+    const shortcutsStart = mascotTopPad + mascotLines.length + 1;
+    const minMascotColumnHeight = showHelp
+      ? shortcutsStart + shortcutRows.length
+      : mascotTopPad + mascotLines.length;
+    const totalRows = Math.max(minMascotColumnHeight, allLines.length);
+
+    // --- Scroll ---
+    const totalWideHeight = totalRows + 2; // +2 for top/bottom borders
+    const needsScroll = totalWideHeight > terminalHeight;
+    const visibleRows = needsScroll ? Math.max(1, terminalHeight - 2) : totalRows;
+
+    // Find which row the selected item is at in allLines (offset by 2 for header + spacer)
+    const selContentIdx = itemToContentLine.get(currentItemIndex);
+    const selRow = selContentIdx != null ? selContentIdx + 2 : 0;
+
+    if (needsScroll) {
+      scrollRef.current = computeScroll(scrollRef.current, selRow, visibleRows, totalRows);
+    } else {
+      scrollRef.current = 0;
+    }
+
+    // Apply scroll bias for rendering (positive = scroll up toward top, negative = scroll down)
+    // scrollRef tracks pure cursor-follow; bias is only for display
+    const scrollStart = needsScroll
+      ? Math.max(0, Math.min(scrollRef.current - scrollBias, totalRows - visibleRows))
+      : 0;
+    const canScrollUp = needsScroll && scrollStart > 0;
+    const canScrollDown = needsScroll && scrollStart + visibleRows < totalRows;
+
+    // Top border
+    const borderTitle = "\u2500 Jacques";
+    const borderVersion = showVersion ? " v0.1.0 " : " ";
+    const scrollUpInd = canScrollUp ? " \u25B2" : "";
+    const topRemaining = Math.max(0, terminalWidth - borderTitle.length - borderVersion.length - scrollUpInd.length - 2);
+
+    // Bottom border
+    const scrollDownInd = canScrollDown ? "\u25BC " : "";
+    const bottomTextWidth = bottomIsNotification ? bottomNotificationText.length : controlsWidth;
+    const totalBottomDashes = Math.max(0, terminalWidth - bottomTextWidth - scrollDownInd.length - 2);
+    const bottomLeftBorder = Math.max(1, Math.floor(totalBottomDashes / 2));
+    const bottomRightBorder = Math.max(1, totalBottomDashes - bottomLeftBorder);
+
+    return (
+      <Box flexDirection="column">
+        {/* Top border */}
+        <Box>
+          <Text color={BORDER_COLOR}>{"\u256D"}</Text>
+          <Text color={ACCENT_COLOR}>{borderTitle}</Text>
+          <Text color={MUTED_TEXT}>{borderVersion}</Text>
+          <Text color={BORDER_COLOR}>{"\u2500".repeat(topRemaining)}</Text>
+          {canScrollUp && <Text color={MUTED_TEXT}>{scrollUpInd}</Text>}
+          <Text color={BORDER_COLOR}>{"\u256E"}</Text>
+        </Box>
+
+        {/* Content rows with mascot */}
+        {Array.from({ length: visibleRows }).map((_, i) => {
+          const rowIndex = scrollStart + i;
+          const mascotIdx = rowIndex - mascotTopPad;
+          let leftCell: React.ReactNode = <Text> </Text>;
+          if (mascotIdx >= 0 && mascotIdx < mascotLines.length) {
+            leftCell = <Text wrap="truncate-end">{mascotLines[mascotIdx]}</Text>;
+          } else if (showHelp) {
+            const scIdx = rowIndex - shortcutsStart;
+            if (scIdx >= 0 && scIdx < shortcutRows.length) {
+              const sc = shortcutRows[scIdx];
+              leftCell = (
+                <Text wrap="truncate-end">
+                  <Text color={MUTED_TEXT}> {sc.key.padEnd(3)}</Text>
+                  <Text color={MUTED_TEXT}> {sc.label}</Text>
+                </Text>
+              );
+            }
+          }
+
+          const contentLine = allLines[rowIndex];
+
+          return (
+            <Box key={rowIndex} flexDirection="row" height={1}>
+              <Text color={BORDER_COLOR}>{"\u2502"}</Text>
+              <Box width={mascotDisplayWidth} justifyContent="center" flexShrink={0}>
+                {leftCell}
+              </Box>
+              <Text color={BORDER_COLOR}>{"\u2502"}</Text>
+              <Box
+                width={wideContentWidth}
+                paddingLeft={CONTENT_PADDING}
+                paddingRight={CONTENT_PADDING}
+                flexShrink={0}
+              >
+                {contentLine || <Text> </Text>}
+              </Box>
+              <Text color={BORDER_COLOR}>{"\u2502"}</Text>
+            </Box>
+          );
+        })}
+
+        {/* Bottom border with controls */}
+        <Box>
+          <Text color={BORDER_COLOR}>
+            {"\u2570"}{"\u2500".repeat(bottomLeftBorder)}
+          </Text>
+          {bottomIsNotification ? (
+            <Text color={bottomIsError ? "red" : "green"}>{bottomNotificationText}</Text>
+          ) : (
+            bottomControlsElement
+          )}
+          <Text color={BORDER_COLOR}>
+            {"\u2500".repeat(bottomRightBorder)}
+          </Text>
+          {canScrollDown && <Text color={MUTED_TEXT}>{scrollDownInd}</Text>}
+          <Text color={BORDER_COLOR}>{"\u256F"}</Text>
+        </Box>
+      </Box>
+    );
+  }
+
+  // ========== NARROW LAYOUT (<62) ==========
+  // Build flat line array for scroll support
+  const showNarrowVersion = terminalWidth >= 30;
+  const narrowLines: React.ReactNode[] = [];
+
+  // Spacer (marginTop=1)
+  narrowLines.push(<Text key="n-mt"> </Text>);
+
+  // Mascot + name rendered line-by-line (ANSI mascot must be per-line in row contexts)
+  const mascotCenter = Math.floor((mascotLines.length - 1) / 2);
+  for (let mi = 0; mi < mascotLines.length; mi++) {
+    if (mi === mascotCenter) {
+      narrowLines.push(
+        <Box key={`n-m-${mi}`} flexDirection="row">
+          <Box flexDirection="column" flexShrink={0}>
+            <Text wrap="truncate-end">{mascotLines[mi]}</Text>
+          </Box>
+          <Box marginLeft={2}>
+            <Text bold color={ACCENT_COLOR}>Jacques{showNarrowVersion ? <Text color={MUTED_TEXT}> v0.1.0</Text> : ""}</Text>
+          </Box>
+        </Box>
+      );
+    } else {
+      narrowLines.push(<Text key={`n-m-${mi}`} wrap="truncate-end">{mascotLines[mi]}</Text>);
+    }
+  }
+
+  // Spacer (marginBottom=1)
+  narrowLines.push(<Text key="n-mb"> </Text>);
+
+  // Shortcuts (toggled with h)
+  if (showHelp) {
+    shortcutRows.forEach((sc, i) => {
+      narrowLines.push(
+        <Text key={`n-sc-${i}`} color={MUTED_TEXT}>  {sc.key.padEnd(3)} {sc.label}</Text>
+      );
+    });
+  }
+
+  // Spacer before header
+  narrowLines.push(<Text key="n-hs"> </Text>);
+
+  // Header
+  narrowLines.push(<Text key="n-hdr" bold color={ACCENT_COLOR}>{headerLabel}</Text>);
+
+  // Spacer before content
+  narrowLines.push(<Text key="n-cs"> </Text>);
+
+  // Content lines start index (for mapping selected item to line number)
+  const narrowContentStart = narrowLines.length;
+
+  contentLines.forEach((line, i) => {
+    narrowLines.push(<Box key={`n-cl-${i}`}>{line}</Box>);
+  });
+
+  // Spacer before controls
+  narrowLines.push(<Text key="n-bs"> </Text>);
+
+  // Controls
+  narrowLines.push(
+    <Box key="n-ctrl">
+      {bottomIsNotification ? (
+        <Text color={bottomIsError ? "red" : "green"}>{bottomNotificationText}</Text>
+      ) : (
+        bottomControlsElement
+      )}
+    </Box>
+  );
+
+  // --- Narrow scroll ---
+  const narrowTotal = narrowLines.length;
+  const narrowNeedsScroll = narrowTotal > terminalHeight;
+  const narrowVisible = narrowNeedsScroll ? terminalHeight : narrowTotal;
+
+  const narrowSelIdx = itemToContentLine.get(currentItemIndex);
+  const narrowSelLine = narrowSelIdx != null ? narrowContentStart + narrowSelIdx : 0;
+
+  if (narrowNeedsScroll) {
+    scrollRef.current = computeScroll(scrollRef.current, narrowSelLine, narrowVisible, narrowTotal);
+  } else {
+    scrollRef.current = 0;
+  }
+
+  // Apply scroll bias for rendering
+  const narrowStart = narrowNeedsScroll
+    ? Math.max(0, Math.min(scrollRef.current - scrollBias, narrowTotal - narrowVisible))
+    : 0;
+  const narrowSlice = narrowLines.slice(narrowStart, narrowStart + narrowVisible);
 
   return (
     <Box flexDirection="column">
-      {/* Top border */}
-      <Box>
-        <Text color={BORDER_COLOR}>{"\u256D"}</Text>
-        <Text color={ACCENT_COLOR}>{borderTitle}</Text>
-        <Text color={MUTED_TEXT}>{borderVersion}</Text>
-        <Text color={BORDER_COLOR}>{"\u2500".repeat(topRemaining)}{"\u256E"}</Text>
-      </Box>
-
-      {/* Content rows with mascot + scrollbar */}
-      {Array.from({ length: contentHeight }).map((_, rowIndex) => {
-        const mascotIdx = rowIndex - mascotTopPad;
-        let leftCell: React.ReactNode = <Text> </Text>;
-        if (mascotIdx >= 0 && mascotIdx < mascotLines.length) {
-          leftCell = <Text wrap="truncate-end">{mascotLines[mascotIdx]}</Text>;
-        } else {
-          const scIdx = rowIndex - shortcutsStart;
-          if (scIdx >= 0 && scIdx < shortcutRows.length) {
-            const sc = shortcutRows[scIdx];
-            leftCell = (
-              <Text wrap="truncate-end">
-                <Text color={MUTED_TEXT}> {sc.key.padEnd(3)}</Text>
-                <Text color={MUTED_TEXT}> {sc.label}</Text>
-              </Text>
-            );
-          }
-        }
-
-        const contentLine = visibleLines[rowIndex];
-
-        const isThumb = needsScrollbar && rowIndex >= thumbStart && rowIndex < thumbEnd;
-        const rightChar = isThumb ? "\u2503" : "\u2502";
-        const rightColor = isThumb ? ACCENT_COLOR : BORDER_COLOR;
-
-        return (
-          <Box key={rowIndex} flexDirection="row" height={1}>
-            <Text color={BORDER_COLOR}>{"\u2502"}</Text>
-            <Box width={mascotDisplayWidth} justifyContent="center" flexShrink={0}>
-              {leftCell}
-            </Box>
-            <Text color={BORDER_COLOR}>{"\u2502"}</Text>
-            <Box
-              width={contentWidth}
-              paddingLeft={CONTENT_PADDING}
-              paddingRight={CONTENT_PADDING}
-              flexShrink={0}
-            >
-              {contentLine || <Text> </Text>}
-            </Box>
-            <Text color={rightColor}>{rightChar}</Text>
-          </Box>
-        );
-      })}
-
-      {/* Bottom border with controls */}
-      <Box>
-        <Text color={BORDER_COLOR}>
-          {"\u2570"}{"\u2500".repeat(bottomLeftBorder)}
-        </Text>
-        {bottomIsNotification ? (
-          <Text color={bottomIsError ? "red" : "green"}>{bottomNotificationText}</Text>
-        ) : (
-          bottomControls
-        )}
-        <Text color={BORDER_COLOR}>
-          {"\u2500".repeat(bottomRightBorder)}{"\u256F"}
-        </Text>
-      </Box>
+      {narrowSlice}
     </Box>
   );
 }

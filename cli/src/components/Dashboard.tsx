@@ -95,8 +95,9 @@ interface DashboardProps {
   sessionsExpItems: ContentItem[];
   sessionsExpSelectableIndices: number[];
   sessionsExpSelectedIndex: number;
-  sessionsExpScrollOffset: number;
   sessionsExpSelectedIds: Set<string>;
+  sessionsExpShowHelp: boolean;
+  sessionsExpScrollBias: number;
   sessionsExpIsCreatingWorktree: boolean;
   sessionsExpNewWorktreeName: string;
   sessionsExpWorktreeCreateError: string | null;
@@ -258,8 +259,9 @@ export function Dashboard(props: DashboardProps): React.ReactElement {
             items={props.sessionsExpItems}
             selectableIndices={props.sessionsExpSelectableIndices}
             selectedIndex={props.sessionsExpSelectedIndex}
-            scrollOffset={props.sessionsExpScrollOffset}
             selectedIds={props.sessionsExpSelectedIds}
+            showHelp={props.sessionsExpShowHelp}
+            scrollBias={props.sessionsExpScrollBias}
             notification={props.notification}
             terminalWidth={tw}
             terminalHeight={th}

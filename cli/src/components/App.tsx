@@ -125,7 +125,6 @@ export function App(): React.ReactElement {
     worktrees: worktreesHook.worktrees,
     focusedSessionId,
     selectedProject: projectSelector.selectedProject,
-    terminalHeight,
     focusTerminal,
     maximizeWindow,
     tileWindows,
@@ -397,8 +396,9 @@ export function App(): React.ReactElement {
         sessionsExpItems={sessionsExpHook.items}
         sessionsExpSelectableIndices={sessionsExpHook.selectableIndices}
         sessionsExpSelectedIndex={sessionsExpHook.selectedIndex}
-        sessionsExpScrollOffset={sessionsExpHook.scrollOffset}
         sessionsExpSelectedIds={sessionsExpHook.selectedIds}
+        sessionsExpShowHelp={sessionsExpHook.showHelp}
+        sessionsExpScrollBias={sessionsExpHook.scrollBias}
         sessionsExpIsCreatingWorktree={sessionsExpHook.isCreatingWorktree}
         sessionsExpNewWorktreeName={sessionsExpHook.newWorktreeName}
         sessionsExpWorktreeCreateError={sessionsExpHook.worktreeCreateError}

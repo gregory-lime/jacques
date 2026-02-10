@@ -7,6 +7,7 @@
  */
 
 import { useState, useCallback, useMemo, useEffect } from "react";
+
 import type { Key } from "ink";
 import type { Session } from "@jacques/core";
 import { getProjectGroupKey } from "@jacques/core";
@@ -32,7 +33,6 @@ export interface UseSessionsExperimentParams {
   worktrees: WorktreeItem[];
   focusedSessionId: string | null;
   selectedProject: string | null;
-  terminalHeight: number;
   focusTerminal: (sessionId: string) => void;
   maximizeWindow: (sessionId: string) => void;
   tileWindows: (sessionIds: string[], layout?: "side-by-side" | "thirds" | "2x2" | "smart") => void;
@@ -49,8 +49,9 @@ export interface UseSessionsExperimentReturn {
   items: ContentItem[];
   selectableIndices: number[];
   selectedIndex: number;
-  scrollOffset: number;
   selectedIds: Set<string>;
+  showHelp: boolean;
+  scrollBias: number;
   isCreatingWorktree: boolean;
   newWorktreeName: string;
   worktreeCreateError: string | null;
@@ -63,7 +64,6 @@ export function useSessionsExperiment({
   worktrees,
   focusedSessionId,
   selectedProject,
-  terminalHeight,
   focusTerminal,
   maximizeWindow,
   tileWindows,
@@ -76,15 +76,13 @@ export function useSessionsExperiment({
   skipPermissions,
 }: UseSessionsExperimentParams): UseSessionsExperimentReturn {
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [scrollOffset, setScrollOffset] = useState(0);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showHelp, setShowHelp] = useState(true);
+  const [scrollBias, setScrollBias] = useState(0);
   const [showAllWorktrees, setShowAllWorktrees] = useState(false);
   const [isCreatingWorktree, setIsCreatingWorktree] = useState(false);
   const [newWorktreeName, setNewWorktreeName] = useState("");
   const [worktreeCreateError, setWorktreeCreateError] = useState<string | null>(null);
-
-  // Viewport = content area height (terminal minus borders + footer)
-  const viewport = Math.max(8, terminalHeight - 3);
 
   // Handle createWorktreeResult
   useEffect(() => {
@@ -232,16 +230,6 @@ export function useSessionsExperiment({
   // Current selectable item's position in the items array
   const currentItemIndex = selectableIndices[selectedIndex] ?? -1;
 
-  // Adjust scroll when cursor moves outside viewport
-  const adjustScroll = useCallback((itemIdx: number) => {
-    setScrollOffset((prev) => {
-      // Show header above if possible
-      if (itemIdx < prev) return Math.max(0, itemIdx - 1);
-      if (itemIdx >= prev + viewport) return itemIdx - viewport + 1;
-      return prev;
-    });
-  }, [viewport]);
-
   const handleInput = useCallback((input: string, key: Key) => {
     // Creation mode guard
     if (isCreatingWorktree) {
@@ -282,22 +270,27 @@ export function useSessionsExperiment({
     }
 
     if (key.upArrow) {
-      setSelectedIndex((prev) => {
-        const next = Math.max(0, prev - 1);
-        adjustScroll(selectableIndices[next] ?? 0);
-        return next;
-      });
+      if (selectedIndex > 0) {
+        setSelectedIndex((prev) => prev - 1);
+        setScrollBias(0);
+      } else {
+        setScrollBias((prev) => prev + 1);
+      }
       return;
     }
 
     if (key.downArrow) {
-      setSelectedIndex((prev) => {
-        const next = Math.min(selectableIndices.length - 1, prev + 1);
-        adjustScroll(selectableIndices[next] ?? 0);
-        return next;
-      });
+      if (selectedIndex < selectableIndices.length - 1) {
+        setSelectedIndex((prev) => prev + 1);
+        setScrollBias(0);
+      } else {
+        setScrollBias((prev) => prev - 1);
+      }
       return;
     }
+
+    // Any other key resets scroll bias
+    setScrollBias(0);
 
     // Enter — context-dependent action
     if (key.return) {
@@ -380,22 +373,28 @@ export function useSessionsExperiment({
       return;
     }
 
+    // h — toggle help/shortcuts
+    if (input === "h") {
+      setShowHelp((prev) => !prev);
+      return;
+    }
+
     // x — clear selection
     if (input === "x") {
       setSelectedIds(new Set());
       return;
     }
   }, [
-    selectableIndices, items, currentItemIndex, selectedIds, viewport,
+    selectableIndices, items, currentItemIndex, selectedIds, selectedIndex,
     returnToMain, focusTerminal, maximizeWindow, tileWindows, launchSession,
-    showNotification, adjustScroll, isCreatingWorktree, newWorktreeName,
+    showNotification, isCreatingWorktree, newWorktreeName,
     repoRoot, createWorktreeWs, skipPermissions,
   ]);
 
   const reset = useCallback(() => {
     setSelectedIndex(0);
-    setScrollOffset(0);
     setSelectedIds(new Set());
+    setScrollBias(0);
     setShowAllWorktrees(false);
     setIsCreatingWorktree(false);
     setNewWorktreeName("");
@@ -406,8 +405,9 @@ export function useSessionsExperiment({
     items,
     selectableIndices,
     selectedIndex,
-    scrollOffset,
     selectedIds,
+    showHelp,
+    scrollBias,
     isCreatingWorktree,
     newWorktreeName,
     worktreeCreateError,
