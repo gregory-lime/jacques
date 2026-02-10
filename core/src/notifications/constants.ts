@@ -14,9 +14,11 @@ export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
     plan: true,
     'auto-compact': true,
     handoff: true,
+    'bug-alert': true,
   },
   largeOperationThreshold: 50_000,
   contextThresholds: [50, 70], // Only 50% and 70%
+  bugAlertThreshold: 5,
 };
 
 /** Cooldown periods per category in milliseconds */
@@ -26,6 +28,7 @@ export const NOTIFICATION_COOLDOWNS: Record<NotificationCategory, number> = {
   plan: 30_000,
   'auto-compact': 60_000,
   handoff: 10_000,
+  'bug-alert': 120_000,
 };
 
 /** Unicode symbols per notification category */
@@ -35,6 +38,7 @@ export const CATEGORY_SYMBOLS: Record<NotificationCategory, string> = {
   plan: '◇',
   'auto-compact': '▲',
   handoff: '✓',
+  'bug-alert': '⚠',
 };
 
 /** Human-readable labels per notification category */
@@ -44,6 +48,7 @@ export const CATEGORY_LABELS: Record<NotificationCategory, string> = {
   plan: 'Plan',
   'auto-compact': 'Compact',
   handoff: 'Handoff',
+  'bug-alert': 'Bug Alert',
 };
 
 /** Maximum number of notifications to keep in history */

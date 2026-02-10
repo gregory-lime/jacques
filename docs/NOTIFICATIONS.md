@@ -31,9 +31,10 @@ Hook Event → Unix Socket → Server EventHandler → NotificationService.fire(
 |----------|---------|-------------------|----------|----------|
 | context | Context usage crosses threshold | 50%, 70% | 60s | medium/high |
 | operation | Claude operation > token threshold | 50k tokens | 10s | medium/high |
-| plan | New plan detected in session | -- | 30s | medium |
+| plan | New plan detected in session (real-time via JSONL scanning on context_update) | -- | 30s | medium |
 | auto-compact | Session automatically compacted | -- | 60s | high |
 | handoff | Handoff file generated | -- | 10s | medium |
+| bug-alert | Tool errors accumulate in session | 5 errors | 120s | medium/high |
 
 ## Settings
 
@@ -41,8 +42,8 @@ Hook Event → Unix Socket → Server EventHandler → NotificationService.fire(
 
 - **Storage**: `~/.jacques/config.json` under `notifications` key
 - **Default**: disabled (master switch OFF)
-- **GUI**: syncs settings to/from server via HTTP API
-- **CLI**: no local settings (server-authoritative)
+- **GUI**: syncs settings to/from server via HTTP API (per-category toggles + threshold inputs)
+- **CLI**: master toggle available in CLI Settings view (fetches/toggles via HTTP API)
 
 ### Settings Schema
 
@@ -52,6 +53,7 @@ interface NotificationSettings {
   categories: Record<NotificationCategory, boolean>; // Per-category toggles
   largeOperationThreshold: number;               // Token count threshold (default: 50000)
   contextThresholds: number[];                   // Percentage thresholds (default: [50, 70])
+  bugAlertThreshold: number;                     // Tool error count before alerting (default: 5)
 }
 ```
 
