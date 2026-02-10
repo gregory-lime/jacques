@@ -37,7 +37,7 @@ import {
 } from "@jacques/core";
 
 export function App(): React.ReactElement {
-  const { sessions, focusedSessionId, connected, focusTerminal, focusTerminalResult } = useJacquesClient();
+  const { client, sessions, focusedSessionId, connected, focusTerminal, focusTerminalResult } = useJacquesClient();
   const { exit } = useApp();
   const { isRawModeSupported } = useStdin();
 
@@ -56,7 +56,7 @@ export function App(): React.ReactElement {
   const handleSourceSelectRef = useRef<(source: string, connected: boolean) => void>(() => {});
 
   // ---- Instantiate hooks ----
-  const { notification, showNotification } = useNotification();
+  const { notification, showNotification } = useNotification(client);
 
   const llmWorking = useLlmWorking({ setCurrentView, showNotification });
 

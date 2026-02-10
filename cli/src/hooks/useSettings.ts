@@ -43,6 +43,8 @@ export interface UseSettingsState {
   autoArchiveEnabled: boolean;
   archiveStats: ArchiveStatsData | null;
   archiveStatsLoading: boolean;
+  notificationsEnabled: boolean;
+  notificationsLoading: boolean;
 }
 
 export interface UseSettingsReturn {
@@ -66,6 +68,8 @@ export function useSettings({
   const [autoArchiveEnabled, setAutoArchiveEnabled] = useState<boolean>(false);
   const [archiveStats, setArchiveStats] = useState<ArchiveStatsData | null>(null);
   const [archiveStatsLoading, setArchiveStatsLoading] = useState<boolean>(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(false);
+  const [notificationsLoading, setNotificationsLoading] = useState<boolean>(false);
 
   // Open settings view - load current settings, claude status, archive stats
   const open = useCallback(() => {
@@ -75,6 +79,18 @@ export function useSettings({
     setSettingsIndex(0);
     setSettingsScrollOffset(0);
     setCurrentView("settings");
+
+    // Load notification settings asynchronously
+    setNotificationsLoading(true);
+    fetch('http://localhost:4243/api/notifications/settings')
+      .then((res) => res.json() as Promise<{ enabled?: boolean }>)
+      .then((data) => {
+        setNotificationsEnabled(data.enabled ?? false);
+        setNotificationsLoading(false);
+      })
+      .catch(() => {
+        setNotificationsLoading(false);
+      });
 
     // Load archive stats asynchronously
     setArchiveStatsLoading(true);
@@ -118,12 +134,12 @@ export function useSettings({
       return;
     }
 
-    // Settings has ~20 content lines, visible height is 10
+    // Settings has ~23 content lines, visible height is 10
     // Map settings index to approximate content row for scrolling
-    // Row positions: Claude ~4, Auto-archive ~8, Extract ~11, Re-extract ~12, Browse ~13
-    const SETTINGS_ROW_MAP = [4, 8, 11, 12, 13];
+    // Row positions: Claude ~4, Auto-archive ~8, Notifications ~11, Extract ~14, Re-extract ~15, Browse ~16
+    const SETTINGS_ROW_MAP = [4, 8, 11, 14, 15, 16];
     const VISIBLE_HEIGHT = 10;
-    const TOTAL_CONTENT_LINES = 20; // Approximate total content lines
+    const TOTAL_CONTENT_LINES = 23; // Approximate total content lines
 
     if (key.upArrow) {
       const newIndex = Math.max(0, settingsIndex - 1);
@@ -169,18 +185,30 @@ export function useSettings({
         const newValue = toggleAutoArchive();
         setAutoArchiveEnabled(newValue);
       } else if (settingsIndex === 2) {
+        // Notifications toggle
+        const newEnabled = !notificationsEnabled;
+        setNotificationsEnabled(newEnabled);
+        fetch('http://localhost:4243/api/notifications/settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enabled: newEnabled }),
+        }).catch(() => {
+          // Revert on failure
+          setNotificationsEnabled(!newEnabled);
+        });
+      } else if (settingsIndex === 3) {
         // Extract Catalog (skip already extracted)
         onInitArchive({ force: false });
-      } else if (settingsIndex === 3) {
+      } else if (settingsIndex === 4) {
         // Re-extract All (force re-extract everything)
         onInitArchive({ force: true });
-      } else if (settingsIndex === 4) {
+      } else if (settingsIndex === 5) {
         // Browse Archive
         onBrowseArchive();
       }
       return;
     }
-  }, [settingsIndex, settingsScrollOffset, returnToMain, showNotification, onInitArchive, onBrowseArchive]);
+  }, [settingsIndex, settingsScrollOffset, returnToMain, showNotification, onInitArchive, onBrowseArchive, notificationsEnabled]);
 
   // Reset all state
   const reset = useCallback(() => {
@@ -195,6 +223,8 @@ export function useSettings({
       autoArchiveEnabled,
       archiveStats,
       archiveStatsLoading,
+      notificationsEnabled,
+      notificationsLoading,
     },
     open,
     reloadStats,

@@ -144,6 +144,16 @@ export class EventHandler {
       // Context updates don't change focus — only broadcast the session update
       this.broadcastService.broadcastSessionUpdate(session);
       this.notificationService?.onContextUpdate(session);
+
+      // Plan detection (debounced internally to 30s per session)
+      if (session.transcript_path) {
+        this.notificationService?.checkForNewPlans(session.session_id, session.transcript_path);
+      }
+      // Error scanning (incremental via byte offset)
+      if (session.transcript_path) {
+        this.notificationService?.scanForErrors(session.session_id, session.transcript_path);
+      }
+
       // Note: Mode detection is NOT done here. permission_mode from hooks
       // (PreToolUse, Activity, Idle, SessionStart) is the authoritative source.
       // JSONL-based detection is only used at session registration time.

@@ -178,6 +178,7 @@ jacques-context-manager/
 │   ├── handoff/         # Session handoff generation
 │   ├── logging/         # Structured logging (Logger interface, error classification)
 │   ├── plan/            # Plan progress tracking (task extraction, progress matching)
+│   ├── notifications/   # Shared notification types, constants, utilities
 │   ├── session/         # JSONL parsing, filtering, transformation
 │   └── sources/         # External source adapters (Obsidian, etc.)
 ├── server/src/          # Node.js server (TypeScript)
@@ -226,6 +227,7 @@ Before exploring source code, read the relevant `docs/` file listed below. The d
 | Work on web GUI | `docs/GUI.md` | `gui/src/` |
 | Work on project discovery | `docs/PLATFORM-SUPPORT.md` (Path encoding section) | `core/src/cache/project-discovery.ts` (`discoverProjects`) |
 | Work on hooks | `docs/HOOKS.md` | `hooks/` |
+| Work on notifications | `docs/NOTIFICATIONS.md` | `core/src/notifications/`, `server/src/services/notification-service.ts` |
 | Parse JSONL transcripts | `docs/JSONL-FORMAT.md` | `core/src/session/` |
 | Work on plans/dedup | `docs/CORE.md` (Plan Identity section) | `core/src/catalog/extractor.ts`, `core/src/archive/plan-cataloger.ts` |
 | Work on plan progress | `docs/CORE.md` (Plan Progress section) | `core/src/plan/`, `server/src/http-api.ts` (tasks endpoint) |

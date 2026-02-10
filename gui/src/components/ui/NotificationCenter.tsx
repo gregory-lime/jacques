@@ -8,7 +8,8 @@
 import { useState, useRef, useEffect, useSyncExternalStore } from 'react';
 import { Bell, Check, Trash2, X } from 'lucide-react';
 import { colors } from '../../styles/theme';
-import { notificationStore, type NotificationItem, type NotificationPriority, type NotificationCategory } from './NotificationStore';
+import { notificationStore, type NotificationItem, type NotificationPriority } from './NotificationStore';
+import { CATEGORY_LABELS } from '@jacques/core/notifications';
 
 // ============================================================
 // Priority colors
@@ -21,19 +22,11 @@ const PRIORITY_COLORS: Record<NotificationPriority, string> = {
   critical: colors.danger,
 };
 
-const CATEGORY_LABELS: Record<NotificationCategory, string> = {
-  context: 'Context',
-  operation: 'Operation',
-  plan: 'Plan',
-  'auto-compact': 'Compact',
-  handoff: 'Handoff',
-};
-
 // ============================================================
 // Component
 // ============================================================
 
-export function NotificationCenter() {
+export function NotificationCenter({ onFocusTerminal }: { onFocusTerminal?: (sessionId: string) => void } = {}) {
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -133,7 +126,12 @@ export function NotificationCenter() {
                 <NotificationRow
                   key={n.id}
                   notification={n}
-                  onClick={() => notificationStore.markRead(n.id)}
+                  onClick={() => {
+                    notificationStore.markRead(n.id);
+                    if (n.sessionId && onFocusTerminal) {
+                      onFocusTerminal(n.sessionId);
+                    }
+                  }}
                 />
               ))
             )}

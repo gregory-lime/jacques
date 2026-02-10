@@ -1,6 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, createContext, useContext } from 'react';
 import type { Session, ClaudeOperation, ApiLog, WorktreeWithStatus } from '../types';
+import type { NotificationItem } from '@jacques/core/notifications';
 import { toastStore } from '../components/ui/ToastContainer';
+import { notificationStore } from '../components/ui/NotificationStore';
 
 // WebSocket URL - the GUI connects to the Jacques server
 // In production (served from HTTP API), we're on port 4243, WebSocket is on 4242
@@ -23,6 +25,7 @@ class BrowserJacquesClient {
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 10;
   private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+  private disposed = false;
 
   public onConnected?: () => void;
   public onDisconnected?: () => void;
@@ -40,6 +43,7 @@ class BrowserJacquesClient {
   public onChatComplete?: (projectPath: string, fullText: string, inputTokens: number, outputTokens: number) => void;
   public onChatError?: (projectPath: string, reason: string, message: string) => void;
   public onCatalogUpdated?: (projectPath: string, action: string, itemId?: string) => void;
+  public onNotificationFired?: (notification: NotificationItem) => void;
   public onSmartTileAddResult?: (success: boolean, repositioned: number, totalTiled: number, usedFreeSpace: boolean, launchMethod?: string, error?: string) => void;
   public onLaunchResult?: (success: boolean, method: string, cwd: string, error?: string) => void;
   public onCreateWorktreeResult?: (success: boolean, worktreePath?: string, branch?: string, sessionLaunched?: boolean, launchMethod?: string, error?: string) => void;
@@ -47,6 +51,13 @@ class BrowserJacquesClient {
   public onRemoveWorktreeResult?: (success: boolean, worktreePath?: string, branchDeleted?: boolean, error?: string) => void;
 
   connect() {
+    if (this.disposed) return;
+    // Close any existing connection before opening a new one
+    if (this.ws) {
+      this.ws.onclose = null; // Prevent triggering reconnect
+      this.ws.close();
+      this.ws = null;
+    }
     try {
       this.ws = new WebSocket(SERVER_URL);
 
@@ -57,7 +68,9 @@ class BrowserJacquesClient {
 
       this.ws.onclose = () => {
         this.onDisconnected?.();
-        this.scheduleReconnect();
+        if (!this.disposed) {
+          this.scheduleReconnect();
+        }
       };
 
       this.ws.onerror = () => {
@@ -73,17 +86,23 @@ class BrowserJacquesClient {
         }
       };
     } catch {
-      this.scheduleReconnect();
+      if (!this.disposed) {
+        this.scheduleReconnect();
+      }
     }
   }
 
   disconnect() {
+    this.disposed = true;
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout);
       this.reconnectTimeout = null;
     }
-    this.ws?.close();
-    this.ws = null;
+    if (this.ws) {
+      this.ws.onclose = null; // Prevent reconnect on intentional close
+      this.ws.close();
+      this.ws = null;
+    }
   }
 
   private scheduleReconnect() {
@@ -219,6 +238,9 @@ class BrowserJacquesClient {
           message.branch_deleted as boolean | undefined,
           message.error as string | undefined,
         );
+        break;
+      case 'notification_fired':
+        this.onNotificationFired?.(message.notification as unknown as NotificationItem);
         break;
     }
   }
@@ -371,7 +393,16 @@ const MAX_LOGS = 100;
 const MAX_CLAUDE_OPS = 50;
 const MAX_API_LOGS = 100;
 
+// Context for sharing a single WebSocket connection across all components
+const JacquesClientContext = createContext<UseJacquesClientReturn | null>(null);
+
 export function useJacquesClient(): UseJacquesClientReturn {
+  const ctx = useContext(JacquesClientContext);
+  if (!ctx) throw new Error('useJacquesClient must be used within JacquesClientProvider');
+  return ctx;
+}
+
+function useJacquesClientInternal(): UseJacquesClientReturn {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [focusedSessionId, setFocusedSessionId] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
@@ -385,9 +416,13 @@ export function useJacquesClient(): UseJacquesClientReturn {
   const createWorktreeCallbackRef = useRef<((success: boolean, worktreePath?: string, branch?: string, sessionLaunched?: boolean, launchMethod?: string, error?: string) => void) | null>(null);
   const listWorktreesCallbackRef = useRef<((success: boolean, worktrees?: WorktreeWithStatus[], error?: string) => void) | null>(null);
   const removeWorktreeCallbackRef = useRef<((success: boolean, worktreePath?: string, branchDeleted?: boolean, error?: string) => void) | null>(null);
+  const clientRef = useRef<BrowserJacquesClient | null>(null);
 
   useEffect(() => {
+    // Prevent double-connection in React StrictMode
+    if (clientRef.current) return;
     const jacquesClient = new BrowserJacquesClient();
+    clientRef.current = jacquesClient;
 
     // Event handlers
     jacquesClient.onConnected = () => {
@@ -511,6 +546,35 @@ export function useJacquesClient(): UseJacquesClientReturn {
       });
     };
 
+    // Server-driven notifications — push to toast + notification store + browser notification
+    jacquesClient.onNotificationFired = (notification: NotificationItem) => {
+      // In-app toast (ephemeral)
+      toastStore.push({
+        title: notification.title,
+        body: notification.body,
+        priority: notification.priority,
+        category: notification.category,
+      });
+      // Persistent notification history
+      notificationStore.push({
+        id: notification.id,
+        title: notification.title,
+        body: notification.body,
+        priority: notification.priority,
+        category: notification.category,
+        timestamp: notification.timestamp,
+        sessionId: notification.sessionId,
+      });
+      // Browser notification when tab is unfocused
+      if (typeof Notification !== 'undefined' && Notification.permission === 'granted' && !document.hasFocus()) {
+        new Notification(notification.title, {
+          body: notification.body,
+          tag: `jacques-${notification.category}-${notification.id}`,
+          icon: '/jacsub.png',
+        });
+      }
+    };
+
     // Wire chat callbacks through ref (allows updating without re-creating client)
     jacquesClient.onChatDelta = (projectPath, text) => {
       chatCallbacksRef.current.onChatDelta?.(projectPath, text);
@@ -584,9 +648,8 @@ export function useJacquesClient(): UseJacquesClientReturn {
 
     // Cleanup on unmount
     return () => {
-      if (jacquesClient.getIsConnected()) {
-        jacquesClient.disconnect();
-      }
+      jacquesClient.disconnect();
+      clientRef.current = null;
     };
   }, []);
 
@@ -694,4 +757,10 @@ export function useJacquesClient(): UseJacquesClientReturn {
     abortChat,
     setChatCallbacks,
   };
+}
+
+// Provider component — renders once at the app root, creates the single WebSocket connection
+export function JacquesClientProvider({ children }: { children: React.ReactNode }) {
+  const value = useJacquesClientInternal();
+  return React.createElement(JacquesClientContext.Provider, { value }, children);
 }

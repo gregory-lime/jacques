@@ -26,6 +26,7 @@ export interface FocusTerminalResult {
 }
 
 export interface UseJacquesClientReturn extends JacquesState {
+  client: JacquesClient | null;
   selectSession: (sessionId: string) => void;
   triggerAction: (
     sessionId: string,
@@ -181,6 +182,7 @@ export function useJacquesClient(): UseJacquesClientReturn {
   }, [client]);
 
   return {
+    client,
     sessions,
     focusedSessionId,
     connected,

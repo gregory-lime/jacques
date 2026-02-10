@@ -28,6 +28,7 @@ export interface JacquesClientEvents {
   autocompact_toggled: (enabled: boolean, warning?: string) => void;
   handoff_ready: (sessionId: string, path: string) => void;
   focus_terminal_result: (sessionId: string, success: boolean, method: string, error?: string) => void;
+  notification_fired: (notification: { id: string; category: string; title: string; body: string; priority: string; timestamp: number; sessionId?: string }) => void;
   error: (error: Error) => void;
 }
 
@@ -132,6 +133,10 @@ export class JacquesClient extends EventEmitter {
 
         case "focus_terminal_result":
           this.emit("focus_terminal_result", message.session_id, message.success, message.method, message.error);
+          break;
+
+        case "notification_fired":
+          this.emit("notification_fired", message.notification);
           break;
 
         default:

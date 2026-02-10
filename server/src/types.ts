@@ -504,53 +504,18 @@ export interface FocusTerminalResultMessage {
 }
 
 // ============================================================
-// Notification System
+// Notification System (re-exported from @jacques/core)
 // ============================================================
 
-/**
- * Notification category for server-side notifications
- */
-export type NotificationCategory =
-  | 'context'
-  | 'operation'
-  | 'plan'
-  | 'auto-compact'
-  | 'handoff';
+import type {
+  NotificationCategory as _NotificationCategory,
+  NotificationSettings as _NotificationSettings,
+  NotificationItem as _NotificationItem,
+} from '@jacques/core/notifications';
 
-/**
- * Server-side notification settings
- * Persisted in ~/.jacques/config.json under "notifications"
- */
-export interface NotificationSettings {
-  /** Whether desktop (OS) notifications are enabled */
-  enabled: boolean;
-  /** Per-category toggles */
-  categories: Record<NotificationCategory, boolean>;
-  /** Minimum tokens for a "large operation" notification */
-  largeOperationThreshold: number;
-  /** Context percentage thresholds that trigger notifications */
-  contextThresholds: number[];
-}
-
-/**
- * A fired notification item
- */
-export interface NotificationItem {
-  /** Unique notification ID */
-  id: string;
-  /** Notification category */
-  category: NotificationCategory;
-  /** Short title */
-  title: string;
-  /** Longer description */
-  body: string;
-  /** Priority level */
-  priority: 'low' | 'medium' | 'high' | 'critical';
-  /** When the notification was created */
-  timestamp: number;
-  /** Associated session ID, if any */
-  sessionId?: string;
-}
+export type NotificationCategory = _NotificationCategory;
+export type NotificationSettings = _NotificationSettings;
+export type NotificationItem = _NotificationItem;
 
 /**
  * Notification settings message (server → client)

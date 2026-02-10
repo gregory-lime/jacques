@@ -354,7 +354,9 @@ export class SessionRegistry {
     // Focus is driven by terminal focus watcher, not by events
 
     // Update terminal_key if provided (from statusLine hook)
-    if (event.terminal_key && event.terminal_key !== '' && session.terminal_key.startsWith('AUTO:')) {
+    // Allow upgrading AUTO: (hook-registered) and DISCOVERED: (process-scanner) keys
+    const canUpgradeKey = session.terminal_key.startsWith('AUTO:') || session.terminal_key.startsWith('DISCOVERED:');
+    if (event.terminal_key && event.terminal_key !== '' && canUpgradeKey) {
       this.log(`[Registry] Updating terminal_key from context_update: ${session.terminal_key} -> ${event.terminal_key}`);
 
       // Clean up any existing sessions with the same terminal_key (same logic as registerSession)

@@ -103,3 +103,6 @@ export type { HandoffEntry, HandoffContent } from './handoffs';
 
 // Usage
 export { getUsageLimits } from './usage';
+
+// Notifications
+export { getNotificationSettings, updateNotificationSettings } from './notifications';

@@ -41,15 +41,19 @@ interface SettingsViewProps {
   isTokenInputMode?: boolean;
   isTokenVerifying?: boolean;
   showConnectionSuccess?: boolean;
+  // Notification props
+  notificationsEnabled?: boolean;
+  notificationsLoading?: boolean;
 }
 
 // Settings items:
 // Index 0: Claude Connection (input/status)
 // Index 1: Auto-archive toggle
-// Index 2: Extract Catalog button
-// Index 3: Re-extract All button
-// Index 4: Browse Archive button
-const TOTAL_ITEMS = 5;
+// Index 2: Notifications toggle
+// Index 3: Extract Catalog button
+// Index 4: Re-extract All button
+// Index 5: Browse Archive button
+const TOTAL_ITEMS = 6;
 
 export { TOTAL_ITEMS as SETTINGS_TOTAL_ITEMS };
 
@@ -68,6 +72,8 @@ export function SettingsView({
   isTokenInputMode = false,
   isTokenVerifying = false,
   showConnectionSuccess = false,
+  notificationsEnabled = false,
+  notificationsLoading = false,
 }: SettingsViewProps): React.ReactElement {
   const useHorizontalLayout = terminalWidth >= HORIZONTAL_LAYOUT_MIN_WIDTH;
   const showVersion = terminalWidth >= 70;
@@ -157,11 +163,24 @@ export function SettingsView({
     </Text>
   );
 
-  // Catalog Actions section (indices 2-4)
+  // Notifications toggle (index 2)
+  contentLines.push(<Box />);
+  contentLines.push(<Text color={MUTED_TEXT}>Notifications:</Text>);
+
+  const notifSelected = selectedIndex === 2;
+  const notifIcon = notificationsLoading ? "..." : notificationsEnabled ? "[x]" : "[ ]";
+  contentLines.push(
+    <Text color={notifSelected ? ACCENT_COLOR : "white"}>
+      {notifSelected ? "> " : "  "}
+      {notifIcon} Desktop notifications
+    </Text>
+  );
+
+  // Catalog Actions section (indices 3-5)
   contentLines.push(<Box />);
   contentLines.push(<Text color={MUTED_TEXT}>Catalog Actions:</Text>);
 
-  const extractSelected = selectedIndex === 2;
+  const extractSelected = selectedIndex === 3;
   contentLines.push(
     <Text color={extractSelected ? ACCENT_COLOR : "white"}>
       {extractSelected ? "> " : "  "}
@@ -170,7 +189,7 @@ export function SettingsView({
     </Text>
   );
 
-  const reextractSelected = selectedIndex === 3;
+  const reextractSelected = selectedIndex === 4;
   contentLines.push(
     <Text color={reextractSelected ? ACCENT_COLOR : "white"}>
       {reextractSelected ? "> " : "  "}
@@ -179,7 +198,7 @@ export function SettingsView({
     </Text>
   );
 
-  const browseSelected = selectedIndex === 4;
+  const browseSelected = selectedIndex === 5;
   contentLines.push(
     <Text color={browseSelected ? ACCENT_COLOR : "white"}>
       {browseSelected ? "> " : "  "}

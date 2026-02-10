@@ -260,6 +260,8 @@ export function Dashboard(props: DashboardProps): React.ReactElement {
             isTokenInputMode={props.claudeToken.isInputMode}
             isTokenVerifying={props.claudeToken.isVerifying}
             showConnectionSuccess={props.claudeToken.showSuccess}
+            notificationsEnabled={props.settings.notificationsEnabled}
+            notificationsLoading={props.settings.notificationsLoading}
           />
         </Box>
       );

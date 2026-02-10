@@ -5,17 +5,18 @@ import { colors } from '../styles/theme';
 import { SectionHeader, SettingsSection, ToggleSwitch } from '../components/ui';
 import { useNotifications } from '../hooks/useNotifications';
 import { usePersistedState } from '../hooks/usePersistedState';
-import type { NotificationCategory } from '../notifications/types';
+import type { NotificationCategory } from '@jacques/core/notifications';
 import { getRootPath, setRootPath, syncSessions, getUsageLimits, type RootPathConfig, type SyncProgress, type SyncResult } from '../api';
 import { useProjectScope } from '../hooks/useProjectScope';
 import type { UsageLimits } from '../types';
 
 const CATEGORY_LABELS: Record<NotificationCategory, { label: string; description: string }> = {
-  context: { label: 'Context thresholds', description: 'Alert at 50%, 70%, 90% usage' },
+  context: { label: 'Context thresholds', description: 'Alert at 50%, 70% usage' },
   operation: { label: 'Large operations', description: 'Claude operations exceeding token threshold' },
   plan: { label: 'Plan creation', description: 'New plan detected in a session' },
   'auto-compact': { label: 'Auto-compact', description: 'Session automatically compacted' },
   handoff: { label: 'Handoff ready', description: 'Handoff file generated for a session' },
+  'bug-alert': { label: 'Bug alert', description: 'Multiple tool errors detected in session' },
 };
 
 const PERMISSION_LABELS: Record<string, { text: string; color: string }> = {
@@ -91,6 +92,9 @@ export function Settings() {
   const [thresholdInput, setThresholdInput] = useState(
     String(settings.largeOperationThreshold),
   );
+  const [bugAlertThresholdInput, setBugAlertThresholdInput] = useState(
+    String(settings.bugAlertThreshold),
+  );
 
   // Root path state
   const [rootPathConfig, setRootPathConfig] = useState<RootPathConfig | null>(null);
@@ -156,6 +160,15 @@ export function Settings() {
       updateSettings({ largeOperationThreshold: parsed });
     } else {
       setThresholdInput(String(settings.largeOperationThreshold));
+    }
+  };
+
+  const handleBugAlertThresholdBlur = () => {
+    const parsed = parseInt(bugAlertThresholdInput, 10);
+    if (!Number.isNaN(parsed) && parsed >= 1) {
+      updateSettings({ bugAlertThreshold: parsed });
+    } else {
+      setBugAlertThresholdInput(String(settings.bugAlertThreshold));
     }
   };
 
@@ -361,6 +374,28 @@ export function Settings() {
               value={thresholdInput}
               onChange={(e) => setThresholdInput(e.target.value)}
               onBlur={handleThresholdBlur}
+              style={styles.numberInput}
+            />
+          </div>
+        </div>
+
+        {/* Bug alert threshold */}
+        <div style={{
+          opacity: settings.enabled && settings.categories['bug-alert'] ? 1 : 0.4,
+          pointerEvents: settings.enabled && settings.categories['bug-alert'] ? 'auto' : 'none',
+        }}>
+          <div style={styles.settingRow}>
+            <div>
+              <div style={styles.settingLabel}>Bug alert threshold</div>
+              <div style={styles.settingDescription}>Number of tool errors before alerting</div>
+            </div>
+            <input
+              type="number"
+              min={1}
+              step={1}
+              value={bugAlertThresholdInput}
+              onChange={(e) => setBugAlertThresholdInput(e.target.value)}
+              onBlur={handleBugAlertThresholdBlur}
               style={styles.numberInput}
             />
           </div>

@@ -10,15 +10,25 @@
 
 import notifier from 'node-notifier';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
-import { join } from 'path';
+import { open as fsOpen } from 'fs/promises';
+import { stat as fsStat } from 'fs/promises';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import { homedir } from 'os';
 import type {
   NotificationCategory,
   NotificationSettings,
   NotificationItem,
-  NotificationFiredMessage,
-  Session,
-} from '../types.js';
+} from '@jacques/core/notifications';
+import {
+  DEFAULT_NOTIFICATION_SETTINGS,
+  NOTIFICATION_COOLDOWNS,
+  CATEGORY_SYMBOLS,
+  MAX_NOTIFICATION_HISTORY,
+  getContextThresholdPriority,
+} from '@jacques/core/notifications';
+import { parseJSONL, detectModeAndPlans } from '@jacques/core';
+import type { NotificationFiredMessage, Session } from '../types.js';
 import type { Logger } from '../logging/logger-factory.js';
 import { createLogger } from '../logging/logger-factory.js';
 
@@ -28,40 +38,8 @@ import { createLogger } from '../logging/logger-factory.js';
 
 const JACQUES_DIR = join(homedir(), '.jacques');
 const JACQUES_CONFIG_PATH = join(JACQUES_DIR, 'config.json');
-
-const DEFAULT_SETTINGS: NotificationSettings = {
-  enabled: true,
-  categories: {
-    context: true,
-    operation: true,
-    plan: true,
-    'auto-compact': true,
-    handoff: true,
-  },
-  largeOperationThreshold: 50_000,
-  contextThresholds: [50, 70, 90],
-};
-
-/** Cooldown periods per category in milliseconds */
-const COOLDOWNS: Record<NotificationCategory, number> = {
-  context: 60_000,
-  operation: 10_000,
-  plan: 30_000,
-  'auto-compact': 60_000,
-  handoff: 10_000,
-};
-
-/** Maximum number of notifications to keep in history */
-const MAX_HISTORY = 50;
-
-/** Unicode symbols per notification category */
-const CATEGORY_SYMBOLS: Record<NotificationCategory, string> = {
-  context: '◆',
-  operation: '⚡',
-  plan: '◇',
-  'auto-compact': '▲',
-  handoff: '✓',
-};
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const ICON_PATH = join(__dirname, '..', '..', '..', 'gui', 'public', 'jacsub.png');
 
 // ============================================================
 // Types
@@ -70,6 +48,8 @@ const CATEGORY_SYMBOLS: Record<NotificationCategory, string> = {
 export interface NotificationServiceConfig {
   /** Callback to broadcast messages to WebSocket clients */
   broadcast: (message: NotificationFiredMessage) => void;
+  /** Optional callback to focus a terminal window by session ID */
+  focusTerminal?: (sessionId: string) => void;
   /** Optional logger */
   logger?: Logger;
 }
@@ -87,7 +67,8 @@ interface ClaudeOperationInfo {
 // ============================================================
 
 export class NotificationService {
-  private broadcast: (message: NotificationFiredMessage) => void;
+  private broadcastFn: (message: NotificationFiredMessage) => void;
+  private focusTerminalFn?: (sessionId: string) => void;
   private logger: Logger;
 
   /** Cooldown tracking: key -> last fire timestamp */
@@ -100,9 +81,18 @@ export class NotificationService {
   private history: NotificationItem[] = [];
   /** Cached settings */
   private settings: NotificationSettings;
+  /** Plan detection: known plan titles per session */
+  private knownPlanTitles = new Map<string, Set<string>>();
+  /** Plan detection: last check timestamp per session (30s debounce) */
+  private planCheckTimestamp = new Map<string, number>();
+  /** Error scanning: last byte offset per session */
+  private errorScanOffset = new Map<string, number>();
+  /** Error scanning: accumulated errors since last alert */
+  private errorCountSinceAlert = new Map<string, number>();
 
   constructor(config: NotificationServiceConfig) {
-    this.broadcast = config.broadcast;
+    this.broadcastFn = config.broadcast;
+    this.focusTerminalFn = config.focusTerminal;
     this.logger = config.logger ?? createLogger({ silent: true });
     this.settings = this.loadSettings();
   }
@@ -128,6 +118,9 @@ export class NotificationService {
     }
     if (patch.contextThresholds !== undefined) {
       this.settings.contextThresholds = patch.contextThresholds;
+    }
+    if (patch.bugAlertThreshold !== undefined) {
+      this.settings.bugAlertThreshold = patch.bugAlertThreshold;
     }
     this.saveSettings();
     return this.getSettings();
@@ -164,10 +157,7 @@ export class NotificationService {
       if (pct >= threshold && prevPct < threshold && !fired.has(threshold)) {
         fired.add(threshold);
 
-        const priority: NotificationItem['priority'] =
-          threshold >= 90 ? 'critical' :
-          threshold >= 70 ? 'high' : 'medium';
-
+        const priority = getContextThresholdPriority(threshold);
         const label = session.session_title || session.project || sessionId.slice(0, 8);
 
         this.fire(
@@ -221,12 +211,184 @@ export class NotificationService {
   }
 
   /**
+   * Called when a new plan is detected in a session.
+   */
+  onPlanReady(sessionId: string, planTitle: string): void {
+    this.fire(
+      'plan',
+      `${sessionId}-plan-${Date.now()}`,
+      'Plan Created',
+      `New plan detected: "${planTitle}"`,
+      'medium',
+      sessionId,
+    );
+  }
+
+  /**
+   * Check for new plans in a session's JSONL transcript.
+   * Debounced to 30s per session to avoid excessive JSONL parsing.
+   */
+  async checkForNewPlans(sessionId: string, transcriptPath: string): Promise<void> {
+    try {
+      // 30s debounce per session
+      const lastCheck = this.planCheckTimestamp.get(sessionId) ?? 0;
+      if (Date.now() - lastCheck < 30_000) return;
+      this.planCheckTimestamp.set(sessionId, Date.now());
+
+      const entries = await parseJSONL(transcriptPath);
+      const { planRefs } = detectModeAndPlans(entries);
+
+      if (!this.knownPlanTitles.has(sessionId)) {
+        this.knownPlanTitles.set(sessionId, new Set());
+      }
+      const known = this.knownPlanTitles.get(sessionId)!;
+
+      for (const ref of planRefs) {
+        const title = ref.title ?? 'Untitled Plan';
+        if (!known.has(title)) {
+          known.add(title);
+          this.onPlanReady(sessionId, title);
+        }
+      }
+    } catch (err) {
+      this.logger.error(`[Notification] checkForNewPlans failed for ${sessionId}: ${err}`);
+    }
+  }
+
+  /**
+   * Scan a session's JSONL transcript for tool errors.
+   * Reads incrementally from last byte offset for efficiency.
+   * Fires bug-alert when error count reaches bugAlertThreshold.
+   */
+  async scanForErrors(sessionId: string, transcriptPath: string): Promise<void> {
+    try {
+      const fileStat = await fsStat(transcriptPath);
+      const currentSize = fileStat.size;
+      const lastOffset = this.errorScanOffset.get(sessionId) ?? 0;
+
+      if (currentSize <= lastOffset) return;
+
+      const fh = await fsOpen(transcriptPath, 'r');
+      try {
+        const buffer = Buffer.alloc(currentSize - lastOffset);
+        await fh.read(buffer, 0, buffer.length, lastOffset);
+        this.errorScanOffset.set(sessionId, currentSize);
+
+        const newContent = buffer.toString('utf-8');
+        const lines = newContent.split('\n');
+
+        let errorCount = 0;
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed) continue;
+          try {
+            const entry = JSON.parse(trimmed);
+            // Count tool_result entries with is_error
+            if (entry.type === 'assistant' && Array.isArray(entry.message?.content)) {
+              for (const block of entry.message.content) {
+                if (block.type === 'tool_result' && block.is_error === true) {
+                  errorCount++;
+                }
+              }
+            }
+          } catch {
+            // Skip malformed lines
+          }
+        }
+
+        if (errorCount > 0) {
+          const accumulated = (this.errorCountSinceAlert.get(sessionId) ?? 0) + errorCount;
+          this.errorCountSinceAlert.set(sessionId, accumulated);
+
+          if (accumulated >= this.settings.bugAlertThreshold) {
+            this.fire(
+              'bug-alert',
+              `${sessionId}-bug-alert`,
+              'Bug Alert',
+              `${accumulated} tool errors in session`,
+              accumulated >= 10 ? 'high' : 'medium',
+              sessionId,
+            );
+            this.errorCountSinceAlert.set(sessionId, 0);
+          }
+        }
+      } finally {
+        await fh.close();
+      }
+    } catch (err) {
+      this.logger.error(`[Notification] scanForErrors failed for ${sessionId}: ${err}`);
+    }
+  }
+
+  /**
    * Called when a session is removed.
    * Cleans up tracking state for that session.
    */
   onSessionRemoved(sessionId: string): void {
     this.firedThresholds.delete(sessionId);
     this.prevContextPct.delete(sessionId);
+    this.knownPlanTitles.delete(sessionId);
+    this.planCheckTimestamp.delete(sessionId);
+    this.errorScanOffset.delete(sessionId);
+    this.errorCountSinceAlert.delete(sessionId);
+  }
+
+  /**
+   * Fire a test notification (for development/debugging).
+   * Bypasses cooldowns and enabled check.
+   */
+  fireTestNotification(
+    category: NotificationCategory,
+    title: string,
+    body: string,
+    priority: NotificationItem['priority'] = 'medium',
+    sessionId?: string,
+  ): void {
+    const notification: NotificationItem = {
+      id: `test-${category}-${Date.now()}`,
+      category,
+      title,
+      body,
+      priority,
+      timestamp: Date.now(),
+      sessionId,
+    };
+
+    // Native OS notification (if enabled)
+    if (this.settings.enabled) {
+      try {
+        const symbol = CATEGORY_SYMBOLS[category];
+        notifier.notify(
+          {
+            title: 'Jacques',
+            subtitle: `${symbol} ${title}`,
+            message: body,
+            sound: 'Sosumi',
+            contentImage: ICON_PATH,
+            wait: true,
+          },
+          (_err: Error | null, response: string) => {
+            if (response === 'activate' && sessionId && this.focusTerminalFn) {
+              try {
+                this.focusTerminalFn(sessionId);
+              } catch (focusErr) {
+                this.logger.error(`[Notification] Focus terminal failed: ${focusErr}`);
+              }
+            }
+          },
+        );
+      } catch (err) {
+        this.logger.error(`[Notification] Desktop notification failed: ${err}`);
+      }
+    }
+
+    // Broadcast to GUI clients
+    const message: NotificationFiredMessage = { type: 'notification_fired', notification };
+    this.broadcastFn(message);
+    this.history.unshift(notification);
+    if (this.history.length > MAX_NOTIFICATION_HISTORY) {
+      this.history = this.history.slice(0, MAX_NOTIFICATION_HISTORY);
+    }
   }
 
   // ----------------------------------------------------------
@@ -259,8 +421,8 @@ export class NotificationService {
 
     // Add to history
     this.history.unshift(notification);
-    if (this.history.length > MAX_HISTORY) {
-      this.history = this.history.slice(0, MAX_HISTORY);
+    if (this.history.length > MAX_NOTIFICATION_HISTORY) {
+      this.history = this.history.slice(0, MAX_NOTIFICATION_HISTORY);
     }
 
     this.logger.log(`[Notification] ${category}: ${title} - ${body}`);
@@ -269,12 +431,25 @@ export class NotificationService {
     if (this.settings.enabled) {
       try {
         const symbol = CATEGORY_SYMBOLS[category];
-        notifier.notify({
-          title: 'Jacques',
-          subtitle: `${symbol} ${title}`,
-          message: body,
-          sound: 'Sosumi',
-        });
+        notifier.notify(
+          {
+            title: 'Jacques',
+            subtitle: `${symbol} ${title}`,
+            message: body,
+            sound: 'Sosumi',
+            contentImage: ICON_PATH,
+            wait: true, // Keep notification for click-to-focus
+          },
+          (_err: Error | null, response: string) => {
+            if (response === 'activate' && sessionId && this.focusTerminalFn) {
+              try {
+                this.focusTerminalFn(sessionId);
+              } catch (focusErr) {
+                this.logger.error(`[Notification] Focus terminal failed: ${focusErr}`);
+              }
+            }
+          },
+        );
       } catch (err) {
         this.logger.error(`[Notification] Desktop notification failed: ${err}`);
       }
@@ -285,14 +460,14 @@ export class NotificationService {
       type: 'notification_fired',
       notification,
     };
-    this.broadcast(message);
+    this.broadcastFn(message);
   }
 
   private canFire(category: NotificationCategory, key: string): boolean {
     const cooldownKey = `${category}:${key}`;
     const last = this.cooldowns.get(cooldownKey) ?? 0;
     const now = Date.now();
-    if (now - last < COOLDOWNS[category]) return false;
+    if (now - last < NOTIFICATION_COOLDOWNS[category]) return false;
     this.cooldowns.set(cooldownKey, now);
     return true;
   }
@@ -304,16 +479,16 @@ export class NotificationService {
   private loadSettings(): NotificationSettings {
     try {
       if (!existsSync(JACQUES_CONFIG_PATH)) {
-        return { ...DEFAULT_SETTINGS };
+        return { ...DEFAULT_NOTIFICATION_SETTINGS };
       }
       const content = readFileSync(JACQUES_CONFIG_PATH, 'utf-8');
       const config = JSON.parse(content);
       if (config.notifications) {
         return {
-          ...DEFAULT_SETTINGS,
+          ...DEFAULT_NOTIFICATION_SETTINGS,
           ...config.notifications,
           categories: {
-            ...DEFAULT_SETTINGS.categories,
+            ...DEFAULT_NOTIFICATION_SETTINGS.categories,
             ...config.notifications.categories,
           },
         };
@@ -321,7 +496,7 @@ export class NotificationService {
     } catch {
       // Use defaults on any error
     }
-    return { ...DEFAULT_SETTINGS };
+    return { ...DEFAULT_NOTIFICATION_SETTINGS };
   }
 
   private saveSettings(): void {
@@ -340,6 +515,7 @@ export class NotificationService {
         categories: { ...this.settings.categories },
         largeOperationThreshold: this.settings.largeOperationThreshold,
         contextThresholds: [...this.settings.contextThresholds],
+        bugAlertThreshold: this.settings.bugAlertThreshold,
       };
 
       if (!existsSync(JACQUES_DIR)) {
