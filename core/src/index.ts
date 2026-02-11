@@ -522,6 +522,9 @@ export type {
   PlanProgressListItem,
 } from "./plan/index.js";
 
+// Branding module (endearment phrases for CLI header)
+export { ENDEARMENT_PHRASES, getRandomEndearment, APP_ENDEARMENT } from "./branding.js";
+
 // Shortcuts module (shared keyboard shortcut definitions)
 export {
   SHORTCUTS,

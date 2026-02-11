@@ -21,7 +21,7 @@ import {
   FIXED_CONTENT_HEIGHT,
   HORIZONTAL_LAYOUT_MIN_WIDTH,
 } from "./layout/theme.js";
-import { formatSessionTitle } from "@jacques/core";
+import { formatSessionTitle, APP_ENDEARMENT } from "@jacques/core";
 import type { ContentItem } from "../hooks/useSessionsExperiment.js";
 import { getCliActivity } from "../utils/activity.js";
 import { buildBottomControls } from "../utils/bottom-controls.js";
@@ -546,7 +546,7 @@ export function SessionsExperimentView({
     if (textLineIndex >= 0 && textLineIndex <= 2) {
       let textContent: React.ReactNode;
       if (textLineIndex === 0) {
-        textContent = <Text color={MUTED_TEXT}>My Dearest</Text>;
+        textContent = <Text color={MUTED_TEXT}>{APP_ENDEARMENT}</Text>;
       } else if (textLineIndex === 1) {
         textContent = <Text bold color={ACCENT_COLOR}>Jacques{showNarrowVersion ? <Text color={MUTED_TEXT}> v0.1.0</Text> : ""}</Text>;
       } else {

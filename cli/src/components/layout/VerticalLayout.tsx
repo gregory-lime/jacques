@@ -7,6 +7,7 @@ import React from "react";
 import { Box, Text } from "ink";
 import { MASCOT_ANSI } from "../../assets/mascot-ansi.js";
 import { ACCENT_COLOR, MUTED_TEXT } from "./theme.js";
+import { APP_ENDEARMENT } from "@jacques/core";
 import { buildBottomControls, MAIN_CONTROLS } from "../../utils/bottom-controls.js";
 
 export interface VerticalLayoutProps {
@@ -41,7 +42,7 @@ export function VerticalLayout({
         if (textLineIndex >= 0 && textLineIndex <= 2) {
           let textContent: React.ReactNode;
           if (textLineIndex === 0) {
-            textContent = <Text color={MUTED_TEXT}>My Dearest</Text>;
+            textContent = <Text color={MUTED_TEXT}>{APP_ENDEARMENT}</Text>;
           } else if (textLineIndex === 1) {
             textContent = <Text bold color={ACCENT_COLOR}>{title}<Text color={MUTED_TEXT}> v0.1.0</Text></Text>;
           } else {
