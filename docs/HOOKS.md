@@ -12,7 +12,7 @@ Integration scripts that send session events from Claude Code and Cursor to the 
 
 | Script | Event | What It Does |
 |--------|-------|--------------|
-| `jacques-register-session.py` | SessionStart | Register session with metadata (cwd, terminal identity, model, transcript path, permission_mode) |
+| `jacques-register-session.py` | SessionStart | Register session with metadata (cwd, terminal identity, model, transcript path, permission_mode, git branch/worktree/repo root) |
 | `claude-code/pre-tool-use.py` | PreToolUse | Detect when Claude is waiting for user approval (edit acceptance, command approval, etc.) |
 | `jacques-report-activity.py` | PostToolUse | Track tool usage, update last_activity, update permission_mode |
 | `jacques-session-idle.py` | Stop | Mark session as idle, update permission_mode |

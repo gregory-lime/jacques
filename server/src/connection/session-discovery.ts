@@ -74,17 +74,12 @@ async function resolveSessionMetadata(
       };
     }
 
-    // If catalog has no git info, try live detection
-    let gitBranch = catalogEntry.gitBranch || null;
-    let gitWorktree = catalogEntry.gitWorktree || null;
-    let gitRepoRoot = catalogEntry.gitRepoRoot || null;
-
-    if (!gitBranch) {
-      const gitInfo = await detectGitInfo(cwd);
-      gitBranch = gitInfo.branch;
-      gitWorktree = gitInfo.worktree;
-      gitRepoRoot = gitInfo.repoRoot;
-    }
+    // Always use live git detection for discovered sessions — catalog git info
+    // may be stale (e.g., detected from decoded project path instead of actual worktree)
+    const gitInfo = await detectGitInfo(cwd);
+    const gitBranch = gitInfo.branch || catalogEntry.gitBranch || null;
+    const gitWorktree = gitInfo.worktree || catalogEntry.gitWorktree || null;
+    const gitRepoRoot = gitInfo.repoRoot || catalogEntry.gitRepoRoot || null;
 
     return {
       filePath,

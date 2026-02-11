@@ -16,6 +16,7 @@ import json
 import sys
 import os
 import socket
+import subprocess
 import time
 from pathlib import Path
 
@@ -131,6 +132,52 @@ def build_terminal_key(terminal: dict) -> str:
     return f"UNKNOWN:{time.time()}"
 
 
+def detect_git_info(project_dir: str) -> dict:
+    """Detect git branch, worktree name, and repo root using git-detect.sh."""
+    result = {'git_branch': '', 'git_worktree': '', 'git_repo_root': ''}
+    if not project_dir or not os.path.isdir(project_dir):
+        return result
+
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    script_path = os.path.join(script_dir, 'git-detect.sh')
+
+    if os.path.isfile(script_path) and os.access(script_path, os.X_OK):
+        try:
+            proc = subprocess.run(
+                [script_path, project_dir],
+                capture_output=True, text=True, timeout=5
+            )
+            if proc.returncode == 0:
+                lines = proc.stdout.split('\n')
+                result['git_branch'] = lines[0] if len(lines) > 0 else ''
+                result['git_worktree'] = lines[1] if len(lines) > 1 else ''
+                result['git_repo_root'] = lines[2] if len(lines) > 2 else ''
+                return result
+        except Exception:
+            pass
+
+    # Fallback: inline git detection
+    try:
+        proc = subprocess.run(
+            ['git', '-C', project_dir, 'rev-parse', '--abbrev-ref', 'HEAD', '--git-common-dir'],
+            capture_output=True, text=True, timeout=5
+        )
+        if proc.returncode == 0 and proc.stdout.strip():
+            lines = proc.stdout.strip().split('\n')
+            result['git_branch'] = lines[0] if len(lines) > 0 else ''
+            if len(lines) > 1:
+                common = lines[1]
+                if common == '.git':
+                    result['git_repo_root'] = os.path.abspath(project_dir)
+                else:
+                    result['git_repo_root'] = os.path.dirname(common)
+                    result['git_worktree'] = os.path.basename(project_dir)
+    except Exception:
+        pass
+
+    return result
+
+
 def send_to_server(payload: dict, socket_path: str = '/tmp/jacques.sock') -> bool:
     """Send payload to Jacques server via Unix socket."""
     try:
@@ -206,7 +253,11 @@ def main():
     # Get terminal identity
     terminal = get_terminal_identity()
     terminal_key = build_terminal_key(terminal)
-    
+
+    # Detect git info from project directory
+    git_dir = project_dir or current_dir or cwd
+    git_info = detect_git_info(git_dir)
+
     # Build registration payload
     registration = {
         "event": "session_start",
@@ -221,6 +272,9 @@ def main():
         "source": input_data.get('source', 'startup'),
         "terminal": terminal,
         "terminal_key": terminal_key,
+        "git_branch": git_info.get('git_branch', ''),
+        "git_worktree": git_info.get('git_worktree', ''),
+        "git_repo_root": git_info.get('git_repo_root', ''),
     }
     
     # Send to server, fallback to file if unavailable
