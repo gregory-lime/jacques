@@ -19,7 +19,7 @@ import { buildSessionItems } from "../utils/sessions-items-builder.js";
 
 export type ContentItem =
   | { kind: "project-header"; projectName: string; gitRepoRoot: string | null; sessionCount: number; isCurrent: boolean }
-  | { kind: "worktree-header"; name: string; branch: string | null; isMain: boolean; sessionCount: number }
+  | { kind: "worktree-header"; name: string; branch: string | null; isMain: boolean; sessionCount: number; ahead?: number; behind?: number; dirty?: boolean }
   | { kind: "session"; session: Session }
   | { kind: "spacer" }
   | { kind: "new-session-button"; worktreePath: string }

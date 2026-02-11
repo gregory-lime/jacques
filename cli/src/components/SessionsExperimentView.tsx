@@ -148,10 +148,14 @@ export function SessionsExperimentView({
       case "worktree-header": {
         const dot = item.isMain ? "\u25CF " : "";
         const branchName = item.branch || item.name;
+        const { ahead, behind, dirty } = item;
         contentLines.push(
           <Text key={`wh-${idx}`} wrap="truncate-end">
             <Text color={ACCENT_COLOR}>{dot}</Text>
             <Text bold color="white">{branchName}</Text>
+            {!item.isMain && ahead != null && ahead > 0 && <Text color="green">{` \u2191${ahead}`}</Text>}
+            {!item.isMain && behind != null && behind > 0 && <Text color="yellow">{` \u2193${behind}`}</Text>}
+            {dirty && <Text color="red">{" *"}</Text>}
           </Text>
         );
         break;

@@ -456,12 +456,15 @@ export {
   getIndexStats as getCacheIndexStats,
   invalidateIndex,
   detectModeAndPlans,
+  computeBranchDivergence,
+  checkDirtyStatus,
 } from "./cache/index.js";
 
 export type {
   SessionEntry as CacheSessionEntry,
   SessionIndex as CacheSessionIndex,
   DiscoveredProject,
+  BranchDivergence,
 } from "./cache/index.js";
 
 // Project module (dashboard aggregation)

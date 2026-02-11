@@ -67,6 +67,16 @@ export interface GitInfo {
 }
 
 /**
+ * Branch divergence relative to default branch (main/master)
+ */
+export interface BranchDivergence {
+  /** Commits ahead of default branch */
+  ahead: number;
+  /** Commits behind default branch */
+  behind: number;
+}
+
+/**
  * Entry in the session index
  * Contains only metadata - content is read directly from JSONL
  */
