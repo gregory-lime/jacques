@@ -129,7 +129,7 @@ export function Dashboard(props: DashboardProps): React.ReactElement {
             isTokenInputMode={props.claudeToken.isInputMode}
             isTokenVerifying={props.claudeToken.isVerifying}
             showConnectionSuccess={props.claudeToken.showSuccess}
-            notificationsEnabled={props.settings.notificationsEnabled}
+            notificationSettings={props.settings.notificationSettings}
             notificationsLoading={props.settings.notificationsLoading}
           />
         </Box>
