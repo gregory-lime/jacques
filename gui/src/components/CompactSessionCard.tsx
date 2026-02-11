@@ -20,6 +20,7 @@
  */
 
 import { useRef, useEffect, useState, useCallback } from 'react';
+import Marquee from 'react-fast-marquee';
 import type { Session, SessionBadges } from '../types';
 import { colors } from '../styles/theme';
 import { PlanIcon, AgentIcon } from './Icons';
@@ -228,13 +229,24 @@ export function CompactSessionCard({
         <div style={S.titleSection}>
           <div ref={titleRef} style={S.titleWrap}>
             {isPlan && <PlanIcon size={15} color="#34D399" style={{ flexShrink: 0, marginRight: 6 }} />}
-            <span
-              ref={titleTextRef}
-              className={shouldScroll && isHovered ? 'jacques-title-marquee' : undefined}
-              style={S.title}
-            >
-              {displayTitle}
-            </span>
+            {shouldScroll && isHovered ? (
+              <Marquee
+                speed={40}
+                delay={0.3}
+                gradient={true}
+                gradientColor={colors.bgSecondary}
+                gradientWidth={8}
+                style={{ overflow: 'hidden' }}
+              >
+                <span style={{ ...S.title, paddingRight: 40 }}>
+                  {displayTitle}
+                </span>
+              </Marquee>
+            ) : (
+              <span ref={titleTextRef} style={S.title}>
+                {displayTitle}
+              </span>
+            )}
           </div>
 
           {/* Git branch below title */}

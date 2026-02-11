@@ -49,7 +49,7 @@ function ToolbarButton({ icon, title, disabled, highlighted, onClick }: ToolbarB
         transition: 'all 150ms ease',
         flexShrink: 0,
         padding: 0,
-        boxShadow: highlighted ? `0 0 8px rgba(230, 126, 82, 0.35)` : 'none',
+        boxShadow: highlighted ? `inset 0 0 8px rgba(230, 126, 82, 0.35)` : 'none',
       }}
       className="jacques-window-toolbar-btn"
       disabled={disabled}

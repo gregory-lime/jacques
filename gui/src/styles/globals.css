@@ -585,26 +585,5 @@ button {
   }
 }
 
-/* ─────────────────────────────────────────────────────────────
-   Title Marquee — hover-to-scroll for long titles
-
-   Applied to a single <span> that overflows its container.
-   On hover: slides left to show full text, pauses at end,
-   then loops back. Single line, no duplication needed.
-   ───────────────────────────────────────────────────────────── */
-
-.jacques-title-marquee {
-  display: inline-block;
-  white-space: nowrap;
-  animation: title-marquee-scroll 6s linear infinite;
-  /* Let it overflow the clipped parent for the scroll */
-  overflow: visible !important;
-  text-overflow: clip !important;
-}
-
-@keyframes title-marquee-scroll {
-  0%   { transform: translateX(0); }
-  10%  { transform: translateX(0); }
-  90%  { transform: translateX(calc(-100% + 200px)); }
-  100% { transform: translateX(calc(-100% + 200px)); }
-}
+/* Title scroll on hover is handled via inline transition styles
+   in CompactSessionCard.tsx — no CSS keyframes needed. */
