@@ -42,6 +42,7 @@ export interface CreateWorktreeResult {
 
 export interface ListWorktreesResult {
   success: boolean;
+  repoRoot?: string;
   worktrees?: WorktreeWithStatus[];
   error?: string;
 }
@@ -76,6 +77,7 @@ export interface UseJacquesClientReturn extends JacquesState {
   removeWorktree: (repoRoot: string, path: string, force?: boolean, deleteBranch?: boolean) => void;
   createWorktreeResult: CreateWorktreeResult | null;
   listWorktreesResult: ListWorktreesResult | null;
+  worktreesByRepo: Map<string, WorktreeWithStatus[]>;
   removeWorktreeResult: RemoveWorktreeResult | null;
 }
 
@@ -91,6 +93,7 @@ export function useJacquesClient(): UseJacquesClientReturn {
   const [launchSessionResult, setLaunchSessionResult] = useState<LaunchSessionResult | null>(null);
   const [createWorktreeResult, setCreateWorktreeResult] = useState<CreateWorktreeResult | null>(null);
   const [listWorktreesResult, setListWorktreesResult] = useState<ListWorktreesResult | null>(null);
+  const [worktreesByRepo, setWorktreesByRepo] = useState<Map<string, WorktreeWithStatus[]>>(new Map());
   const [removeWorktreeResult, setRemoveWorktreeResult] = useState<RemoveWorktreeResult | null>(null);
   const clientRef = useRef<JacquesClient | null>(null);
 
@@ -216,11 +219,22 @@ export function useJacquesClient(): UseJacquesClientReturn {
     });
 
     jacquesClient.on('list_worktrees_result', (msg: Record<string, unknown>) => {
+      const repoRoot = msg.repo_root as string | undefined;
+      const worktrees = msg.worktrees as WorktreeWithStatus[] | undefined;
       setListWorktreesResult({
         success: msg.success as boolean,
-        worktrees: msg.worktrees as WorktreeWithStatus[] | undefined,
+        repoRoot,
+        worktrees,
         error: msg.error as string | undefined,
       });
+      // Accumulate in per-repo map
+      if (repoRoot && worktrees) {
+        setWorktreesByRepo(prev => {
+          const next = new Map(prev);
+          next.set(repoRoot, worktrees);
+          return next;
+        });
+      }
     });
 
     jacquesClient.on('remove_worktree_result', (msg: Record<string, unknown>) => {
@@ -323,6 +337,7 @@ export function useJacquesClient(): UseJacquesClientReturn {
     removeWorktree,
     createWorktreeResult,
     listWorktreesResult,
+    worktreesByRepo,
     removeWorktreeResult,
   };
 }

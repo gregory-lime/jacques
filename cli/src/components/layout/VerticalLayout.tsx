@@ -26,18 +26,42 @@ export function VerticalLayout({
   notification,
   bottomControls,
 }: VerticalLayoutProps): React.ReactElement {
+  const mascotLines = MASCOT_ANSI.split("\n").filter((l) => l.trim().length > 0);
+  const mascotCenter = Math.floor((mascotLines.length - 1) / 2);
+
   return (
     <Box flexDirection="column">
-      {/* Title */}
-      <Text bold color={ACCENT_COLOR}>
-        {title}
-        {showVersion && <Text color={MUTED_TEXT}> v0.1.0</Text>}
-      </Text>
+      {/* Spacer */}
+      <Text> </Text>
 
-      {/* Mascot - no width constraint, wrap=truncate-end for ANSI codes */}
-      <Box marginTop={1}>
-        <Text wrap="truncate-end">{MASCOT_ANSI}</Text>
-      </Box>
+      {/* Mascot + title rendered line-by-line */}
+      {mascotLines.map((line, mi) => {
+        const textLineIndex = mi - mascotCenter;
+        if (textLineIndex >= 0 && textLineIndex <= 2) {
+          let textContent: React.ReactNode;
+          if (textLineIndex === 0) {
+            textContent = <Text color={MUTED_TEXT}>My Dearest</Text>;
+          } else if (textLineIndex === 1) {
+            textContent = <Text bold color={ACCENT_COLOR}>{title}<Text color={MUTED_TEXT}> v0.1.0</Text></Text>;
+          } else {
+            textContent = <Text color="white">Sessions Manager</Text>;
+          }
+          return (
+            <Box key={`m-${mi}`} flexDirection="row">
+              <Box flexDirection="column" flexShrink={0}>
+                <Text wrap="truncate-end">{line}</Text>
+              </Box>
+              <Box marginLeft={2}>
+                {textContent}
+              </Box>
+            </Box>
+          );
+        }
+        return <Text key={`m-${mi}`} wrap="truncate-end">{line}</Text>;
+      })}
+
+      {/* Spacer */}
+      <Text> </Text>
 
       {/* Content */}
       <Box flexDirection="column" marginTop={1}>

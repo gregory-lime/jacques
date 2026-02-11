@@ -863,6 +863,7 @@ export interface ListWorktreesRequest {
 export interface ListWorktreesResultMessage {
   type: 'list_worktrees_result';
   success: boolean;
+  repo_root?: string;
   worktrees?: Array<{
     name: string;
     path: string;

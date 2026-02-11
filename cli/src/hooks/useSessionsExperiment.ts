@@ -9,7 +9,7 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
 
 import type { Key } from "ink";
-import type { Session } from "@jacques/core";
+import type { Session, DiscoveredProject, WorktreeWithStatus } from "@jacques/core";
 import { getProjectGroupKey } from "@jacques/core";
 import type { WorktreeItem } from "./useWorktrees.js";
 import { validateWorktreeName } from "./useWorktrees.js";
@@ -18,11 +18,12 @@ import type { CreateWorktreeResult, RemoveWorktreeResult } from "./useJacquesCli
 // ---- Content item types ----
 
 export type ContentItem =
+  | { kind: "project-header"; projectName: string; gitRepoRoot: string | null; sessionCount: number; isCurrent: boolean }
   | { kind: "worktree-header"; name: string; branch: string | null; isMain: boolean; sessionCount: number }
   | { kind: "session"; session: Session }
   | { kind: "spacer" }
   | { kind: "new-session-button"; worktreePath: string }
-  | { kind: "new-worktree-button" }
+  | { kind: "new-worktree-button"; targetRepoRoot?: string }
   | { kind: "new-worktree-input" }
   | { kind: "show-all-worktrees-button"; hiddenCount: number }
   | { kind: "remove-worktree-button"; worktreePath: string; worktreeName: string }
@@ -32,6 +33,7 @@ export type ContentItem =
 
 export interface UseSessionsExperimentParams {
   sessions: Session[];
+  allProjects: DiscoveredProject[];
   worktrees: WorktreeItem[];
   focusedSessionId: string | null;
   selectedProject: string | null;
@@ -43,7 +45,10 @@ export interface UseSessionsExperimentParams {
   returnToMain: () => void;
   createWorktreeWs: (repoRoot: string, name: string, baseBranch?: string, dangerouslySkipPermissions?: boolean) => void;
   removeWorktreeWs: (repoRoot: string, path: string, force?: boolean, deleteBranch?: boolean) => void;
+  listWorktreesWs: (repoRoot: string) => void;
+  worktreesByRepo: Map<string, WorktreeWithStatus[]>;
   repoRoot: string | null;
+  refreshWorktrees: () => void;
   createWorktreeResult: CreateWorktreeResult | null;
   removeWorktreeResult: RemoveWorktreeResult | null;
   skipPermissions: boolean;
@@ -59,6 +64,7 @@ export interface UseSessionsExperimentReturn {
   isCreatingWorktree: boolean;
   newWorktreeName: string;
   worktreeCreateError: string | null;
+  creatingForRepoRoot: string | null;
   isRemovingWorktree: boolean;
   removeDeleteBranch: boolean;
   removeForce: boolean;
@@ -68,6 +74,7 @@ export interface UseSessionsExperimentReturn {
 
 export function useSessionsExperiment({
   sessions,
+  allProjects,
   worktrees,
   focusedSessionId,
   selectedProject,
@@ -79,7 +86,10 @@ export function useSessionsExperiment({
   returnToMain,
   createWorktreeWs,
   removeWorktreeWs,
+  listWorktreesWs,
+  worktreesByRepo,
   repoRoot,
+  refreshWorktrees,
   createWorktreeResult,
   removeWorktreeResult,
   skipPermissions,
@@ -92,6 +102,7 @@ export function useSessionsExperiment({
   const [isCreatingWorktree, setIsCreatingWorktree] = useState(false);
   const [newWorktreeName, setNewWorktreeName] = useState("");
   const [worktreeCreateError, setWorktreeCreateError] = useState<string | null>(null);
+  const [creatingForRepoRoot, setCreatingForRepoRoot] = useState<string | null>(null);
   const [removingWorktreePath, setRemovingWorktreePath] = useState<string | null>(null);
   const [removeForce, setRemoveForce] = useState(false);
   const [removeDeleteBranch, setRemoveDeleteBranch] = useState(true);
@@ -118,29 +129,44 @@ export function useSessionsExperiment({
     setRemoveForce(false);
   }, [removeWorktreeResult]);
 
-  // Filter sessions by selected project
-  const filteredSessions = useMemo(() => {
-    const filtered = selectedProject
-      ? sessions.filter((s) => getProjectGroupKey(s) === selectedProject)
-      : [...sessions];
-    filtered.sort((a, b) => {
+  // Sort sessions (focused first, then by registration time)
+  const sortedSessions = useMemo(() => {
+    const sorted = [...sessions];
+    sorted.sort((a, b) => {
       if (a.session_id === focusedSessionId) return -1;
       if (b.session_id === focusedSessionId) return 1;
       return a.registered_at - b.registered_at;
     });
-    return filtered;
-  }, [sessions, selectedProject, focusedSessionId]);
+    return sorted;
+  }, [sessions, focusedSessionId]);
 
-  // Group sessions by worktree and build flat content list
-  const { items, selectableIndices } = useMemo(() => {
-    const result: ContentItem[] = [];
-    const selectable: number[] = [];
+  // Helper: build worktree-grouped items for current project (full worktree data)
+  function buildCurrentProjectItems(
+    projectSessions: Session[],
+    result: ContentItem[],
+    selectable: number[],
+  ): void {
+    // If worktrees haven't loaded yet, use session-derived grouping
+    if (worktrees.length === 0) {
+      buildOtherProjectItems(projectSessions, repoRoot, repoRoot, result, selectable);
+      // Still show new worktree button if we have repo root
+      if (repoRoot) {
+        result.push({ kind: "spacer" });
+        selectable.push(result.length);
+        if (isCreatingWorktree) {
+          result.push({ kind: "new-worktree-input" });
+        } else {
+          result.push({ kind: "new-worktree-button" });
+        }
+      }
+      return;
+    }
 
     // Match sessions to worktrees
     const sessionsByWorktree = new Map<string, Session[]>();
     const unmatched: Session[] = [];
 
-    for (const session of filteredSessions) {
+    for (const session of projectSessions) {
       let matched = false;
       const wtId = session.git_worktree || null;
       for (const wt of worktrees) {
@@ -177,7 +203,7 @@ export function useSessionsExperiment({
     visibleWorktrees.forEach((wt) => {
       const wtSessions = sessionsByWorktree.get(wt.name) || [];
 
-      // Spacer before group (not first visible)
+      // Spacer before group
       if (result.length > 0) {
         result.push({ kind: "spacer" });
       }
@@ -241,14 +267,6 @@ export function useSessionsExperiment({
       }
     }
 
-    // No worktrees at all -- show sessions flat
-    if (worktrees.length === 0 && unmatched.length === 0) {
-      for (const session of filteredSessions) {
-        selectable.push(result.length);
-        result.push({ kind: "session", session });
-      }
-    }
-
     // Show hidden worktree count hint (non-selectable) when not showing all
     if (hiddenEmptyCount > 0 && !showAllWorktrees) {
       result.push({ kind: "spacer" });
@@ -265,9 +283,266 @@ export function useSessionsExperiment({
         result.push({ kind: "new-worktree-button" });
       }
     }
+  }
+
+  // Helper: build worktree-grouped items for other projects
+  function buildOtherProjectItems(
+    projectSessions: Session[],
+    projectGitRoot: string | null,
+    projectPath: string | null,
+    result: ContentItem[],
+    selectable: number[],
+  ): void {
+    // Non-git project: just show sessions and a New Session button
+    if (!projectGitRoot) {
+      for (const session of projectSessions) {
+        selectable.push(result.length);
+        result.push({ kind: "session", session });
+      }
+      const launchCwd = projectSessions[0]?.cwd || projectSessions[0]?.workspace?.project_dir || projectPath;
+      if (launchCwd) {
+        selectable.push(result.length);
+        result.push({ kind: "new-session-button", worktreePath: launchCwd });
+      }
+      return;
+    }
+
+    // Check if we have real worktree data for this project
+    const projectWorktrees = projectGitRoot ? worktreesByRepo.get(projectGitRoot) : null;
+
+    if (showAllWorktrees && projectWorktrees && projectWorktrees.length > 0) {
+      // Full worktree display using real data
+      const sessionsByWt = new Map<string, Session[]>();
+      const unmatched: Session[] = [];
+
+      for (const session of projectSessions) {
+        let matched = false;
+        for (const wt of projectWorktrees) {
+          if (
+            (session.git_branch && session.git_branch === wt.branch) ||
+            (session.git_worktree && (session.git_worktree === wt.name || session.git_worktree === wt.branch)) ||
+            (session.cwd && (session.cwd === wt.path || session.cwd.startsWith(wt.path + "/")))
+          ) {
+            const existing = sessionsByWt.get(wt.name) || [];
+            existing.push(session);
+            sessionsByWt.set(wt.name, existing);
+            matched = true;
+            break;
+          }
+        }
+        if (!matched) {
+          // No branch info → assign to main
+          if (!session.git_branch && !session.git_worktree) {
+            const mainWt = projectWorktrees.find((w) => w.isMain);
+            if (mainWt) {
+              const existing = sessionsByWt.get(mainWt.name) || [];
+              existing.push(session);
+              sessionsByWt.set(mainWt.name, existing);
+              continue;
+            }
+          }
+          unmatched.push(session);
+        }
+      }
+
+      // Show all worktrees (main first, then alphabetical)
+      const sorted = [...projectWorktrees].sort((a, b) => {
+        if (a.isMain && !b.isMain) return -1;
+        if (!a.isMain && b.isMain) return 1;
+        return a.name.localeCompare(b.name);
+      });
+
+      for (const wt of sorted) {
+        const wtSessions = sessionsByWt.get(wt.name) || [];
+
+        if (result.length > 0) {
+          result.push({ kind: "spacer" });
+        }
+
+        result.push({
+          kind: "worktree-header",
+          name: wt.name,
+          branch: wt.branch,
+          isMain: wt.isMain,
+          sessionCount: wtSessions.length,
+        });
+
+        for (const session of wtSessions) {
+          selectable.push(result.length);
+          result.push({ kind: "session", session });
+        }
+
+        selectable.push(result.length);
+        result.push({ kind: "new-session-button", worktreePath: wt.path });
+      }
+
+      if (unmatched.length > 0) {
+        result.push({ kind: "spacer" });
+        result.push({
+          kind: "worktree-header",
+          name: "other",
+          branch: null,
+          isMain: false,
+          sessionCount: unmatched.length,
+        });
+        for (const session of unmatched) {
+          selectable.push(result.length);
+          result.push({ kind: "session", session });
+        }
+      }
+
+      // New Worktree button
+      if (projectGitRoot) {
+        result.push({ kind: "spacer" });
+        selectable.push(result.length);
+        result.push({ kind: "new-worktree-button", targetRepoRoot: projectGitRoot });
+      }
+      return;
+    }
+
+    // Fallback: session-derived grouping
+    const wtGroups = new Map<string, Session[]>();
+    for (const session of projectSessions) {
+      const key = session.git_branch || session.git_worktree || "main";
+      const existing = wtGroups.get(key) || [];
+      existing.push(session);
+      wtGroups.set(key, existing);
+    }
+
+    // Ensure master/main always appears
+    const hasMainGroup = [...wtGroups.keys()].some((k) => k === "main" || k === "master");
+    if (!hasMainGroup && projectGitRoot) {
+      wtGroups.set("master", []);
+    }
+
+    const sortedKeys = [...wtGroups.keys()].sort((a, b) => {
+      if (a === "main" || a === "master") return -1;
+      if (b === "main" || b === "master") return 1;
+      return a.localeCompare(b);
+    });
+
+    for (const key of sortedKeys) {
+      const wtSessions = wtGroups.get(key)!;
+      const isMain = key === "main" || key === "master";
+
+      if (result.length > 0) {
+        result.push({ kind: "spacer" });
+      }
+
+      result.push({
+        kind: "worktree-header",
+        name: key,
+        branch: key,
+        isMain,
+        sessionCount: wtSessions.length,
+      });
+
+      for (const session of wtSessions) {
+        selectable.push(result.length);
+        result.push({ kind: "session", session });
+      }
+
+      // New session button
+      const launchCwd = wtSessions[0]?.cwd || wtSessions[0]?.workspace?.project_dir || (isMain ? projectGitRoot : null);
+      if (launchCwd) {
+        selectable.push(result.length);
+        result.push({ kind: "new-session-button", worktreePath: launchCwd });
+      }
+    }
+
+    // New Worktree button (details mode only)
+    if (showAllWorktrees && projectGitRoot) {
+      result.push({ kind: "spacer" });
+      selectable.push(result.length);
+      result.push({ kind: "new-worktree-button", targetRepoRoot: projectGitRoot });
+    }
+  }
+
+  // Group sessions by project and build flat content list
+  const { items, selectableIndices } = useMemo(() => {
+    const result: ContentItem[] = [];
+    const selectable: number[] = [];
+
+    // Group all sessions by project key
+    const sessionsByProject = new Map<string, Session[]>();
+    for (const session of sortedSessions) {
+      const key = getProjectGroupKey(session);
+      const existing = sessionsByProject.get(key) || [];
+      existing.push(session);
+      sessionsByProject.set(key, existing);
+    }
+
+    // Find the current project's git repo root for its header
+    const currentProjectData = selectedProject
+      ? allProjects.find((p) => p.name === selectedProject)
+      : null;
+
+    // Current project first
+    if (selectedProject) {
+      const currentSessions = sessionsByProject.get(selectedProject) || [];
+      sessionsByProject.delete(selectedProject);
+
+      // Project header (non-selectable)
+      result.push({
+        kind: "project-header",
+        projectName: selectedProject,
+        gitRepoRoot: currentProjectData?.gitRepoRoot || null,
+        sessionCount: currentSessions.length,
+        isCurrent: true,
+      });
+
+      buildCurrentProjectItems(currentSessions, result, selectable);
+    }
+
+    // Other projects with active sessions, sorted by session count desc
+    const otherProjects = [...sessionsByProject.entries()]
+      .sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]));
+
+    // Track which project names we've already rendered
+    const renderedProjects = new Set<string>();
+    if (selectedProject) renderedProjects.add(selectedProject);
+
+    for (const [projectKey, projectSessions] of otherProjects) {
+      const projectData = allProjects.find((p) => p.name === projectKey);
+      renderedProjects.add(projectKey);
+
+      result.push({ kind: "spacer" });
+
+      // Project header (non-selectable)
+      result.push({
+        kind: "project-header",
+        projectName: projectKey,
+        gitRepoRoot: projectData?.gitRepoRoot || null,
+        sessionCount: projectSessions.length,
+        isCurrent: false,
+      });
+
+      buildOtherProjectItems(projectSessions, projectData?.gitRepoRoot || null, projectData?.projectPaths?.[0] || null, result, selectable);
+    }
+
+    // When details mode is on, also show projects with no active sessions
+    if (showAllWorktrees) {
+      const inactiveProjects = allProjects
+        .filter((p) => !renderedProjects.has(p.name))
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      for (const project of inactiveProjects) {
+        result.push({ kind: "spacer" });
+        result.push({
+          kind: "project-header",
+          projectName: project.name,
+          gitRepoRoot: project.gitRepoRoot,
+          sessionCount: 0,
+          isCurrent: false,
+        });
+
+        // Show worktrees for inactive projects too
+        buildOtherProjectItems([], project.gitRepoRoot, project.projectPaths?.[0] || null, result, selectable);
+      }
+    }
 
     return { items: result, selectableIndices: selectable };
-  }, [filteredSessions, worktrees, showAllWorktrees, repoRoot, isCreatingWorktree, removingWorktreePath]);
+  }, [sortedSessions, worktrees, showAllWorktrees, repoRoot, isCreatingWorktree, removingWorktreePath, selectedProject, allProjects, worktreesByRepo]);
 
   // Current selectable item's position in the items array
   const currentItemIndex = selectableIndices[selectedIndex] ?? -1;
@@ -279,6 +554,7 @@ export function useSessionsExperiment({
         setIsCreatingWorktree(false);
         setNewWorktreeName("");
         setWorktreeCreateError(null);
+        setCreatingForRepoRoot(null);
         return;
       }
       if (key.return) {
@@ -287,8 +563,9 @@ export function useSessionsExperiment({
           setWorktreeCreateError(validationError);
           return;
         }
-        if (repoRoot) {
-          createWorktreeWs(repoRoot, newWorktreeName, undefined, skipPermissions || undefined);
+        const targetRoot = creatingForRepoRoot || repoRoot;
+        if (targetRoot) {
+          createWorktreeWs(targetRoot, newWorktreeName, undefined, skipPermissions || undefined);
           showNotification("Creating worktree...");
         }
         return;
@@ -389,6 +666,7 @@ export function useSessionsExperiment({
         setIsCreatingWorktree(true);
         setNewWorktreeName("");
         setWorktreeCreateError(null);
+        setCreatingForRepoRoot(item.targetRepoRoot || null);
       } else if (item.kind === "remove-worktree-button") {
         setRemovingWorktreePath(item.worktreePath);
         setRemoveDeleteBranch(true);
@@ -460,7 +738,19 @@ export function useSessionsExperiment({
 
     // d — toggle details (show/hide empty worktrees)
     if (input === "d") {
-      setShowAllWorktrees((prev) => !prev);
+      setShowAllWorktrees((prev) => {
+        const next = !prev;
+        if (next) {
+          // Fetch worktrees for all git projects
+          for (const project of allProjects) {
+            if (project.gitRepoRoot) {
+              listWorktreesWs(project.gitRepoRoot);
+            }
+          }
+        }
+        return next;
+      });
+      refreshWorktrees();
       return;
     }
 
@@ -478,9 +768,9 @@ export function useSessionsExperiment({
   }, [
     selectableIndices, items, currentItemIndex, selectedIds, selectedIndex,
     returnToMain, focusTerminal, maximizeWindow, tileWindows, launchSession,
-    showNotification, isCreatingWorktree, newWorktreeName,
-    repoRoot, createWorktreeWs, removeWorktreeWs, skipPermissions,
-    removingWorktreePath, removeForce, removeDeleteBranch,
+    showNotification, isCreatingWorktree, newWorktreeName, creatingForRepoRoot,
+    repoRoot, refreshWorktrees, createWorktreeWs, removeWorktreeWs, listWorktreesWs, skipPermissions,
+    removingWorktreePath, removeForce, removeDeleteBranch, allProjects,
   ]);
 
   const reset = useCallback(() => {
@@ -491,6 +781,7 @@ export function useSessionsExperiment({
     setIsCreatingWorktree(false);
     setNewWorktreeName("");
     setWorktreeCreateError(null);
+    setCreatingForRepoRoot(null);
     setRemovingWorktreePath(null);
     setRemoveDeleteBranch(true);
     setRemoveForce(false);
@@ -506,6 +797,7 @@ export function useSessionsExperiment({
     isCreatingWorktree,
     newWorktreeName,
     worktreeCreateError,
+    creatingForRepoRoot,
     isRemovingWorktree: removingWorktreePath !== null,
     removeDeleteBranch,
     removeForce,

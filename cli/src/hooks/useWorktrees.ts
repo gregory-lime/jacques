@@ -78,6 +78,8 @@ export function useWorktrees({
   // Handle list_worktrees_result
   useEffect(() => {
     if (!listWorktreesResult) return;
+    // Only process results for our own repo (ignore other projects' results)
+    if (listWorktreesResult.repoRoot && repoRoot && listWorktreesResult.repoRoot !== repoRoot) return;
     setLoading(false);
     if (listWorktreesResult.success && listWorktreesResult.worktrees) {
       const items: WorktreeItem[] = listWorktreesResult.worktrees.map((wt) => {

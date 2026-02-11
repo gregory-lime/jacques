@@ -102,6 +102,7 @@ interface DashboardProps {
   sessionsExpNewWorktreeName: string;
   sessionsExpWorktreeCreateError: string | null;
   sessionsExpRepoRoot: string | null;
+  sessionsExpCreatingForRepoRoot: string | null;
   sessionsExpRemoveDeleteBranch: boolean;
   sessionsExpRemoveForce: boolean;
 }
@@ -271,6 +272,7 @@ export function Dashboard(props: DashboardProps): React.ReactElement {
             newWorktreeName={props.sessionsExpNewWorktreeName}
             worktreeCreateError={props.sessionsExpWorktreeCreateError}
             repoRoot={props.sessionsExpRepoRoot}
+            creatingForRepoRoot={props.sessionsExpCreatingForRepoRoot}
             projectName={props.selectedProject}
             removeDeleteBranch={props.sessionsExpRemoveDeleteBranch}
             removeForce={props.sessionsExpRemoveForce}

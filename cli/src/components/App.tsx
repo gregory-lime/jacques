@@ -34,7 +34,7 @@ export function App(): React.ReactElement {
     listWorktrees: listWorktreesWs,
     createWorktree: createWorktreeWs,
     removeWorktree: removeWorktreeWs,
-    listWorktreesResult, createWorktreeResult, removeWorktreeResult,
+    listWorktreesResult, createWorktreeResult, removeWorktreeResult, worktreesByRepo,
     launchSessionResult,
   } = jacques;
   const { exit } = useApp();
@@ -122,6 +122,7 @@ export function App(): React.ReactElement {
 
   const sessionsExpHook = useSessionsExperiment({
     sessions,
+    allProjects: projectSelector.projects,
     worktrees: worktreesHook.worktrees,
     focusedSessionId,
     selectedProject: projectSelector.selectedProject,
@@ -133,7 +134,10 @@ export function App(): React.ReactElement {
     returnToMain: () => returnToMainRef.current(),
     createWorktreeWs,
     removeWorktreeWs,
+    listWorktreesWs,
+    worktreesByRepo,
     repoRoot: worktreesHook.repoRoot,
+    refreshWorktrees: () => worktreesHook.open(getRepoRoot()),
     createWorktreeResult,
     removeWorktreeResult,
     skipPermissions: settings.state.skipPermissions,
@@ -194,6 +198,19 @@ export function App(): React.ReactElement {
   useEffect(() => {
     projectSelector.init();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ---- Auto-select project based on CWD ----
+  useEffect(() => {
+    if (projectSelector.selectedProject !== null) return;
+    if (projectSelector.projects.length === 0) return;
+    const cwd = process.cwd();
+    const match = projectSelector.projects.find((p) =>
+      p.projectPaths.some((pp) => cwd === pp || cwd.startsWith(pp + "/"))
+    );
+    if (match) {
+      projectSelector.setSelectedProject(match.name);
+    }
+  }, [projectSelector.projects]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---- Resolve worktree repo root from project or session ----
   const getRepoRoot = useCallback((): string | null => {
@@ -405,6 +422,7 @@ export function App(): React.ReactElement {
         sessionsExpNewWorktreeName={sessionsExpHook.newWorktreeName}
         sessionsExpWorktreeCreateError={sessionsExpHook.worktreeCreateError}
         sessionsExpRepoRoot={worktreesHook.repoRoot}
+        sessionsExpCreatingForRepoRoot={sessionsExpHook.creatingForRepoRoot}
         sessionsExpRemoveDeleteBranch={sessionsExpHook.removeDeleteBranch}
         sessionsExpRemoveForce={sessionsExpHook.removeForce}
       />

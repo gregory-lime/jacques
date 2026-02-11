@@ -50,13 +50,28 @@ export function MainMenuView({
 
   const contentLines: React.ReactNode[] = [];
 
-  contentLines.push(<Text key="spacer-top"> </Text>);
-  contentLines.push(<Text key="title" bold color={ACCENT_COLOR}>{projectName}</Text>);
-
   if (focusedSession) {
+    const sessionTitle = focusedSession.session_title || "Untitled session";
+    const maxTitleLen = Math.max(10, terminalWidth - 4); // 2 for "$ " + some margin
+    const truncatedTitle = sessionTitle.length > maxTitleLen
+      ? sessionTitle.substring(0, maxTitleLen - 1) + "\u2026"
+      : sessionTitle;
+    contentLines.push(
+      <Text key="project-line">
+        <Text color={MUTED_TEXT}>&gt; </Text>
+        <Text color={ACCENT_COLOR}>{projectName}</Text>
+      </Text>
+    );
+    contentLines.push(
+      <Text key="session-title" wrap="truncate-end">
+        <Text color={MUTED_TEXT}>$ </Text>
+        <Text color="white">{truncatedTitle}</Text>
+      </Text>
+    );
     contentLines.push(<ProgressLine key="progress" session={focusedSession} />);
     contentLines.push(<StatusLine key="status" session={focusedSession} />);
   } else {
+    contentLines.push(<Text key="title" bold color={ACCENT_COLOR}>{projectName}</Text>);
     contentLines.push(
       <Text key="no-session" color={MUTED_TEXT}>No active sessions</Text>
     );

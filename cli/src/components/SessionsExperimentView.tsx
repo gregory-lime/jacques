@@ -49,6 +49,7 @@ interface SessionsExperimentViewProps {
   newWorktreeName: string;
   worktreeCreateError: string | null;
   repoRoot: string | null;
+  creatingForRepoRoot: string | null;
   projectName: string | null;
   removeDeleteBranch: boolean;
   removeForce: boolean;
@@ -84,6 +85,7 @@ export function SessionsExperimentView({
   newWorktreeName,
   worktreeCreateError,
   repoRoot,
+  creatingForRepoRoot,
   projectName,
   removeDeleteBranch,
   removeForce,
@@ -117,7 +119,7 @@ export function SessionsExperimentView({
   ];
 
   // --- Header ---
-  const headerLabel = projectName ? `${projectName}/sessions` : "Sessions";
+  const headerLabel = "Sessions";
 
   // --- Build session content lines with position tracking ---
   const contentLines: React.ReactNode[] = [];
@@ -132,13 +134,24 @@ export function SessionsExperimentView({
   items.forEach((item, idx) => {
     itemToContentLine.set(idx, contentLines.length);
     switch (item.kind) {
+      case "project-header": {
+        contentLines.push(
+          <Text key={`ph-${idx}`} wrap="truncate-end">
+            <Text color={MUTED_TEXT}>~/</Text>
+            <Text bold color={ACCENT_COLOR}>{item.projectName}</Text>
+            <Text color={MUTED_TEXT}>/</Text>
+          </Text>
+        );
+        break;
+      }
+
       case "worktree-header": {
         const dot = item.isMain ? "\u25CF " : "";
-        const name = item.branch || item.name;
+        const branchName = item.branch || item.name;
         contentLines.push(
           <Text key={`wh-${idx}`} wrap="truncate-end">
             <Text color={ACCENT_COLOR}>{dot}</Text>
-            <Text bold color="white">{name}</Text>
+            <Text bold color="white">{branchName}</Text>
           </Text>
         );
         break;
@@ -206,7 +219,7 @@ export function SessionsExperimentView({
             ) : (
               <Text> </Text>
             )}
-            <Text color={fg || modeColor}>{modeLabel.padEnd(8)}</Text>
+            <Text color={fg || modeColor}>{modeLabel.padStart(Math.ceil((8 + modeLabel.length) / 2)).padEnd(8)}</Text>
             {maxTitleLen > 0 && <Text color={fg || "white"}>{displayTitle}</Text>}
             {showBar && <Text>  </Text>}
             {progressNode}
@@ -217,9 +230,12 @@ export function SessionsExperimentView({
 
       case "new-session-button": {
         const isSelected = idx === currentItemIndex;
+        const nsbNext = items[idx + 1];
+        const nsbIsLast = !nsbNext || nsbNext.kind === "spacer" || nsbNext.kind === "project-header" || nsbNext.kind === "worktree-header" || nsbNext.kind === "new-worktree-button";
+        const nsbTree = nsbIsLast ? "\u2514" : "\u251C";
         contentLines.push(
           <Text key={`nsb-${idx}`} wrap="truncate-end">
-            <Text color={MUTED_TEXT}>{"\u2514"} </Text>
+            <Text color={MUTED_TEXT}>{nsbTree} </Text>
             <Text color={isSelected ? ACCENT_COLOR : MUTED_TEXT}>{isSelected ? "\u25B6" : " "} </Text>
             <Text color={isSelected ? ACCENT_COLOR : MUTED_TEXT}>+ New Session</Text>
           </Text>
@@ -324,6 +340,7 @@ export function SessionsExperimentView({
       }
 
       case "new-worktree-input": {
+        const inputRoot = creatingForRepoRoot || repoRoot;
         contentLines.push(
           <Text key={`nwi-${idx}`} wrap="truncate-end">
             <Text color={ACCENT_COLOR}>{"\u25B6"} New: </Text>
@@ -331,10 +348,10 @@ export function SessionsExperimentView({
             <Text color={ACCENT_COLOR}>_</Text>
           </Text>
         );
-        if (repoRoot) {
+        if (inputRoot) {
           contentLines.push(
             <Text key={`nwi-path-${idx}`} color={MUTED_TEXT}>
-              {"  "}{repoRoot}/{newWorktreeName || "..."}
+              {"  "}{inputRoot}/{newWorktreeName || "..."}
             </Text>
           );
         }
@@ -367,8 +384,8 @@ export function SessionsExperimentView({
 
   // --- Bottom controls ---
   const { element: bottomControlsElement, width: controlsWidth } = buildBottomControls([
-    { key: "Esc", label: " back " },
-    { key: "d", label: "etails" },
+    { key: "Esc", label: "back " },
+    { key: "d", label: "etails " },
     { key: "h", label: "elp" },
   ]);
 
@@ -525,14 +542,23 @@ export function SessionsExperimentView({
   // Mascot + name rendered line-by-line (ANSI mascot must be per-line in row contexts)
   const mascotCenter = Math.floor((mascotLines.length - 1) / 2);
   for (let mi = 0; mi < mascotLines.length; mi++) {
-    if (mi === mascotCenter) {
+    const textLineIndex = mi - mascotCenter;
+    if (textLineIndex >= 0 && textLineIndex <= 2) {
+      let textContent: React.ReactNode;
+      if (textLineIndex === 0) {
+        textContent = <Text color={MUTED_TEXT}>My Dearest</Text>;
+      } else if (textLineIndex === 1) {
+        textContent = <Text bold color={ACCENT_COLOR}>Jacques{showNarrowVersion ? <Text color={MUTED_TEXT}> v0.1.0</Text> : ""}</Text>;
+      } else {
+        textContent = <Text color="white">Sessions Manager</Text>;
+      }
       narrowLines.push(
         <Box key={`n-m-${mi}`} flexDirection="row">
           <Box flexDirection="column" flexShrink={0}>
             <Text wrap="truncate-end">{mascotLines[mi]}</Text>
           </Box>
           <Box marginLeft={2}>
-            <Text bold color={ACCENT_COLOR}>Jacques{showNarrowVersion ? <Text color={MUTED_TEXT}> v0.1.0</Text> : ""}</Text>
+            {textContent}
           </Box>
         </Box>
       );
