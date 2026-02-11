@@ -11,6 +11,7 @@ Replaces statusline.sh — works on macOS, Linux, and Windows.
 """
 import json
 import os
+import re
 import sys
 import time
 import platform
@@ -134,13 +135,50 @@ def detect_git_info(project_dir: str) -> dict:
 # Session Title Extraction (with 5-min cache)
 # ============================================================
 
+def _extract_first_user_message(transcript_path: str) -> str:
+    """Read first real user message from transcript (up to 200 chars, preserving newlines)."""
+    if not transcript_path or not os.path.isfile(transcript_path):
+        return ''
+    try:
+        with open(transcript_path, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if '"type":"user"' not in line and '"type": "user"' not in line:
+                    continue
+                try:
+                    entry = json.loads(line)
+                    msg = entry.get('message', {})
+                    content = msg.get('content', '') if isinstance(msg, dict) else ''
+                    if not content or not isinstance(content, str):
+                        continue
+                    first_char = content.strip()[:1]
+                    if first_char in ('<', '['):
+                        continue
+                    text = content.strip()[:200]
+                    return text if len(content.strip()) <= 200 else text + '...'
+                except json.JSONDecodeError:
+                    continue
+    except Exception:
+        pass
+    return ''
+
+
+# Plan trigger patterns (match core/src/archive/plan-extractor.ts)
+_PLAN_TRIGGERS = [
+    re.compile(r'^implement the following plan[:\s]', re.IGNORECASE),
+    re.compile(r'^here is the plan[:\s]', re.IGNORECASE),
+    re.compile(r'^follow this plan[:\s]', re.IGNORECASE),
+]
+
+
 def extract_session_title(session_id: str, transcript_path: str) -> str:
     """
     Extract session title from transcript.
     Sources (in priority order):
-      1. sessions-index.json (Claude's resume list title)
-      2. Last summary entry in transcript
-      3. First real user message (truncated to 50 chars)
+      1. First user message — if it's a plan trigger (need full text for heading extraction)
+      2. sessions-index.json (Claude's resume list title)
+      3. Last summary entry in transcript
+      4. First real user message (fallback)
     Cached for 5 minutes.
     """
     if not session_id:
@@ -154,8 +192,18 @@ def extract_session_title(session_id: str, transcript_path: str) -> str:
 
     title = ''
 
-    # Source 1: sessions-index.json
-    if transcript_path and session_id:
+    # Always extract first user message — needed for plan trigger check
+    first_msg = _extract_first_user_message(transcript_path)
+
+    # Source 1: If first message is a plan trigger, use it (display code needs the trigger + heading)
+    if first_msg:
+        for pattern in _PLAN_TRIGGERS:
+            if pattern.search(first_msg):
+                title = first_msg
+                break
+
+    # Source 2: sessions-index.json
+    if not title and transcript_path and session_id:
         transcript_dir = os.path.dirname(transcript_path)
         index_path = os.path.join(transcript_dir, 'sessions-index.json')
         if os.path.isfile(index_path):
@@ -169,7 +217,7 @@ def extract_session_title(session_id: str, transcript_path: str) -> str:
             except Exception:
                 pass
 
-    # Source 2: Last summary entry in transcript
+    # Source 3: Last summary entry in transcript
     if not title and transcript_path and os.path.isfile(transcript_path):
         try:
             with open(transcript_path, 'r') as f:
@@ -186,32 +234,9 @@ def extract_session_title(session_id: str, transcript_path: str) -> str:
         except Exception:
             pass
 
-    # Source 3: First real user message
-    if not title and transcript_path and os.path.isfile(transcript_path):
-        try:
-            with open(transcript_path, 'r') as f:
-                for line in f:
-                    line = line.strip()
-                    if '"type":"user"' not in line and '"type": "user"' not in line:
-                        continue
-                    try:
-                        entry = json.loads(line)
-                        content = ''
-                        msg = entry.get('message', {})
-                        if isinstance(msg, dict):
-                            content = msg.get('content', '')
-                        if not content or not isinstance(content, str):
-                            continue
-                        # Skip internal Claude Code messages
-                        first_char = content.strip()[:1]
-                        if first_char in ('<', '['):
-                            continue
-                        title = content.strip().replace('\n', ' ')[:50] + '...'
-                        break
-                    except json.JSONDecodeError:
-                        continue
-        except Exception:
-            pass
+    # Source 4: First real user message (fallback)
+    if not title:
+        title = first_msg
 
     # Cache the result
     if title:

@@ -17,10 +17,53 @@ import { CLAUDE_PROJECTS_PATH } from "./types.js";
 import { detectGitInfo, readGitBranchFromJsonl } from "./git-utils.js";
 import { detectModeAndPlans } from "./mode-detector.js";
 import { writeSessionIndex } from "./persistence.js";
+import { isContinueSession } from "../session/format-title.js";
 import { isNotFoundError, getErrorMessage } from "../logging/error-utils.js";
 import { createLogger, type Logger } from "../logging/logger.js";
 
 const logger: Logger = createLogger({ prefix: "[Metadata]" });
+
+/**
+ * Extract "## Current Task" from the most recent handoff created before sessionStartedAt.
+ * Returns "Cont: <task>" or null if no matching handoff found.
+ */
+export async function extractContinueTitleFromHandoff(
+  projectPath: string,
+  sessionStartedAt: string,
+): Promise<string | null> {
+  const handoffsDir = path.join(projectPath, ".jacques", "handoffs");
+  try {
+    const files = await fs.readdir(handoffsDir);
+    const handoffFiles = files
+      .filter((f) => f.endsWith("-handoff.md"))
+      .sort()
+      .reverse(); // newest first (filenames are ISO-ish timestamps)
+
+    for (const file of handoffFiles) {
+      // Filename: YYYY-MM-DDTHH-mm-ss-handoff.md → stat for reliable mtime comparison
+      const filePath = path.join(handoffsDir, file);
+      const stat = await fs.stat(filePath);
+      if (stat.mtime.getTime() > new Date(sessionStartedAt).getTime()) {
+        continue; // handoff created after session started — skip
+      }
+
+      const content = await fs.readFile(filePath, "utf-8");
+      const taskMatch = content.match(/## Current Task\n+(.+?)(?=\n## |\n*$)/s);
+      if (taskMatch) {
+        const task = taskMatch[1].trim();
+        const firstLine = task.split("\n")[0].trim();
+        if (firstLine) {
+          return `Cont: ${firstLine}`;
+        }
+      }
+    }
+  } catch (err) {
+    if (!isNotFoundError(err)) {
+      logger.warn("Failed to read handoffs for continue title:", getErrorMessage(err));
+    }
+  }
+  return null;
+}
 
 /**
  * Extract session title from parsed JSONL entries.
@@ -242,8 +285,12 @@ export async function extractSessionMetadata(
     // Get timestamps
     const { startedAt, endedAt } = extractTimestamps(entries);
 
-    // Get title
-    const title = extractTitle(entries);
+    // Get title — resolve continue sessions from handoff data
+    let title = extractTitle(entries);
+    if (isContinueSession(title)) {
+      const continueTitle = await extractContinueTitleFromHandoff(projectPath, startedAt);
+      if (continueTitle) title = continueTitle;
+    }
 
     // Check for subagents
     const subagentFiles = await listSubagentFiles(jsonlPath);
@@ -271,7 +318,7 @@ export async function extractSessionMetadata(
     const { exploreAgents, webSearches } = await extractAgentsAndSearches(entries, subagentFiles);
 
     // Detect git info from project path
-    const gitInfo = detectGitInfo(projectPath);
+    const gitInfo = await detectGitInfo(projectPath);
 
     // If detectGitInfo failed (e.g., deleted worktree), read gitBranch from raw JSONL
     if (!gitInfo.branch) {
@@ -343,18 +390,22 @@ export async function listAllProjects(): Promise<
       withFileTypes: true,
     });
 
-    for (const entry of entries) {
-      if (entry.isDirectory()) {
+    const dirs = entries.filter((e) => e.isDirectory());
+
+    // Decode all project paths in parallel (each reads sessions-index.json or first JSONL)
+    const results = await Promise.all(
+      dirs.map(async (entry) => {
         const projectPath = await decodeProjectPath(entry.name);
         const projectSlug = path.basename(projectPath);
-
-        projects.push({
+        return {
           encodedPath: path.join(CLAUDE_PROJECTS_PATH, entry.name),
           projectPath,
           projectSlug,
-        });
-      }
-    }
+        };
+      })
+    );
+
+    projects.push(...results);
   } catch (err) {
     if (!isNotFoundError(err)) {
       logger.warn("Failed to list projects:", getErrorMessage(err));
@@ -417,6 +468,15 @@ async function buildFromCatalog(
         }
       })
     );
+
+    // Detect git info ONCE per project (not per session) — avoids spawning
+    // a git subprocess for every JSONL file in the same project directory.
+    const projectGitInfo = await detectGitInfo(project.projectPath);
+    if (!projectGitInfo.branch && jsonlFilenames.length > 0) {
+      projectGitInfo.branch = await readGitBranchFromJsonl(
+        path.join(project.encodedPath, jsonlFilenames[0])
+      ) || undefined;
+    }
 
     for (const result of statResults) {
       if (!result) continue;
@@ -492,10 +552,14 @@ async function buildFromCatalog(
       const exploreAgents = exploreSubagents.map(catalogSubagentToExploreRef);
       const webSearches = searchSubagents.map(catalogSubagentToSearchRef);
 
-      // Detect git info — probe filesystem first, fall back to JSONL
-      const gitInfo = detectGitInfo(project.projectPath);
-      if (!gitInfo.branch) {
-        gitInfo.branch = await readGitBranchFromJsonl(jsonlPath) || undefined;
+      // Resolve continue session titles from handoff data
+      let resolvedTitle = catalogSession.title;
+      if (resolvedTitle && isContinueSession(resolvedTitle)) {
+        const continueTitle = await extractContinueTitleFromHandoff(
+          project.projectPath,
+          catalogSession.startedAt,
+        );
+        if (continueTitle) resolvedTitle = continueTitle;
       }
 
       // Build SessionEntry from catalog data + file stats
@@ -504,7 +568,7 @@ async function buildFromCatalog(
         jsonlPath,
         projectPath: project.projectPath,
         projectSlug: project.projectSlug,
-        title: catalogSession.title,
+        title: resolvedTitle,
         startedAt: catalogSession.startedAt,
         endedAt: catalogSession.endedAt,
         messageCount: catalogSession.messageCount,
@@ -518,9 +582,9 @@ async function buildFromCatalog(
         mode: catalogSession.mode || undefined,
         planCount: planRefs.length > 0 ? planRefs.length : (catalogSession.planCount || undefined),
         planRefs: planRefs.length > 0 ? planRefs : undefined,
-        gitRepoRoot: gitInfo.repoRoot || undefined,
-        gitBranch: gitInfo.branch || undefined,
-        gitWorktree: gitInfo.worktree || undefined,
+        gitRepoRoot: projectGitInfo.repoRoot || undefined,
+        gitBranch: projectGitInfo.branch || undefined,
+        gitWorktree: projectGitInfo.worktree || undefined,
         exploreAgents: exploreAgents.length > 0 ? exploreAgents : undefined,
         webSearches: webSearches.length > 0 ? webSearches : undefined,
       };

@@ -28,8 +28,8 @@ npm run configure          # Configure Claude Code settings.json with hooks
 
 ### Development
 ```bash
-npm run install:all        # Install dependencies for server and cli
-npm run build:all          # Build both server and cli TypeScript
+npm run install:all        # Install dependencies for core, server, cli, and gui
+npm run build:all          # Build all packages (core → server → cli → gui)
 
 # Server
 npm run dev:server         # Server dev mode (tsc --watch)

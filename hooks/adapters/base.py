@@ -287,7 +287,7 @@ class BaseAdapter(ABC):
                     if entry.get('type') == 'summary':
                         summary_content = entry.get('summary', '')
                         if summary_content:
-                            summary_text = summary_content.split('.')[0][:80]
+                            summary_text = summary_content.split('.')[0][:200]
                             
                 except json.JSONDecodeError:
                     continue
@@ -301,8 +301,8 @@ class BaseAdapter(ABC):
                             msg = entry.get('message', {})
                             content = msg.get('content', '') if isinstance(msg, dict) else ''
                             if isinstance(content, str) and content:
-                                first_user_message = content.strip()[:80]
-                                if len(content) > 80:
+                                first_user_message = content.strip()[:200]
+                                if len(content) > 200:
                                     first_user_message += '...'
                                 break
                     except:

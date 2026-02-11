@@ -13,6 +13,18 @@ import { getHiddenProjects } from "./hidden-projects.js";
 import { listAllProjects } from "./metadata-extractor.js";
 
 /**
+ * Get the project group key for a session.
+ * Uses basename of gitRepoRoot when available (groups worktrees together).
+ * Canonical implementation — CLI imports this; GUI mirrors it for browser compat.
+ */
+export function getProjectGroupKey(session: { git_repo_root?: string | null; project: string }): string {
+  if (session.git_repo_root) {
+    return session.git_repo_root.split("/").pop() || session.project;
+  }
+  return session.project;
+}
+
+/**
  * Get a single session entry by ID
  */
 export async function getSessionEntry(
@@ -110,7 +122,7 @@ export async function discoverProjects(): Promise<DiscoveredProject[]> {
       isGitProject = true;
     } else {
       // No git info in index — probe the filesystem
-      const gitInfo = detectGitInfo(raw.projectPath);
+      const gitInfo = await detectGitInfo(raw.projectPath);
       if (gitInfo.repoRoot) {
         gitRepoRoot = gitInfo.repoRoot;
         groupKey = path.basename(gitInfo.repoRoot);

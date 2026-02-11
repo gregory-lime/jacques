@@ -11,10 +11,11 @@
     "gui"
   ],
   "scripts": {
-    "install:all": "npm run install:core && npm run install:server && npm run install:cli",
+    "install:all": "npm run install:core && npm run install:server && npm run install:cli && npm run install:gui",
     "install:core": "cd core && npm install",
     "install:server": "cd server && npm install",
     "install:cli": "cd cli && npm install",
+    "install:gui": "cd gui && npm install",
     "build:all": "npm run build:core && npm run build:server && npm run build:cli && npm run build:gui",
     "build:core": "cd core && npm run build",
     "build:server": "cd server && npm run build",

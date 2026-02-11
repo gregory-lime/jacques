@@ -16,6 +16,7 @@ import {
   HORIZONTAL_LAYOUT_MIN_WIDTH,
   FIXED_CONTENT_HEIGHT,
 } from "./layout/index.js";
+import { buildBottomControls } from "../utils/bottom-controls.js";
 
 // Visible items in the scrollable area (reserve lines for header/footer)
 export const ARCHIVE_VISIBLE_ITEMS = 6;
@@ -215,12 +216,13 @@ export function ArchiveBrowserView({
 
   // Pad to fixed height
   while (contentLines.length < FIXED_CONTENT_HEIGHT) {
-    contentLines.push(<Box key={`pad-${contentLines.length}`} />);
+    contentLines.push(<Text key={`pad-${contentLines.length}`}> </Text>);
   }
 
-  const bottomControls = (
-    <Text color={MUTED_TEXT}>[Enter] Expand/View [Esc] Back</Text>
-  );
+  const { element: bottomControls, width: bottomControlsWidth } = buildBottomControls([
+    { key: "Enter", label: " Expand/View " },
+    { key: "Esc", label: " Back" },
+  ]);
 
   // Render with layout
   return (
@@ -232,6 +234,7 @@ export function ArchiveBrowserView({
           title="Jacques"
           showVersion={showVersion}
           bottomControls={bottomControls}
+          bottomControlsWidth={bottomControlsWidth}
         />
       ) : (
         <VerticalLayout

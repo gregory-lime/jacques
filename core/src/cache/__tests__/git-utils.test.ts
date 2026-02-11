@@ -4,11 +4,13 @@
 
 import { jest } from '@jest/globals';
 
-// Mock child_process
-const mockExecSync = jest.fn<(...args: any[]) => string>();
+// Mock child_process — exec is callback-based, gets promisified in git-utils.
+// When promisified with standard promisify (no custom symbol on mock),
+// cb(null, value) resolves the promise with `value`.
+const mockExec = jest.fn<(...args: any[]) => any>();
 
 jest.unstable_mockModule('child_process', () => ({
-  execSync: mockExecSync,
+  exec: mockExec,
 }));
 
 // Mock fs for readGitBranchFromJsonl
@@ -35,51 +37,67 @@ describe('git-utils', () => {
     readGitBranchFromJsonl = mod.readGitBranchFromJsonl;
   });
 
-  describe('detectGitInfo', () => {
-    it('should return empty object for non-git directory', () => {
-      mockExecSync.mockImplementation(() => {
-        throw new Error('not a git repository');
-      });
+  /** Helper: make mockExec succeed with given stdout */
+  function mockExecSuccess(stdout: string) {
+    mockExec.mockImplementation((_cmd: string, _opts: any, cb: Function) => {
+      if (typeof _opts === 'function') { cb = _opts; }
+      cb(null, { stdout, stderr: '' });
+    });
+  }
 
-      const result = detectGitInfo('/tmp/not-a-repo');
+  /** Helper: make mockExec fail with an error */
+  function mockExecFailure(message = 'not a git repository') {
+    mockExec.mockImplementation((_cmd: string, _opts: any, cb: Function) => {
+      if (typeof _opts === 'function') { cb = _opts; }
+      cb(new Error(message));
+    });
+  }
+
+  describe('detectGitInfo', () => {
+    it('should return empty object for non-git directory', async () => {
+      mockExecFailure();
+
+      const result = await detectGitInfo('/tmp/not-a-repo');
       expect(result).toEqual({});
     });
 
-    it('should detect normal git repo with branch', () => {
-      mockExecSync.mockReturnValueOnce('main\n/Users/gole/projects/my-repo/.git\n');
+    it('should detect normal git repo with branch', async () => {
+      mockExecSuccess('main\n/Users/gole/projects/my-repo/.git\n');
 
-      const result = detectGitInfo('/Users/gole/projects/my-repo');
+      const result = await detectGitInfo('/Users/gole/projects/my-repo');
       expect(result.branch).toBe('main');
       expect(result.repoRoot).toBe('/Users/gole/projects/my-repo');
       expect(result.worktree).toBeUndefined();
     });
 
-    it('should detect worktree (common dir does not end in .git)', () => {
-      mockExecSync.mockReturnValueOnce('feature-branch\n/Users/gole/projects/my-repo/.git/worktrees/feature\n');
+    it('should detect worktree (common dir does not end in .git)', async () => {
+      mockExecSuccess('feature-branch\n/Users/gole/projects/my-repo/.git/worktrees/feature\n');
 
-      const result = detectGitInfo('/Users/gole/projects/my-repo-feature');
+      const result = await detectGitInfo('/Users/gole/projects/my-repo-feature');
       expect(result.branch).toBe('feature-branch');
       expect(result.worktree).toBe('my-repo-feature');
     });
 
-    it('should walk up parent directories when path does not exist', () => {
+    it('should walk up parent directories when path does not exist', async () => {
       let callCount = 0;
-      mockExecSync.mockImplementation(() => {
+      mockExec.mockImplementation((_cmd: string, _opts: any, cb: Function) => {
+        if (typeof _opts === 'function') { cb = _opts; }
         callCount++;
         if (callCount === 1) {
-          throw new Error('not a git repository');
+          cb(new Error('not a git repository'));
+        } else {
+          cb(null, { stdout: 'main\n/Users/gole/projects/.git\n', stderr: '' });
         }
-        return 'main\n/Users/gole/projects/.git\n';
       });
 
-      const result = detectGitInfo('/Users/gole/projects/deleted-worktree');
+      const result = await detectGitInfo('/Users/gole/projects/deleted-worktree');
       expect(result.branch).toBe('main');
     });
 
-    it('should return only branch when commonDir is empty', () => {
-      mockExecSync.mockReturnValueOnce('main\n');
+    it('should return only branch when commonDir is empty', async () => {
+      mockExecSuccess('main\n');
 
-      const result = detectGitInfo('/some/path');
+      const result = await detectGitInfo('/some/path');
       expect(result.branch).toBe('main');
       expect(result.repoRoot).toBeUndefined();
     });

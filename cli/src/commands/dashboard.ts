@@ -70,6 +70,19 @@ export async function startDashboard(): Promise<void> {
   });
 
   if (needsRebuild) {
+    // Ensure GUI deps are installed before attempting build
+    const guiNodeModules = join(projectRoot, "gui", "node_modules");
+    if (!existsSync(guiNodeModules)) {
+      try {
+        execSync("npm install", {
+          cwd: join(projectRoot, "gui"),
+          stdio: "pipe",
+        });
+      } catch {
+        // GUI deps install failed — skip build
+      }
+    }
+
     process.stdout.write(
       distMtime === 0
         ? "Building GUI...\n"

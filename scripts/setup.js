@@ -120,7 +120,14 @@ function installDependencies() {
     return false;
   }
   success('CLI dependencies installed');
-  
+
+  log('Installing GUI dependencies...');
+  if (!run('npm install', { cwd: join(projectRoot, 'gui') })) {
+    error('Failed to install GUI dependencies');
+    return false;
+  }
+  success('GUI dependencies installed');
+
   return true;
 }
 
@@ -142,7 +149,14 @@ function buildPackages() {
     return false;
   }
   success('CLI built');
-  
+
+  log('Building GUI...');
+  if (!run('npm run build', { cwd: join(projectRoot, 'gui') })) {
+    warn('GUI build failed — the web interface may not be available, but the CLI will work fine');
+  } else {
+    success('GUI built');
+  }
+
   return true;
 }
 

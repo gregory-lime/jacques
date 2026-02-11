@@ -7,6 +7,7 @@
 import React from "react";
 import { Text, Box } from "ink";
 import type { Session } from "@jacques/core";
+import { getCliActivity } from "../utils/activity.js";
 
 interface SessionsListProps {
   sessions: Session[];
@@ -57,38 +58,7 @@ function getContextColor(percentage: number | undefined): string {
   return "red";
 }
 
-/**
- * Map (status, tool_name) → short activity label for TUI
- */
-function getActivityLabel(status: string, toolName?: string | null): { label: string; color: string } {
-  if (status === 'idle') {
-    return { label: 'Needs input', color: 'yellow' };
-  }
-  if (status === 'active') {
-    return { label: 'Ready', color: 'green' };
-  }
-  if (status === 'working') {
-    if (!toolName) return { label: 'Working...', color: 'cyan' };
-    const map: Record<string, string> = {
-      Bash: 'Running cmd',
-      Read: 'Reading',
-      Write: 'Writing',
-      Edit: 'Editing',
-      Task: 'Subagent',
-      Grep: 'Searching',
-      Glob: 'Finding files',
-      WebSearch: 'Web search',
-      WebFetch: 'Fetching',
-    };
-    if (map[toolName]) return { label: map[toolName], color: 'cyan' };
-    if (toolName.startsWith('mcp__')) {
-      const server = toolName.split('__')[1] || 'tool';
-      return { label: `MCP:${server}`, color: 'cyan' };
-    }
-    return { label: toolName, color: 'cyan' };
-  }
-  return { label: status, color: 'gray' };
-}
+// Activity label now provided by shared getCliActivity() utility
 
 /**
  * Sessions list with status icons
@@ -117,7 +87,7 @@ export function SessionsList({ sessions, focusedSessionId }: SessionsListProps):
         const isFocused = session.session_id === focusedSessionId;
         const icon = isFocused ? "🟢" : "💤";
         const percentage = session.context_metrics?.used_percentage;
-        const activity = getActivityLabel(session.status, session.last_tool_name);
+        const activity = getCliActivity(session.status, session.last_tool_name);
 
         return (
           <Box key={session.session_id} marginLeft={2}>

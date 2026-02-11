@@ -114,6 +114,7 @@ export interface ArchiveSettings {
 
 export interface JacquesConfig {
   archive?: ArchiveSettings;
+  skipPermissions?: boolean;
   sources?: {
     obsidian?: {
       enabled: boolean;
@@ -214,4 +215,35 @@ export function toggleAutoArchive(): boolean {
  */
 export function getArchivePath(): string {
   return JACQUES_ARCHIVE_PATH;
+}
+
+// ============================================================
+// Skip Permissions Setting
+// ============================================================
+
+/**
+ * Get skip-permissions status from Jacques config
+ */
+export function getSkipPermissions(): boolean {
+  const config = getJacquesConfig();
+  return config.skipPermissions === true;
+}
+
+/**
+ * Set skip-permissions status
+ */
+export function setSkipPermissions(enabled: boolean): boolean {
+  const config = getJacquesConfig();
+  config.skipPermissions = enabled;
+  return setJacquesConfig(config);
+}
+
+/**
+ * Toggle skip-permissions and return new value
+ */
+export function toggleSkipPermissions(): boolean {
+  const current = getSkipPermissions();
+  const newValue = !current;
+  setSkipPermissions(newValue);
+  return newValue;
 }

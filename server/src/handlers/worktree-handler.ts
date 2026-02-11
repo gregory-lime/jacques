@@ -63,6 +63,7 @@ export class WorktreeHandler {
       sendWsResponse<ListWorktreesResultMessage>(ws, {
         type: 'list_worktrees_result',
         success: true,
+        repo_root,
         worktrees: worktrees.map(w => ({
           name: w.name,
           path: w.path,

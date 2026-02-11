@@ -38,6 +38,13 @@ export type {
   ToggleAutoCompactRequest,
   FocusTerminalRequest,
   FocusTerminalResultMessage,
+  TileWindowsRequest,
+  MaximizeWindowRequest,
+  LaunchSessionRequest,
+  CreateWorktreeRequest,
+  ListWorktreesRequest,
+  RemoveWorktreeRequest,
+  WorktreeWithStatus,
 } from "./types.js";
 
 // Client
@@ -73,6 +80,10 @@ export {
 
 // Re-export formatTokenCount from session explicitly
 export { formatTokenCount as formatSessionTokenCount } from "./session/index.js";
+
+// Session title formatting
+export { formatSessionTitle, isContinueSession } from "./session/index.js";
+export type { FormattedSessionTitle } from "./session/index.js";
 
 export type {
   SessionFile,
@@ -345,6 +356,9 @@ export {
   setAutoArchiveEnabled,
   toggleAutoArchive,
   getArchivePath,
+  getSkipPermissions,
+  setSkipPermissions,
+  toggleSkipPermissions,
   // Claude token management
   validateToken,
   verifyToken,
@@ -427,7 +441,9 @@ export {
   extractSessionMetadata,
   listAllProjects as listCacheProjects,
   buildSessionIndex,
+  extractContinueTitleFromHandoff,
   getSessionIndex,
+  getProjectGroupKey,
   getSessionEntry,
   getSessionsByProject,
   discoverProjects,

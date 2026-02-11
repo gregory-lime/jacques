@@ -21,7 +21,6 @@ import type {
 import type { ClaudeOperation } from '@jacques/core';
 import type { Logger } from './logging/logger-factory.js';
 import { createLogger } from './logging/logger-factory.js';
-import { logDirect } from './logger.js';
 
 /**
  * WebSocket Server configuration
@@ -54,6 +53,8 @@ export class JacquesWebSocketServer {
   private onClientMessage?: (ws: WebSocket, message: ClientMessage) => void;
   private stateProvider: StateProvider | null = null;
   private logger: Logger;
+  private heartbeatInterval: NodeJS.Timeout | null = null;
+  private aliveClients = new WeakSet<WebSocket>();
 
   constructor(config: WebSocketServerConfig) {
     this.port = config.port;
@@ -92,6 +93,7 @@ export class JacquesWebSocketServer {
 
         this.wss.on('listening', () => {
           this.log(`[WebSocket] Listening on port: ${this.port}`);
+          this.startHeartbeat();
           resolve();
         });
 
@@ -107,6 +109,11 @@ export class JacquesWebSocketServer {
   private handleConnection(ws: WebSocket): void {
     this.log('[WebSocket] Client connected');
     this.clients.add(ws);
+    this.aliveClients.add(ws);
+
+    ws.on('pong', () => {
+      this.aliveClients.add(ws);
+    });
 
     // Send initial state
     if (this.stateProvider) {
@@ -166,7 +173,7 @@ export class JacquesWebSocketServer {
     }
 
     if (sentCount > 0) {
-      logDirect(`[WebSocket] Broadcast ${message.type} to ${sentCount} client(s)`);
+      this.log(`[WebSocket] Broadcast ${message.type} to ${sentCount} client(s)`);
     }
   }
 
@@ -259,6 +266,24 @@ export class JacquesWebSocketServer {
   }
 
   /**
+   * Start ping/pong heartbeat to detect dead connections
+   */
+  private startHeartbeat(): void {
+    this.heartbeatInterval = setInterval(() => {
+      for (const client of this.clients) {
+        if (!this.aliveClients.has(client)) {
+          this.log('[WebSocket] Terminating stale client');
+          this.clients.delete(client);
+          client.terminate();
+          continue;
+        }
+        this.aliveClients.delete(client);
+        client.ping();
+      }
+    }, 30_000);
+  }
+
+  /**
    * Get number of connected clients
    */
   getClientCount(): number {
@@ -273,6 +298,11 @@ export class JacquesWebSocketServer {
       if (!this.wss) {
         resolve();
         return;
+      }
+
+      if (this.heartbeatInterval) {
+        clearInterval(this.heartbeatInterval);
+        this.heartbeatInterval = null;
       }
 
       // Close all client connections

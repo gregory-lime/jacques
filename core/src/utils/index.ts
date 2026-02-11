@@ -21,6 +21,9 @@ export {
   setAutoArchiveEnabled,
   toggleAutoArchive,
   getArchivePath,
+  getSkipPermissions,
+  setSkipPermissions,
+  toggleSkipPermissions,
 } from "./settings.js";
 
 export type {

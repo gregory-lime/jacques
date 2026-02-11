@@ -60,7 +60,7 @@ export interface WorkspaceInfo {
   project_dir: string;
 }
 
-export type SessionStatus = "active" | "working" | "idle";
+export type SessionStatus = "active" | "working" | "idle" | "tool_use" | "waiting" | "awaiting";
 
 export type SessionSource = "claude_code" | "cursor" | string;
 
@@ -86,6 +86,10 @@ export interface Session {
   git_repo_root?: string | null;
   /** Last tool used (from PostToolUse hook) */
   last_tool_name?: string | null;
+  /** Whether the session was launched with --dangerously-skip-permissions */
+  is_bypass?: boolean;
+  /** Current permission mode (default, plan, acceptEdits, etc.) */
+  mode?: string | null;
 }
 
 // ============================================================
@@ -186,8 +190,63 @@ export interface FocusTerminalRequest {
   session_id: string;
 }
 
+export interface TileWindowsRequest {
+  type: "tile_windows";
+  session_ids: string[];
+  layout?: "side-by-side" | "thirds" | "2x2" | "smart";
+  display_id?: string;
+}
+
+export interface MaximizeWindowRequest {
+  type: "maximize_window";
+  session_id: string;
+}
+
+export interface LaunchSessionRequest {
+  type: "launch_session";
+  cwd: string;
+  preferred_terminal?: string;
+  dangerously_skip_permissions?: boolean;
+}
+
+export interface CreateWorktreeRequest {
+  type: "create_worktree";
+  repo_root: string;
+  name: string;
+  base_branch?: string;
+  launch_session?: boolean;
+  dangerously_skip_permissions?: boolean;
+}
+
+export interface ListWorktreesRequest {
+  type: "list_worktrees";
+  repo_root: string;
+}
+
+export interface RemoveWorktreeRequest {
+  type: "remove_worktree";
+  repo_root: string;
+  worktree_path: string;
+  force?: boolean;
+  delete_branch?: boolean;
+}
+
+export interface WorktreeWithStatus {
+  name: string;
+  path: string;
+  branch: string | null;
+  isMain: boolean;
+  status: { hasUncommittedChanges: boolean; isMergedToMain: boolean };
+}
+
 export type ClientMessage =
   | SelectSessionRequest
   | TriggerActionRequest
   | ToggleAutoCompactRequest
-  | FocusTerminalRequest;
+  | FocusTerminalRequest
+  | TileWindowsRequest
+  | MaximizeWindowRequest
+  | LaunchSessionRequest
+  | CreateWorktreeRequest
+  | ListWorktreesRequest
+  | RemoveWorktreeRequest;

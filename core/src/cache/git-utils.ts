@@ -7,18 +7,23 @@
 
 import { promises as fs } from "fs";
 import * as path from "path";
-import { execSync } from "child_process";
+import { exec as execCb } from "child_process";
+import { promisify } from "util";
 import type { GitInfo } from "./types.js";
 import { isNotFoundError, getErrorMessage } from "../logging/error-utils.js";
 import { createLogger, type Logger } from "../logging/logger.js";
 
+const execAsync = promisify(execCb);
 const logger: Logger = createLogger({ prefix: "[Git]" });
 
 /**
  * Detect git info for a project path: repo root, branch, and worktree name.
  * If the path doesn't exist, walks up parent directories to find a git repo.
+ *
+ * Uses async exec to avoid blocking the Node.js event loop (important when
+ * the server is embedded in the CLI — sync git calls freeze the TUI).
  */
-export function detectGitInfo(projectPath: string): GitInfo {
+export async function detectGitInfo(projectPath: string): Promise<GitInfo> {
   // Try the exact path first, then walk up parents if it doesn't exist
   const candidates = [projectPath];
   let dir = projectPath;
@@ -31,10 +36,11 @@ export function detectGitInfo(projectPath: string): GitInfo {
 
   for (const candidate of candidates) {
     try {
-      const output = execSync(
+      const { stdout } = await execAsync(
         `git -C "${candidate}" rev-parse --abbrev-ref HEAD --git-common-dir`,
-        { encoding: "utf-8", timeout: 5000, stdio: ["pipe", "pipe", "pipe"] }
-      ).trim();
+        { timeout: 5000 }
+      );
+      const output = stdout.trim();
 
       if (!output) continue;
 

@@ -15,6 +15,7 @@ import {
   CONTENT_PADDING,
   FIXED_CONTENT_HEIGHT,
 } from "./theme.js";
+import { buildBottomControls, MAIN_CONTROLS } from "../../utils/bottom-controls.js";
 
 export interface HorizontalLayoutProps {
   content: React.ReactNode[];
@@ -23,8 +24,10 @@ export interface HorizontalLayoutProps {
   showVersion: boolean;
   sessionCount?: number;
   notification?: string | null;
-  /** Custom bottom controls. If omitted, default [Q]uit [A]ctive [P]roject shown. */
+  /** Custom bottom controls. If omitted, default [Q]uit [P]rojects [W]eb shown. */
   bottomControls?: React.ReactNode;
+  /** Character width of bottomControls text for border calculation. */
+  bottomControlsWidth?: number;
 }
 
 export function HorizontalLayout({
@@ -35,6 +38,7 @@ export function HorizontalLayout({
   sessionCount,
   notification,
   bottomControls,
+  bottomControlsWidth,
 }: HorizontalLayoutProps): React.ReactElement {
   // Calculate dimensions - make fully responsive to terminal width
   const mascotVisualWidth = MASCOT_WIDTH;
@@ -64,9 +68,12 @@ export function HorizontalLayout({
   const remainingBorder = Math.max(0, terminalWidth - titleLength - 3);
 
   // Bottom content - either notification or controls
-  let bottomText: string;
+  let bottomTextWidth: number;
   let bottomIsNotification = false;
   let bottomIsError = false;
+  let bottomNotificationText = "";
+
+  const { element: defaultControlsElement, width: defaultControlsWidth } = buildBottomControls(MAIN_CONTROLS);
 
   if (notification) {
     const isError = notification.startsWith("!");
@@ -76,26 +83,26 @@ export function HorizontalLayout({
       cleanMessage.length > maxNotificationLength
         ? cleanMessage.substring(0, maxNotificationLength - 3) + "..."
         : cleanMessage;
-    bottomText = isError
+    bottomNotificationText = isError
       ? `✗ ${truncatedNotification}`
       : `✓ ${truncatedNotification}`;
+    bottomTextWidth = bottomNotificationText.length;
     bottomIsNotification = true;
     bottomIsError = isError;
+  } else if (bottomControls && bottomControlsWidth) {
+    bottomTextWidth = bottomControlsWidth;
   } else {
-    const activeText =
-      sessionCount !== undefined ? ` [A]ctive (${sessionCount})` : "";
-    bottomText = `[Q]uit${activeText} [P]roject`;
+    bottomTextWidth = defaultControlsWidth;
   }
 
-  const bottomTextLength = bottomText.length;
-  const totalBottomDashes = terminalWidth - bottomTextLength - 2;
-  const bottomLeftBorder = Math.max(0, Math.floor(totalBottomDashes / 2));
-  const bottomRightBorder = Math.max(0, totalBottomDashes - bottomLeftBorder);
+  const totalBottomDashes = Math.max(0, terminalWidth - bottomTextWidth - 2);
+  const bottomLeftBorder = Math.max(1, Math.floor(totalBottomDashes / 2));
+  const bottomRightBorder = Math.max(1, totalBottomDashes - bottomLeftBorder);
 
   const boxHeight = totalHeight + 2;
 
   return (
-    <Box flexDirection="column" height={boxHeight}>
+    <Box flexDirection="column" height={boxHeight} flexShrink={0}>
       {/* Top border with title crossing */}
       <Box>
         <Text color={BORDER_COLOR}>╭</Text>
@@ -147,22 +154,11 @@ export function HorizontalLayout({
           ╰{"─".repeat(bottomLeftBorder)}
         </Text>
         {bottomIsNotification ? (
-          <Text color={bottomIsError ? "red" : "green"}>{bottomText}</Text>
+          <Text color={bottomIsError ? "red" : "green"}>{bottomNotificationText}</Text>
         ) : bottomControls ? (
           bottomControls
         ) : (
-          <>
-            <Text color={ACCENT_COLOR}>[Q]</Text>
-            <Text color={MUTED_TEXT}>uit</Text>
-            {sessionCount !== undefined && (
-              <>
-                <Text color={ACCENT_COLOR}> [A]</Text>
-                <Text color={MUTED_TEXT}>ctive ({sessionCount})</Text>
-              </>
-            )}
-            <Text color={ACCENT_COLOR}> [P]</Text>
-            <Text color={MUTED_TEXT}>roj</Text>
-          </>
+          defaultControlsElement
         )}
         <Text color={BORDER_COLOR}>
           {"─".repeat(bottomRightBorder)}╯
