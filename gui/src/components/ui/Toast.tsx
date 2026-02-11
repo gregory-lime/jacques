@@ -12,11 +12,19 @@ export interface ToastData {
   timestamp: number;
   /** Category label shown in the chrome bar, e.g. "context" / "operation" */
   category?: string;
+  /** Session ID for click-to-focus */
+  sessionId?: string;
+  /** Project name for contextual display */
+  projectName?: string;
+  /** Git branch name for contextual display */
+  branchName?: string;
 }
 
 interface ToastProps {
   toast: ToastData;
   onDismiss: (id: string) => void;
+  /** Called when the toast body is clicked (e.g., to focus terminal) */
+  onClick?: (toast: ToastData) => void;
   /** Auto-dismiss duration in ms. 0 = no auto-dismiss. Default: 6000 */
   duration?: number;
   /** Stagger index for entrance delay */
@@ -80,10 +88,11 @@ function injectKeyframes() {
   document.head.appendChild(style);
 }
 
-export function Toast({ toast, onDismiss, duration = 6000, index = 0 }: ToastProps) {
+export function Toast({ toast, onDismiss, onClick, duration = 6000, index = 0 }: ToastProps) {
   const [exiting, setExiting] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
   const accentColor = priorityAccent[toast.priority];
+  const isClickable = !!onClick;
 
   useEffect(() => {
     injectKeyframes();
@@ -110,7 +119,23 @@ export function Toast({ toast, onDismiss, duration = 6000, index = 0 }: ToastPro
     setExiting(true);
   };
 
+  const handleClick = (e: React.MouseEvent) => {
+    // Don't trigger click when clicking dismiss button
+    if ((e.target as HTMLElement).closest('[aria-label="Dismiss notification"]')) return;
+    if (onClick) {
+      onClick(toast);
+      handleDismiss();
+    }
+  };
+
   const entranceDelay = `${index * 80}ms`;
+
+  // Display logic: show project/branch when available
+  const hasProjectContext = !!toast.projectName;
+  const displayTitle = hasProjectContext ? toast.projectName! : toast.title;
+  const displayBody = hasProjectContext
+    ? (toast.branchName ? `${toast.branchName} · ${toast.title}` : toast.title)
+    : toast.body;
 
   return (
     <div
@@ -118,10 +143,12 @@ export function Toast({ toast, onDismiss, duration = 6000, index = 0 }: ToastPro
         ...styles.container,
         borderLeftColor: accentColor,
         boxShadow: priorityGlow[toast.priority],
+        cursor: isClickable ? 'pointer' : 'default',
         animation: exiting
           ? 'jacques-toast-out 200ms ease-in forwards'
           : `jacques-toast-in 350ms cubic-bezier(0.16, 1, 0.3, 1) ${entranceDelay} both`,
       }}
+      onClick={handleClick}
       onMouseEnter={() => clearTimeout(timerRef.current)}
       onMouseLeave={() => {
         if (duration > 0 && !exiting) {
@@ -164,8 +191,8 @@ export function Toast({ toast, onDismiss, duration = 6000, index = 0 }: ToastPro
           draggable={false}
         />
         <div style={styles.textBlock}>
-          <div style={styles.title}>{toast.title}</div>
-          <div style={styles.body}>{toast.body}</div>
+          <div style={styles.title}>{displayTitle}</div>
+          <div style={styles.body}>{displayBody}</div>
         </div>
       </div>
 

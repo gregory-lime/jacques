@@ -24,6 +24,7 @@ import {
   DEFAULT_NOTIFICATION_SETTINGS,
   NOTIFICATION_COOLDOWNS,
   CATEGORY_SYMBOLS,
+  CATEGORY_LABELS,
   MAX_NOTIFICATION_HISTORY,
   getContextThresholdPriority,
 } from '@jacques/core/notifications';
@@ -50,6 +51,8 @@ export interface NotificationServiceConfig {
   broadcast: (message: NotificationFiredMessage) => void;
   /** Optional callback to focus a terminal window by session ID */
   focusTerminal?: (sessionId: string) => void;
+  /** Optional callback to look up session data for contextual notifications */
+  getSession?: (sessionId: string) => { project: string; git_branch?: string | null; session_title?: string | null } | undefined;
   /** Optional logger */
   logger?: Logger;
 }
@@ -69,6 +72,7 @@ interface ClaudeOperationInfo {
 export class NotificationService {
   private broadcastFn: (message: NotificationFiredMessage) => void;
   private focusTerminalFn?: (sessionId: string) => void;
+  private getSessionFn?: (sessionId: string) => { project: string; git_branch?: string | null; session_title?: string | null } | undefined;
   private logger: Logger;
 
   /** Cooldown tracking: key -> last fire timestamp */
@@ -93,6 +97,7 @@ export class NotificationService {
   constructor(config: NotificationServiceConfig) {
     this.broadcastFn = config.broadcast;
     this.focusTerminalFn = config.focusTerminal;
+    this.getSessionFn = config.getSession;
     this.logger = config.logger ?? createLogger({ silent: true });
     this.settings = this.loadSettings();
   }
@@ -158,13 +163,12 @@ export class NotificationService {
         fired.add(threshold);
 
         const priority = getContextThresholdPriority(threshold);
-        const label = session.session_title || session.project || sessionId.slice(0, 8);
 
         this.fire(
           'context',
           `${sessionId}-${threshold}`,
-          `Context ${threshold}%`,
-          `"${label}" reached ${Math.round(pct)}% context usage`,
+          `Context reached ${Math.round(pct)}%`,
+          `Crossed ${threshold}% threshold`,
           priority,
           sessionId,
         );
@@ -187,9 +191,9 @@ export class NotificationService {
     this.fire(
       'operation',
       op.id,
-      `Large Operation (${tokens} tokens)`,
+      `${tokens} token operation`,
       op.userPromptPreview
-        ? `"${op.userPromptPreview.slice(0, 80)}"`
+        ? op.userPromptPreview.slice(0, 80)
         : `${op.operation} completed`,
       op.totalTokens >= 100_000 ? 'high' : 'medium',
     );
@@ -217,8 +221,8 @@ export class NotificationService {
     this.fire(
       'plan',
       `${sessionId}-plan-${Date.now()}`,
-      'Plan Created',
-      `New plan detected: "${planTitle}"`,
+      `Plan: ${planTitle}`,
+      'New plan detected',
       'medium',
       sessionId,
     );
@@ -304,8 +308,8 @@ export class NotificationService {
             this.fire(
               'bug-alert',
               `${sessionId}-bug-alert`,
-              'Bug Alert',
-              `${accumulated} tool errors in session`,
+              `${accumulated} tool errors`,
+              'Multiple tool errors detected',
               accumulated >= 10 ? 'high' : 'medium',
               sessionId,
             );
@@ -344,6 +348,8 @@ export class NotificationService {
     priority: NotificationItem['priority'] = 'medium',
     sessionId?: string,
   ): void {
+    const { projectName, branchName } = this.resolveSessionContext(sessionId);
+
     const notification: NotificationItem = {
       id: `test-${category}-${Date.now()}`,
       category,
@@ -352,34 +358,13 @@ export class NotificationService {
       priority,
       timestamp: Date.now(),
       sessionId,
+      projectName,
+      branchName,
     };
 
     // Native OS notification (if enabled)
     if (this.settings.enabled) {
-      try {
-        const symbol = CATEGORY_SYMBOLS[category];
-        notifier.notify(
-          {
-            title: 'Jacques',
-            subtitle: `${symbol} ${title}`,
-            message: body,
-            sound: 'Sosumi',
-            contentImage: ICON_PATH,
-            wait: true,
-          },
-          (_err: Error | null, response: string) => {
-            if (response === 'activate' && sessionId && this.focusTerminalFn) {
-              try {
-                this.focusTerminalFn(sessionId);
-              } catch (focusErr) {
-                this.logger.error(`[Notification] Focus terminal failed: ${focusErr}`);
-              }
-            }
-          },
-        );
-      } catch (err) {
-        this.logger.error(`[Notification] Desktop notification failed: ${err}`);
-      }
+      this.sendDesktopNotification(category, title, body, sessionId, projectName, branchName);
     }
 
     // Broadcast to GUI clients
@@ -409,6 +394,9 @@ export class NotificationService {
     // Cooldown check
     if (!this.canFire(category, key)) return;
 
+    // Resolve session context for project/branch display
+    const { projectName, branchName } = this.resolveSessionContext(sessionId);
+
     const notification: NotificationItem = {
       id: `notif-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       category,
@@ -417,6 +405,8 @@ export class NotificationService {
       priority,
       timestamp: Date.now(),
       sessionId,
+      projectName,
+      branchName,
     };
 
     // Add to history
@@ -429,30 +419,7 @@ export class NotificationService {
 
     // Desktop notification (if enabled)
     if (this.settings.enabled) {
-      try {
-        const symbol = CATEGORY_SYMBOLS[category];
-        notifier.notify(
-          {
-            title: 'Jacques',
-            subtitle: `${symbol} ${title}`,
-            message: body,
-            sound: 'Sosumi',
-            contentImage: ICON_PATH,
-            wait: true, // Keep notification for click-to-focus
-          },
-          (_err: Error | null, response: string) => {
-            if (response === 'activate' && sessionId && this.focusTerminalFn) {
-              try {
-                this.focusTerminalFn(sessionId);
-              } catch (focusErr) {
-                this.logger.error(`[Notification] Focus terminal failed: ${focusErr}`);
-              }
-            }
-          },
-        );
-      } catch (err) {
-        this.logger.error(`[Notification] Desktop notification failed: ${err}`);
-      }
+      this.sendDesktopNotification(category, title, body, sessionId, projectName, branchName);
     }
 
     // Broadcast to GUI clients
@@ -461,6 +428,63 @@ export class NotificationService {
       notification,
     };
     this.broadcastFn(message);
+  }
+
+  /**
+   * Resolve project name and branch from a session ID.
+   */
+  private resolveSessionContext(sessionId?: string): { projectName?: string; branchName?: string } {
+    if (!sessionId || !this.getSessionFn) return {};
+    const session = this.getSessionFn(sessionId);
+    if (!session) return {};
+    return {
+      projectName: session.project || undefined,
+      branchName: session.git_branch || undefined,
+    };
+  }
+
+  /**
+   * Send a native desktop notification via node-notifier.
+   * Format: project name as title, branch + category as subtitle, mascot as icon.
+   */
+  private sendDesktopNotification(
+    category: NotificationCategory,
+    title: string,
+    body: string,
+    sessionId?: string,
+    projectName?: string,
+    branchName?: string,
+  ): void {
+    try {
+      const categoryLabel = CATEGORY_LABELS[category];
+      const desktopTitle = projectName || title;
+      const desktopSubtitle = branchName
+        ? `${branchName} · ${categoryLabel}`
+        : categoryLabel;
+
+      notifier.notify(
+        {
+          title: desktopTitle,
+          subtitle: desktopSubtitle,
+          message: projectName ? title : body,
+          sound: 'Sosumi',
+          contentImage: ICON_PATH,
+          wait: true,
+          actions: ['Focus'],
+        } as Record<string, unknown>,
+        (_err: Error | null, response: string) => {
+          if ((response === 'activate' || response === 'Focus') && sessionId && this.focusTerminalFn) {
+            try {
+              this.focusTerminalFn(sessionId);
+            } catch (focusErr) {
+              this.logger.error(`[Notification] Focus terminal failed: ${focusErr}`);
+            }
+          }
+        },
+      );
+    } catch (err) {
+      this.logger.error(`[Notification] Desktop notification failed: ${err}`);
+    }
   }
 
   private canFire(category: NotificationCategory, key: string): boolean {
