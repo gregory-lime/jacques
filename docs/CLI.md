@@ -35,22 +35,20 @@ The CLI embeds the server automatically — no need to start it separately.
 
 ### View Structure
 
-Main menu has 3 items: **Sessions** (1), **Worktrees** (2), **Settings** (3). Bottom bar shows **[Q]uit [P]rojects [W]eb**.
+Main menu has 3 items: **All Sessions** (1), **Settings** (2), **Web GUI** (3). Bottom bar shows **[Q]uit**.
 
 ```
 App.tsx (root: hooks, keyboard dispatcher, state)
     ↓
 Dashboard.tsx (view router, terminal dimensions)
     ↓
-├── MainMenuView       — session summary + menu (Sessions/Worktrees/Settings)
-├── SessionsView       — detailed session list for selected project
-├── WorktreesView      — git worktree browser with launch capability
-├── ProjectSelectorView — project picker (scopes main view)
-├── SettingsView       — auto-archive, catalog, handoffs, claude token
-├── ArchiveBrowserView — search archived conversations
-├── ArchiveInitProgressView — archive indexing progress
-├── ProjectDashboardView — per-project session detail
-└── PlanViewerView     — display plan content
+├── MainMenuView              — session summary + menu (All Sessions/Settings/Web GUI)
+├── SessionsExperimentView    — sessions grouped by project+worktree, multi-select, worktree mgmt
+├── SettingsView              — auto-archive, catalog, handoffs, claude token
+├── ArchiveBrowserView        — search archived conversations
+├── ArchiveInitProgressView   — archive indexing progress
+├── ProjectDashboardView      — per-project session detail
+└── PlanViewerView            — display plan content
 ```
 
 ### State Management
@@ -60,10 +58,10 @@ Each view has a dedicated hook. Hooks manage their own state and expose `open()`
 | Hook | View | Responsibility |
 |------|------|----------------|
 | `useJacquesClient` | — | WebSocket connection, session state, server messages |
-| `useSessions` | SessionsView | Session filtering by project, selection, scroll |
-| `useWorktrees` | WorktreesView | Fetch worktrees via API, launch sessions |
-| `useProjectSelector` | ProjectSelectorView | Fetch projects from API, eager-load on mount |
-| `useUsageLimits` | MainMenuView | Fetch API rate limit data |
+| `useSessionsExperiment` | SessionsExperimentView | Multi-project session list, worktree grouping, multi-select, create/remove worktrees |
+| `useWorktrees` | (used by useSessionsExperiment) | Fetch worktrees via WebSocket, match sessions to worktrees |
+| `useProjectSelector` | (auto-selects on mount) | Fetch projects from API, eager-load on mount |
+| `useUsageLimits` | SettingsView | Fetch API rate limit data |
 | `useSettings` | SettingsView | Settings menu navigation, API calls |
 | `useArchiveBrowser` | ArchiveBrowserView | Archive search, result browsing |
 | `useProjectDashboard` | ProjectDashboardView | Per-project session detail |
@@ -85,12 +83,11 @@ The CLI has no local type definitions or websocket client — all shared logic l
 | `components/App.tsx` | Root component: hooks init, keyboard dispatcher, state coordination |
 | `components/Dashboard.tsx` | View router: tracks terminal dimensions, delegates to view components |
 | `components/MainMenuView.tsx` | Main menu: session summary with context meters, 3-item menu |
-| `components/SessionsView.tsx` | Filtered session list for selected project |
-| `components/WorktreesView.tsx` | Git worktree browser, session launching |
-| `components/ProjectSelectorView.tsx` | Project picker with scroll support |
+| `components/SessionsExperimentView.tsx` | Sessions Lab: multi-project list, worktree grouping, scroll, multi-select |
 | `components/SettingsView.tsx` | Settings: auto-archive, catalog extraction, handoff browser |
 | `components/ArchiveBrowserView.tsx` | Archive search interface |
 | `components/PlanViewerView.tsx` | Display plan content |
+| `utils/sessions-items-builder.ts` | Pure functions that build the flat content item list for SessionsExperimentView |
 | `utils/bottom-controls.tsx` | `buildBottomControls()` — builds bottom bar JSX and computes width |
 | `utils/constants.ts` | `MENU_ITEMS` definition |
 
@@ -112,21 +109,36 @@ The CLI has no local type definitions or websocket client — all shared logic l
 
 | Key | Action |
 |-----|--------|
-| `1` / Enter on Sessions | Open sessions view |
-| `2` / Enter on Worktrees | Open worktrees view |
-| `3` / Enter on Settings | Open settings view |
-| `P` | Open project selector |
-| `W` | Open web GUI in browser |
+| `1` / Enter on All Sessions | Open Sessions Lab |
+| `2` / Enter on Settings | Open settings view |
+| `3` / Enter on Web GUI | Open web GUI in browser |
 | `Q` / Ctrl+C | Quit (exits alternate screen, stops server) |
 | Up/Down | Navigate menu items |
 
-### Sub-views (Sessions, Worktrees, Projects)
+### Sessions Lab (`SessionsExperimentView`)
 
 | Key | Action |
 |-----|--------|
-| Up/Down | Navigate list |
-| Enter | Select item |
+| Up/Down | Navigate selectable items (sessions, buttons) |
+| Enter | Focus terminal (on session), launch (on New Session), create (on New Worktree) |
+| Space | Toggle multi-select on current session |
+| `f` | Maximize/fullscreen selected session's terminal window |
+| `t` | Tile selected sessions (requires 2+ selected with Space) |
+| `n` | Launch new session in same directory as current session |
+| `a` | Select all sessions |
+| `x` | Clear multi-selection |
+| `d` | Toggle details mode (show all worktrees including empty, across all projects) |
+| `h` | Toggle keyboard shortcut legend |
 | Esc | Return to main menu |
+
+#### Worktree Removal (within details mode)
+
+| Key | Action |
+|-----|--------|
+| `b` | Toggle delete-branch option |
+| `f` | Toggle force-remove (required for uncommitted changes) |
+| Enter | Confirm removal |
+| Esc | Cancel removal |
 
 ## Settings View
 

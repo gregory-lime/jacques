@@ -318,7 +318,7 @@ export async function extractSessionMetadata(
     const { exploreAgents, webSearches } = await extractAgentsAndSearches(entries, subagentFiles);
 
     // Detect git info from project path
-    const gitInfo = detectGitInfo(projectPath);
+    const gitInfo = await detectGitInfo(projectPath);
 
     // If detectGitInfo failed (e.g., deleted worktree), read gitBranch from raw JSONL
     if (!gitInfo.branch) {
@@ -471,7 +471,7 @@ async function buildFromCatalog(
 
     // Detect git info ONCE per project (not per session) — avoids spawning
     // a git subprocess for every JSONL file in the same project directory.
-    const projectGitInfo = detectGitInfo(project.projectPath);
+    const projectGitInfo = await detectGitInfo(project.projectPath);
     if (!projectGitInfo.branch && jsonlFilenames.length > 0) {
       projectGitInfo.branch = await readGitBranchFromJsonl(
         path.join(project.encodedPath, jsonlFilenames[0])

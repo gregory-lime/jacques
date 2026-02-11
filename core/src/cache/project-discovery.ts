@@ -122,7 +122,7 @@ export async function discoverProjects(): Promise<DiscoveredProject[]> {
       isGitProject = true;
     } else {
       // No git info in index — probe the filesystem
-      const gitInfo = detectGitInfo(raw.projectPath);
+      const gitInfo = await detectGitInfo(raw.projectPath);
       if (gitInfo.repoRoot) {
         gitRepoRoot = gitInfo.repoRoot;
         groupKey = path.basename(gitInfo.repoRoot);

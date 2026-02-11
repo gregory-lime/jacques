@@ -73,7 +73,7 @@ cd jacques
 npm run setup
 ```
 
-This checks prerequisites, installs dependencies (core, server, CLI), builds TypeScript, and symlinks hooks to `~/.jacques/hooks/`.
+This checks prerequisites, installs dependencies (core, server, CLI, GUI), builds all packages, and symlinks hooks to `~/.jacques/hooks/`.
 
 > **Windows**: Uses junction points instead of symlinks (no admin required). Hooks go to `C:\Users\<name>\.jacques\hooks\`.
 
