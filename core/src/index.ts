@@ -167,6 +167,10 @@ export {
   isSessionArchived,
   archiveSessionFile,
   initializeArchive,
+  // Plan archiving
+  indexEmbeddedPlan,
+  generatePlanFilename,
+  generateVersionedFilename,
   // Plan cataloger
   catalogPlan,
   // Subagent store
