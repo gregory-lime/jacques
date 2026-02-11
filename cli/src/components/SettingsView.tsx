@@ -22,6 +22,8 @@ import {
 } from "./layout/index.js";
 import { buildBottomControls } from "../utils/bottom-controls.js";
 import type { UsageLimits } from "../hooks/useUsageLimits.js";
+import type { NotificationSettings, NotificationCategory } from "@jacques/core/notifications";
+import { DEFAULT_NOTIFICATION_SETTINGS } from "@jacques/core/notifications";
 
 export interface ArchiveStatsData {
   totalConversations: number;
@@ -50,7 +52,7 @@ interface SettingsViewProps {
   isTokenVerifying?: boolean;
   showConnectionSuccess?: boolean;
   // Notification props
-  notificationsEnabled?: boolean;
+  notificationSettings?: NotificationSettings;
   notificationsLoading?: boolean;
 }
 
@@ -61,7 +63,20 @@ interface SettingsViewProps {
 // Index 3: Sync New
 // Index 4: Re-sync All
 // Index 5: Browse Archive
-const TOTAL_ITEMS = 6;
+// Index 6: Notifications master toggle
+// Index 7-12: Notification category toggles
+// Index 13: Large operation threshold
+// Index 14: Bug alert threshold
+const TOTAL_ITEMS = 15;
+
+const NOTIFICATION_CATEGORIES: { key: NotificationCategory; label: string }[] = [
+  { key: "context", label: "Context thresholds" },
+  { key: "operation", label: "Large operations" },
+  { key: "plan", label: "Plan creation" },
+  { key: "auto-compact", label: "Auto-compact" },
+  { key: "handoff", label: "Handoff ready" },
+  { key: "bug-alert", label: "Bug alert" },
+];
 
 export { TOTAL_ITEMS as SETTINGS_TOTAL_ITEMS };
 
@@ -96,7 +111,7 @@ export function SettingsView({
   isTokenInputMode = false,
   isTokenVerifying = false,
   showConnectionSuccess = false,
-  notificationsEnabled = false,
+  notificationSettings,
   notificationsLoading = false,
 }: SettingsViewProps): React.ReactElement {
   const useHorizontalLayout = terminalWidth >= HORIZONTAL_LAYOUT_MIN_WIDTH;
@@ -262,6 +277,65 @@ export function SettingsView({
     </Text>
   );
 
+  // Notifications section (indices 6-14)
+  contentLines.push(<Text key="notif-space"> </Text>);
+  contentLines.push(<Text key="notif-label" color={MUTED_TEXT}>Notifications:</Text>);
+
+  if (notificationsLoading) {
+    contentLines.push(<Text key="notif-loading" color={MUTED_TEXT}>  Loading...</Text>);
+  } else {
+    const ns = notificationSettings ?? DEFAULT_NOTIFICATION_SETTINGS;
+    const dimmed = !ns.enabled;
+
+    // Master toggle (index 6)
+    const masterSelected = selectedIndex === 6;
+    const masterCheck = ns.enabled ? "[x]" : "[ ]";
+    contentLines.push(
+      <Text key="notif-master" color={masterSelected ? ACCENT_COLOR : "white"}>
+        {masterSelected ? "> " : "  "}{masterCheck} Enable notifications
+      </Text>
+    );
+
+    // Category toggles (indices 7-12)
+    for (let i = 0; i < NOTIFICATION_CATEGORIES.length; i++) {
+      const cat = NOTIFICATION_CATEGORIES[i];
+      const catIndex = 7 + i;
+      const catSelected = selectedIndex === catIndex;
+      const catCheck = ns.categories[cat.key] ? "[x]" : "[ ]";
+      contentLines.push(
+        <Text key={`notif-cat-${cat.key}`}
+              color={catSelected ? ACCENT_COLOR : (dimmed ? MUTED_TEXT : "white")}>
+          {catSelected ? "> " : "  "}{catCheck} {cat.label}
+        </Text>
+      );
+    }
+
+    // Blank line before thresholds
+    contentLines.push(<Text key="thresh-space"> </Text>);
+
+    // Large operation threshold (index 13)
+    const threshSelected = selectedIndex === 13;
+    const threshDimmed = dimmed || !ns.categories.operation;
+    contentLines.push(
+      <Text key="notif-thresh"
+            color={threshSelected ? ACCENT_COLOR : (threshDimmed ? MUTED_TEXT : "white")}>
+        {threshSelected ? "> " : "  "}
+        Operation threshold  {threshSelected ? "\u25C0 " : "  "}{ns.largeOperationThreshold.toLocaleString()}{threshSelected ? " \u25B6" : ""}
+      </Text>
+    );
+
+    // Bug alert threshold (index 14)
+    const bugSelected = selectedIndex === 14;
+    const bugDimmed = dimmed || !ns.categories["bug-alert"];
+    contentLines.push(
+      <Text key="notif-bug"
+            color={bugSelected ? ACCENT_COLOR : (bugDimmed ? MUTED_TEXT : "white")}>
+        {bugSelected ? "> " : "  "}
+        Bug alert threshold  {bugSelected ? "\u25C0 " : "  "}{ns.bugAlertThreshold}{bugSelected ? " \u25B6" : ""}
+      </Text>
+    );
+  }
+
   // Apply scroll to content (keep header, scroll body)
   const HEADER_LINES = 2;
   const maxVisible = FIXED_CONTENT_HEIGHT - HEADER_LINES;
@@ -272,9 +346,10 @@ export function SettingsView({
   // Notification for connection success
   const notification = showConnectionSuccess ? "Connected!" : null;
 
-  const { element: bottomControls, width: controlsWidth } = buildBottomControls([
-    { key: "Esc", label: " back" },
-  ]);
+  const bottomHints = selectedIndex >= 13 && selectedIndex <= 14
+    ? [{ key: "\u25C0\u25B6", label: " adjust" }, { key: "Esc", label: " back" }]
+    : [{ key: "Esc", label: " back" }];
+  const { element: bottomControls, width: controlsWidth } = buildBottomControls(bottomHints);
 
   return useHorizontalLayout ? (
     <HorizontalLayout

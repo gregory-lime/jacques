@@ -17,6 +17,8 @@ import {
   getSkipPermissions,
   toggleSkipPermissions,
 } from "@jacques/core";
+import type { NotificationSettings, NotificationCategory } from "@jacques/core/notifications";
+import { DEFAULT_NOTIFICATION_SETTINGS } from "@jacques/core/notifications";
 import { SETTINGS_TOTAL_ITEMS } from "../components/SettingsView.js";
 import type { ArchiveStatsData } from "../components/SettingsView.js";
 
@@ -44,7 +46,7 @@ export interface UseSettingsState {
   syncProgress: string | null;
   archiveStats: ArchiveStatsData | null;
   archiveStatsLoading: boolean;
-  notificationsEnabled: boolean;
+  notificationSettings: NotificationSettings;
   notificationsLoading: boolean;
 }
 
@@ -72,7 +74,7 @@ export function useSettings({
   const [syncProgress, setSyncProgress] = useState<string | null>(null);
   const [archiveStats, setArchiveStats] = useState<ArchiveStatsData | null>(null);
   const [archiveStatsLoading, setArchiveStatsLoading] = useState<boolean>(false);
-  const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(false);
+  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>(DEFAULT_NOTIFICATION_SETTINGS);
   const [notificationsLoading, setNotificationsLoading] = useState<boolean>(false);
 
   const open = useCallback(() => {
@@ -82,6 +84,18 @@ export function useSettings({
     setSettingsIndex(0);
     setSettingsScrollOffset(0);
     setCurrentView("settings");
+
+    // Load notification settings from server
+    setNotificationsLoading(true);
+    fetch(`${API_BASE}/api/notifications/settings`)
+      .then(res => res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`)))
+      .then((settings) => {
+        setNotificationSettings(settings as NotificationSettings);
+        setNotificationsLoading(false);
+      })
+      .catch(() => {
+        setNotificationsLoading(false);
+      });
 
     // Load archive stats asynchronously
     setArchiveStatsLoading(true);
@@ -172,10 +186,11 @@ export function useSettings({
       return;
     }
 
-    // Row positions for scrolling: Claude ~4, AutoArchive ~8, Skip ~9, SyncNew ~12, Resync ~13, Browse ~16
-    const SETTINGS_ROW_MAP = [4, 8, 9, 12, 13, 16];
+    // Row positions for scrolling (approximate row in contentLines for each selectable item)
+    // 0-5: existing items, 6: master toggle, 7-12: category toggles, 13-14: thresholds
+    const SETTINGS_ROW_MAP = [4, 8, 9, 12, 13, 16, 19, 20, 21, 22, 23, 24, 25, 27, 28];
     const VISIBLE_HEIGHT = 10;
-    const TOTAL_CONTENT_LINES = 22;
+    const TOTAL_CONTENT_LINES = 30;
 
     if (key.upArrow) {
       const newIndex = Math.max(0, settingsIndex - 1);
@@ -202,6 +217,34 @@ export function useSettings({
       return;
     }
 
+    // Left/right arrows for threshold adjustment
+    if (key.leftArrow || key.rightArrow) {
+      if (settingsIndex === 13) {
+        const step = key.rightArrow ? 5000 : -5000;
+        const newVal = Math.max(5000, Math.min(500_000, notificationSettings.largeOperationThreshold + step));
+        if (newVal !== notificationSettings.largeOperationThreshold) {
+          setNotificationSettings(prev => ({ ...prev, largeOperationThreshold: newVal }));
+          fetch(`${API_BASE}/api/notifications/settings`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ largeOperationThreshold: newVal }),
+          }).catch(() => {});
+        }
+      } else if (settingsIndex === 14) {
+        const step = key.rightArrow ? 1 : -1;
+        const newVal = Math.max(1, Math.min(50, notificationSettings.bugAlertThreshold + step));
+        if (newVal !== notificationSettings.bugAlertThreshold) {
+          setNotificationSettings(prev => ({ ...prev, bugAlertThreshold: newVal }));
+          fetch(`${API_BASE}/api/notifications/settings`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ bugAlertThreshold: newVal }),
+          }).catch(() => {});
+        }
+      }
+      return;
+    }
+
     if (key.return || input === " ") {
       if (settingsIndex === 0) {
         if (claudeToken.connected) {
@@ -222,10 +265,40 @@ export function useSettings({
         startSync(true);
       } else if (settingsIndex === 5) {
         onBrowseArchive();
+      } else if (settingsIndex === 6) {
+        // Master notifications toggle
+        const newEnabled = !notificationSettings.enabled;
+        setNotificationSettings(prev => ({ ...prev, enabled: newEnabled }));
+        fetch(`${API_BASE}/api/notifications/settings`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ enabled: newEnabled }),
+        }).catch(() => {
+          setNotificationSettings(prev => ({ ...prev, enabled: !newEnabled }));
+          showNotification("!Failed to update notifications");
+        });
+      } else if (settingsIndex >= 7 && settingsIndex <= 12) {
+        // Category toggles
+        const categories: NotificationCategory[] = ["context", "operation", "plan", "auto-compact", "handoff", "bug-alert"];
+        const cat = categories[settingsIndex - 7];
+        const newValue = !notificationSettings.categories[cat];
+        const newCategories = { ...notificationSettings.categories, [cat]: newValue };
+        setNotificationSettings(prev => ({ ...prev, categories: newCategories }));
+        fetch(`${API_BASE}/api/notifications/settings`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ categories: newCategories }),
+        }).catch(() => {
+          setNotificationSettings(prev => ({
+            ...prev,
+            categories: { ...prev.categories, [cat]: !newValue },
+          }));
+          showNotification("!Failed to update category");
+        });
       }
       return;
     }
-  }, [settingsIndex, settingsScrollOffset, returnToMain, showNotification, onBrowseArchive, startSync]);
+  }, [settingsIndex, settingsScrollOffset, returnToMain, showNotification, onBrowseArchive, startSync, notificationSettings]);
 
   const reset = useCallback(() => {
     setSettingsIndex(0);
@@ -242,7 +315,7 @@ export function useSettings({
       syncProgress,
       archiveStats,
       archiveStatsLoading,
-      notificationsEnabled,
+      notificationSettings,
       notificationsLoading,
     },
     open,
