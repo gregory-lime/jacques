@@ -249,10 +249,9 @@ export function useSessionsExperiment({
       }
     }
 
-    // Show/hide empty worktrees toggle
-    if (hiddenEmptyCount > 0 || showAllWorktrees) {
+    // Show hidden worktree count hint (non-selectable) when not showing all
+    if (hiddenEmptyCount > 0 && !showAllWorktrees) {
       result.push({ kind: "spacer" });
-      selectable.push(result.length);
       result.push({ kind: "show-all-worktrees-button", hiddenCount: hiddenEmptyCount });
     }
 
@@ -390,8 +389,6 @@ export function useSessionsExperiment({
         setIsCreatingWorktree(true);
         setNewWorktreeName("");
         setWorktreeCreateError(null);
-      } else if (item.kind === "show-all-worktrees-button") {
-        setShowAllWorktrees((prev) => !prev);
       } else if (item.kind === "remove-worktree-button") {
         setRemovingWorktreePath(item.worktreePath);
         setRemoveDeleteBranch(true);
@@ -458,6 +455,12 @@ export function useSessionsExperiment({
         if (item.kind === "session") allIds.add(item.session.session_id);
       }
       setSelectedIds(allIds);
+      return;
+    }
+
+    // d — toggle details (show/hide empty worktrees)
+    if (input === "d") {
+      setShowAllWorktrees((prev) => !prev);
       return;
     }
 

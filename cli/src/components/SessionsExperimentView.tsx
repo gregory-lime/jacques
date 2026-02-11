@@ -349,14 +349,10 @@ export function SessionsExperimentView({
       }
 
       case "show-all-worktrees-button": {
-        const isSelected = idx === currentItemIndex;
-        const isShowingAll = item.hiddenCount === 0;
-        const arrow = isShowingAll ? "\u25BE" : "\u25B8";
-        const label = isShowingAll ? "Hide empty worktrees" : `Show ${item.hiddenCount} more worktree${item.hiddenCount === 1 ? "" : "s"}`;
+        const label = `${item.hiddenCount} more worktree${item.hiddenCount === 1 ? "" : "s"} [d]`;
         contentLines.push(
           <Text key={`sawb-${idx}`} wrap="truncate-end">
-            <Text color={isSelected ? ACCENT_COLOR : MUTED_TEXT}>{isSelected ? "\u25B6" : " "} </Text>
-            <Text color={isSelected ? ACCENT_COLOR : MUTED_TEXT}>{arrow} {label}</Text>
+            <Text color={MUTED_TEXT}>  {label}</Text>
           </Text>
         );
         break;
@@ -372,6 +368,7 @@ export function SessionsExperimentView({
   // --- Bottom controls ---
   const { element: bottomControlsElement, width: controlsWidth } = buildBottomControls([
     { key: "Esc", label: " back " },
+    { key: "d", label: "etails" },
     { key: "h", label: "elp" },
   ]);
 
