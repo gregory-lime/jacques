@@ -141,7 +141,7 @@ export function Layout() {
   return (
     <NotificationProvider>
     <div style={styles.container}>
-      <ToastContainer />
+      <ToastContainer onFocusTerminal={focusTerminal} />
       {/* Sidebar */}
       <aside
         style={{

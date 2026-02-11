@@ -31,6 +31,9 @@ function pushToast(opts: {
   body: string;
   priority?: ToastPriority;
   category?: string;
+  sessionId?: string;
+  projectName?: string;
+  branchName?: string;
   /** Duration in ms. Default: 6000. Pass 0 for persistent. */
   duration?: number;
 }): string {
@@ -42,6 +45,9 @@ function pushToast(opts: {
     priority: opts.priority ?? 'medium',
     category: opts.category,
     timestamp: Date.now(),
+    sessionId: opts.sessionId,
+    projectName: opts.projectName,
+    branchName: opts.branchName,
   };
 
   // Prepend (newest first), cap at MAX_VISIBLE
@@ -86,13 +92,19 @@ const DURATION_BY_PRIORITY: Record<ToastPriority, number> = {
   critical: 10000,
 };
 
-export function ToastContainer() {
+export function ToastContainer({ onFocusTerminal }: { onFocusTerminal?: (sessionId: string) => void } = {}) {
   const currentToasts = useSyncExternalStore(subscribe, getSnapshot);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const handleDismiss = useCallback((id: string) => {
     removeToast(id);
   }, []);
+
+  const handleToastClick = useCallback((toast: ToastData) => {
+    if (toast.sessionId && onFocusTerminal) {
+      onFocusTerminal(toast.sessionId);
+    }
+  }, [onFocusTerminal]);
 
   if (currentToasts.length === 0) return null;
 
@@ -103,6 +115,7 @@ export function ToastContainer() {
           key={t.id}
           toast={t}
           onDismiss={handleDismiss}
+          onClick={handleToastClick}
           duration={DURATION_BY_PRIORITY[t.priority]}
           index={i}
         />

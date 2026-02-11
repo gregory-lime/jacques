@@ -154,6 +154,11 @@ function NotificationRow({
   onClick: () => void;
 }) {
   const age = formatAge(notification.timestamp);
+  const hasProject = !!notification.projectName;
+  const displayTitle = hasProject ? notification.projectName! : notification.title;
+  const displayBody = hasProject
+    ? (notification.branchName ? `${notification.branchName} · ${notification.title}` : notification.title)
+    : notification.body;
 
   return (
     <div
@@ -179,14 +184,29 @@ function NotificationRow({
       {/* Content */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={styles.rowHeader}>
-          <span style={styles.rowTitle}>{notification.title}</span>
+          <span style={styles.rowTitle}>{displayTitle}</span>
           <span style={styles.rowCategory}>
             {CATEGORY_LABELS[notification.category] ?? notification.category}
           </span>
         </div>
-        <div style={styles.rowBody}>{notification.body}</div>
+        <div style={styles.rowBody}>{displayBody}</div>
         <div style={styles.rowTime}>{age}</div>
       </div>
+
+      {/* Focus affordance for sessions */}
+      {notification.sessionId && (
+        <span
+          style={{
+            fontSize: 10,
+            color: colors.textMuted,
+            flexShrink: 0,
+            marginTop: 4,
+          }}
+          title="Click to focus terminal"
+        >
+          {'->'}
+        </span>
+      )}
 
       {/* Unread indicator */}
       {!notification.read && (

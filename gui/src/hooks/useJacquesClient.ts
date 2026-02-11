@@ -554,6 +554,9 @@ function useJacquesClientInternal(): UseJacquesClientReturn {
         body: notification.body,
         priority: notification.priority,
         category: notification.category,
+        sessionId: notification.sessionId,
+        projectName: notification.projectName,
+        branchName: notification.branchName,
       });
       // Persistent notification history
       notificationStore.push({
@@ -564,11 +567,17 @@ function useJacquesClientInternal(): UseJacquesClientReturn {
         category: notification.category,
         timestamp: notification.timestamp,
         sessionId: notification.sessionId,
+        projectName: notification.projectName,
+        branchName: notification.branchName,
       });
       // Browser notification when tab is unfocused
       if (typeof Notification !== 'undefined' && Notification.permission === 'granted' && !document.hasFocus()) {
-        new Notification(notification.title, {
-          body: notification.body,
+        const browserTitle = notification.projectName || notification.title;
+        const browserBody = notification.projectName
+          ? (notification.branchName ? `${notification.branchName} · ${notification.title}` : notification.title)
+          : notification.body;
+        new Notification(browserTitle, {
+          body: browserBody,
           tag: `jacques-${notification.category}-${notification.id}`,
           icon: '/jacsub.png',
         });

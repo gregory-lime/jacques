@@ -15,6 +15,10 @@ export interface NotificationItem {
   priority: NotificationPriority;
   timestamp: number;
   sessionId?: string;
+  /** Project name for contextual display (e.g., "my-project") */
+  projectName?: string;
+  /** Git branch name for contextual display (e.g., "feat/auth") */
+  branchName?: string;
 }
 
 export interface NotificationSettings {

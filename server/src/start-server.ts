@@ -164,6 +164,7 @@ export async function startEmbeddedServer(
         }).catch(() => {});
       }
     },
+    getSession: (sessionId) => registry.getSession(sessionId),
     logger,
   });
 

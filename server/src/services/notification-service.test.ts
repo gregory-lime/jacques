@@ -169,7 +169,7 @@ describe('NotificationService', () => {
 
       expect(broadcastCalls).toHaveLength(1);
       expect(broadcastCalls[0].notification.category).toBe('context');
-      expect(broadcastCalls[0].notification.title).toBe('Context 50%');
+      expect(broadcastCalls[0].notification.title).toBe('Context reached 55%');
       expect(broadcastCalls[0].notification.priority).toBe('medium');
     });
 
@@ -188,8 +188,8 @@ describe('NotificationService', () => {
 
       // Should fire 50% and 70% (no 90% — it's not in thresholds)
       expect(broadcastCalls).toHaveLength(2);
-      expect(broadcastCalls[0].notification.title).toBe('Context 50%');
-      expect(broadcastCalls[1].notification.title).toBe('Context 70%');
+      expect(broadcastCalls[0].notification.title).toBe('Context reached 75%');
+      expect(broadcastCalls[1].notification.title).toBe('Context reached 75%');
     });
 
     it('should only fire at 50% and 70% thresholds (not 90%)', () => {
@@ -207,8 +207,8 @@ describe('NotificationService', () => {
 
       // Default thresholds are [50, 70] — no 90%
       expect(broadcastCalls).toHaveLength(2);
-      expect(broadcastCalls[0].notification.title).toBe('Context 50%');
-      expect(broadcastCalls[1].notification.title).toBe('Context 70%');
+      expect(broadcastCalls[0].notification.title).toBe('Context reached 95%');
+      expect(broadcastCalls[1].notification.title).toBe('Context reached 95%');
     });
 
     it('should not re-fire same threshold for same session', () => {
@@ -355,10 +355,11 @@ describe('NotificationService', () => {
 
       expect(notifier.notify).toHaveBeenCalledWith(
         expect.objectContaining({
-          title: 'Jacques',
-          subtitle: expect.stringContaining('Context 50%'),
+          title: expect.any(String),
+          subtitle: expect.any(String),
           sound: 'Sosumi',
           wait: true,
+          actions: ['Focus'],
         }),
         expect.any(Function),
       );
@@ -467,6 +468,34 @@ describe('NotificationService', () => {
       expect(focusTerminal).not.toHaveBeenCalled();
     });
 
+    it('should call focusTerminal when Focus action is clicked', () => {
+      const focusTerminal = jest.fn();
+      const svc = new NotificationService({
+        broadcast: (msg) => broadcastCalls.push(msg),
+        focusTerminal,
+        logger: silentLogger,
+      });
+      svc.updateSettings({ enabled: true });
+
+      const session = createMockSession({
+        context_metrics: {
+          used_percentage: 55,
+          remaining_percentage: 45,
+          total_input_tokens: 100000,
+          total_output_tokens: 10000,
+          context_window_size: 200000,
+        },
+      });
+
+      svc.onContextUpdate(session);
+
+      const notifyCall = (notifier.notify as jest.Mock).mock.calls[0];
+      const callback = notifyCall[1] as (err: Error | null, response: string) => void;
+      callback(null, 'Focus');
+
+      expect(focusTerminal).toHaveBeenCalledWith('test-session-1');
+    });
+
     it('should handle focusTerminal callback errors gracefully', () => {
       const focusTerminal = jest.fn().mockImplementation(() => {
         throw new Error('Terminal not found');
@@ -505,8 +534,7 @@ describe('NotificationService', () => {
 
       expect(broadcastCalls).toHaveLength(1);
       expect(broadcastCalls[0].notification.category).toBe('plan');
-      expect(broadcastCalls[0].notification.title).toBe('Plan Created');
-      expect(broadcastCalls[0].notification.body).toContain('Refactor auth system');
+      expect(broadcastCalls[0].notification.title).toBe('Plan: Refactor auth system');
     });
 
     it('should include sessionId in plan notification', () => {
@@ -642,9 +670,9 @@ describe('NotificationService', () => {
 
       const history = service.getHistory();
       expect(history).toHaveLength(2); // 50%, 70%
-      // Newest first
-      expect(history[0].title).toBe('Context 70%');
-      expect(history[1].title).toBe('Context 50%');
+      // Newest first — both show the actual percentage
+      expect(history[0].title).toBe('Context reached 75%');
+      expect(history[1].title).toBe('Context reached 75%');
     });
 
     it('should cap history at MAX_NOTIFICATION_HISTORY', () => {
@@ -698,6 +726,52 @@ describe('NotificationService', () => {
         sessionId: 'test-session-1',
       }));
     });
+
+    it('should include projectName and branchName when getSession is provided', () => {
+      const svc = new NotificationService({
+        broadcast: (msg) => broadcastCalls.push(msg),
+        getSession: (id) => id === 'test-session-1' ? {
+          project: 'my-project',
+          git_branch: 'feat/auth',
+          session_title: 'Test Session',
+        } : undefined,
+        logger: silentLogger,
+      });
+
+      const session = createMockSession({
+        context_metrics: {
+          used_percentage: 55,
+          remaining_percentage: 45,
+          total_input_tokens: 100000,
+          total_output_tokens: 10000,
+          context_window_size: 200000,
+        },
+      });
+
+      svc.onContextUpdate(session);
+
+      expect(broadcastCalls).toHaveLength(1);
+      expect(broadcastCalls[0].notification.projectName).toBe('my-project');
+      expect(broadcastCalls[0].notification.branchName).toBe('feat/auth');
+    });
+
+    it('should omit projectName and branchName when getSession is not provided', () => {
+      const session = createMockSession({
+        context_metrics: {
+          used_percentage: 55,
+          remaining_percentage: 45,
+          total_input_tokens: 100000,
+          total_output_tokens: 10000,
+          context_window_size: 200000,
+        },
+      });
+
+      service.onContextUpdate(session);
+
+      expect(broadcastCalls).toHaveLength(1);
+      expect(broadcastCalls[0].notification.projectName).toBeUndefined();
+      expect(broadcastCalls[0].notification.branchName).toBeUndefined();
+    });
   });
 
   describe('bug alert (scanForErrors)', () => {
@@ -739,8 +813,7 @@ describe('NotificationService', () => {
 
       expect(broadcastCalls).toHaveLength(1);
       expect(broadcastCalls[0].notification.category).toBe('bug-alert');
-      expect(broadcastCalls[0].notification.title).toBe('Bug Alert');
-      expect(broadcastCalls[0].notification.body).toContain('5 tool errors');
+      expect(broadcastCalls[0].notification.title).toBe('5 tool errors');
     });
 
     it('should not fire bug-alert below threshold', async () => {
@@ -889,7 +962,7 @@ describe('NotificationService', () => {
 
       expect(broadcastCalls).toHaveLength(1);
       expect(broadcastCalls[0].notification.category).toBe('plan');
-      expect(broadcastCalls[0].notification.body).toContain('Refactor auth');
+      expect(broadcastCalls[0].notification.title).toContain('Refactor auth');
     });
 
     it('should not re-notify for duplicate plan titles', async () => {
@@ -952,7 +1025,7 @@ describe('NotificationService', () => {
       // At minimum Plan A fires; Plan B may be cooldown-blocked (same ms key).
       // Verify at least one plan fired and both titles are tracked.
       expect(broadcastCalls.length).toBeGreaterThanOrEqual(1);
-      expect(broadcastCalls[0].notification.body).toContain('Plan A');
+      expect(broadcastCalls[0].notification.title).toContain('Plan A');
     });
   });
 
