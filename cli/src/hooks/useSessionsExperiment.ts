@@ -267,12 +267,6 @@ export function useSessionsExperiment({
       }
     }
 
-    // Show hidden worktree count hint (non-selectable) when not showing all
-    if (hiddenEmptyCount > 0 && !showAllWorktrees) {
-      result.push({ kind: "spacer" });
-      result.push({ kind: "show-all-worktrees-button", hiddenCount: hiddenEmptyCount });
-    }
-
     // New worktree button (or input if creating)
     if (repoRoot) {
       result.push({ kind: "spacer" });
