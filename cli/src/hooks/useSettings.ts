@@ -68,7 +68,7 @@ export function useSettings({
   const [settingsIndex, setSettingsIndex] = useState<number>(0);
   const [settingsScrollOffset, setSettingsScrollOffset] = useState<number>(0);
   const [autoArchiveEnabled, setAutoArchiveEnabled] = useState<boolean>(false);
-  const [skipPermissions, setSkipPermissions] = useState<boolean>(false);
+  const [skipPermissions, setSkipPermissions] = useState<boolean>(getSkipPermissions());
   const [syncProgress, setSyncProgress] = useState<string | null>(null);
   const [archiveStats, setArchiveStats] = useState<ArchiveStatsData | null>(null);
   const [archiveStatsLoading, setArchiveStatsLoading] = useState<boolean>(false);
