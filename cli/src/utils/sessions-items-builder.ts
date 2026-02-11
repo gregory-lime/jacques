@@ -253,21 +253,30 @@ function buildCurrentProjectItems(
     }
   });
 
-  // Unmatched sessions
+  // Unmatched sessions — group by branch for meaningful headers
   if (unmatched.length > 0) {
-    if (visibleWorktrees.length > 0) {
-      result.push({ kind: "spacer" });
-    }
-    result.push({
-      kind: "worktree-header",
-      name: "other",
-      branch: null,
-      isMain: false,
-      sessionCount: unmatched.length,
-    });
+    const unmatchedGroups = new Map<string, Session[]>();
     for (const session of unmatched) {
-      selectable.push(result.length);
-      result.push({ kind: "session", session });
+      const key = session.git_branch || session.git_worktree || "other";
+      const existing = unmatchedGroups.get(key) || [];
+      existing.push(session);
+      unmatchedGroups.set(key, existing);
+    }
+    for (const [branchName, groupSessions] of unmatchedGroups) {
+      if (visibleWorktrees.length > 0 || result.length > 0) {
+        result.push({ kind: "spacer" });
+      }
+      result.push({
+        kind: "worktree-header",
+        name: branchName,
+        branch: branchName,
+        isMain: false,
+        sessionCount: groupSessions.length,
+      });
+      for (const session of groupSessions) {
+        selectable.push(result.length);
+        result.push({ kind: "session", session });
+      }
     }
   }
 
@@ -379,17 +388,26 @@ function buildOtherProjectItems(
     }
 
     if (unmatched.length > 0) {
-      result.push({ kind: "spacer" });
-      result.push({
-        kind: "worktree-header",
-        name: "other",
-        branch: null,
-        isMain: false,
-        sessionCount: unmatched.length,
-      });
+      const unmatchedGroups = new Map<string, Session[]>();
       for (const session of unmatched) {
-        selectable.push(result.length);
-        result.push({ kind: "session", session });
+        const key = session.git_branch || session.git_worktree || "other";
+        const existing = unmatchedGroups.get(key) || [];
+        existing.push(session);
+        unmatchedGroups.set(key, existing);
+      }
+      for (const [branchName, groupSessions] of unmatchedGroups) {
+        result.push({ kind: "spacer" });
+        result.push({
+          kind: "worktree-header",
+          name: branchName,
+          branch: branchName,
+          isMain: false,
+          sessionCount: groupSessions.length,
+        });
+        for (const session of groupSessions) {
+          selectable.push(result.length);
+          result.push({ kind: "session", session });
+        }
       }
     }
 

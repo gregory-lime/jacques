@@ -70,6 +70,14 @@ fi
 **Problem**: `pgrep -x claude` doesn't find all Claude processes (some run under different process names like `node`). Attempting to match sessions to processes by CWD can assign bypass flags to wrong sessions.
 **Solution**: Don't use CWD-based process matching. Instead, store `terminal_pid` from hook events (`os.getppid()`) and check bypass per-PID directly. Three detection paths: launch-time CWD tracking, startup PID checking, hook-based PID storage.
 
+### Startup Shows Wrong Git Branch for Worktree Sessions
+**Problem**: At startup, the process scanner trusted the session catalog's `gitBranch` field, which was detected once per decoded project path (not per session CWD). For worktrees, the decoded path could resolve to the main repo root, producing "master" for all sessions. Live git detection was only used when the catalog had *no* branch — so a wrong "master" value prevented the correct branch from being detected.
+**Solution**: `resolveSessionMetadata()` in `session-discovery.ts` now always runs live `detectGitInfo(cwd)` using the process's actual CWD. Catalog git info is only used as fallback when live detection fails. Additionally, `jacques-register-session.py` now sends git info at SessionStart (previously it sent none).
+
+### CLI Shows "other" Instead of Worktree Name for New Worktrees
+**Problem**: When a new git worktree is created and a session starts in it, the CLI's cached worktree list (from `git worktree list`) may not include the new worktree yet. Sessions that can't match any known worktree were dumped under a hardcoded `"other"` header with `branch: null`.
+**Solution**: `sessions-items-builder.ts` now groups unmatched sessions by their `git_branch` (or `git_worktree`) instead of using a hardcoded "other" label. The literal "other" only appears as a last resort when a session has no git info at all.
+
 ### ToggleSwitch Click Bug
 **Problem**: Inner `<div role="switch">` had `onClick={(e) => e.stopPropagation()}` which prevented direct clicks on the switch from toggling
 **Solution**: Changed to `onClick={handleClick}` so clicks on the switch element itself trigger the toggle

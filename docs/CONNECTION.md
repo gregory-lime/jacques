@@ -71,6 +71,7 @@ iTerm keys have two formats that must match:
    ├── findActiveSessionFiles(cwd, catalogMap)
    │   ├── List .jsonl files modified within 60s
    │   ├── Priority 1: Resolve from Jacques session catalog (fast)
+   │   │   └── Git info: always live-detected from process CWD (catalog git info used only as fallback)
    │   └── Priority 2: Parse JSONL for metadata (slow fallback)
    ├── findMostRecentSessionFile() [fallback if no active files]
    └── findRecentSessionFiles() [for excess processes with idle sessions]
