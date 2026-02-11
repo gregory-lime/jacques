@@ -46,7 +46,7 @@ export function MainMenuView({
     || "Jacques";
 
   // Dynamic session count label for menu item 1
-  const sessionLabel = `Sessions${sessions.length > 0 ? ` (${sessions.length})` : ""}`;
+  const sessionLabel = `All Sessions${sessions.length > 0 ? ` (${sessions.length})` : ""}`;
 
   const contentLines: React.ReactNode[] = [];
 

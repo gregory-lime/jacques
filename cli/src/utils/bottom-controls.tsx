@@ -43,9 +43,7 @@ export function buildBottomControls(items: ControlItem[]): {
   return { element: <>{elements}</>, width };
 }
 
-/** Default main menu controls: [Q]uit [P]rojects [W]eb */
+/** Default main menu controls: [Q]uit */
 export const MAIN_CONTROLS: ControlItem[] = [
-  { key: "Q", label: "uit " },
-  { key: "P", label: "rojects " },
-  { key: "W", label: "eb" },
+  { key: "Q", label: "uit" },
 ];

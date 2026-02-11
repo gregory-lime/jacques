@@ -7,6 +7,7 @@ import React from "react";
 import { Box, Text } from "ink";
 import { MASCOT_ANSI } from "../../assets/mascot-ansi.js";
 import { ACCENT_COLOR, MUTED_TEXT } from "./theme.js";
+import { buildBottomControls, MAIN_CONTROLS } from "../../utils/bottom-controls.js";
 
 export interface VerticalLayoutProps {
   content: React.ReactNode[];
@@ -14,7 +15,7 @@ export interface VerticalLayoutProps {
   showVersion: boolean;
   sessionCount?: number;
   notification?: string | null;
-  /** Custom bottom controls. If omitted, default [Q]uit [S]ettings [A]ctive [P]roject shown. */
+  /** Custom bottom controls. If omitted, default [Q]uit shown. */
   bottomControls?: React.ReactNode;
 }
 
@@ -85,14 +86,7 @@ export function VerticalLayout({
         ) : bottomControls ? (
           bottomControls
         ) : (
-          <Text>
-            <Text color={ACCENT_COLOR}>[Q]</Text>
-            <Text color={MUTED_TEXT}>uit</Text>
-            <Text color={ACCENT_COLOR}> [P]</Text>
-            <Text color={MUTED_TEXT}>rojects</Text>
-            <Text color={ACCENT_COLOR}> [W]</Text>
-            <Text color={MUTED_TEXT}>eb</Text>
-          </Text>
+          buildBottomControls(MAIN_CONTROLS).element
         )}
       </Box>
     </Box>

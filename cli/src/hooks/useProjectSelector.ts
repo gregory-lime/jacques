@@ -2,26 +2,18 @@
  * useProjectSelector Hook
  *
  * Fetches discovered projects from the server API and manages
- * selection state for the project selector view.
+ * the selected project for scoping views.
  */
 
 import { useState, useCallback } from "react";
-import type { Key } from "ink";
 import type { DiscoveredProject } from "@jacques/core";
-import type { DashboardView } from "../components/Dashboard.js";
 
 export type { DiscoveredProject };
 
 export interface UseProjectSelectorReturn {
   projects: DiscoveredProject[];
   selectedProject: string | null;
-  loading: boolean;
-  error: string | null;
-  selectedIndex: number;
-  scrollOffset: number;
   init: () => void;
-  open: () => void;
-  handleInput: (input: string, key: Key, setCurrentView: (view: DashboardView) => void) => void;
   reset: () => void;
   setSelectedProject: (name: string | null) => void;
 }
@@ -31,10 +23,6 @@ const API_BASE = "http://localhost:4243";
 export function useProjectSelector(): UseProjectSelectorReturn {
   const [projects, setProjects] = useState<DiscoveredProject[]>([]);
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [scrollOffset, setScrollOffset] = useState(0);
 
   const fetchProjects = useCallback(() => {
     fetch(`${API_BASE}/api/projects`)
@@ -45,88 +33,26 @@ export function useProjectSelector(): UseProjectSelectorReturn {
       .then((raw: unknown) => {
         const data = raw as { projects?: DiscoveredProject[] };
         const list: DiscoveredProject[] = data.projects || [];
-        // Sort by session count (most active first), then alphabetically
         list.sort((a, b) => b.sessionCount - a.sessionCount || a.name.localeCompare(b.name));
         setProjects(list);
-        setLoading(false);
       })
-      .catch((err) => {
-        setError(err instanceof Error ? err.message : "Failed to fetch projects");
-        setLoading(false);
+      .catch(() => {
+        // Silently fail — projects will be empty
       });
   }, []);
 
-  // Eager fetch on mount — called from App.tsx so data is ready before user opens view
   const init = useCallback(() => {
     fetchProjects();
   }, [fetchProjects]);
 
-  const open = useCallback(() => {
-    setError(null);
-    setSelectedIndex(0);
-    setScrollOffset(0);
-
-    // Show cached projects immediately; only show loading if we have none yet
-    if (projects.length === 0) {
-      setLoading(true);
-    }
-    fetchProjects();
-  }, [projects.length, fetchProjects]);
-
-  const handleInput = useCallback((input: string, key: Key, setCurrentView: (view: DashboardView) => void) => {
-    if (key.escape) {
-      setCurrentView("main");
-      return;
-    }
-
-    const VISIBLE_HEIGHT = 7;
-
-    if (key.upArrow) {
-      setSelectedIndex((prev) => {
-        const next = Math.max(0, prev - 1);
-        if (next < scrollOffset) setScrollOffset(next);
-        return next;
-      });
-      return;
-    }
-
-    if (key.downArrow) {
-      setSelectedIndex((prev) => {
-        const next = Math.min(projects.length - 1, prev + 1);
-        if (next >= scrollOffset + VISIBLE_HEIGHT) {
-          setScrollOffset(next - VISIBLE_HEIGHT + 1);
-        }
-        return next;
-      });
-      return;
-    }
-
-    if (key.return && projects.length > 0) {
-      const project = projects[selectedIndex];
-      if (project) {
-        setSelectedProject(project.name);
-        setCurrentView("main");
-      }
-      return;
-    }
-  }, [projects, selectedIndex, scrollOffset]);
-
   const reset = useCallback(() => {
-    setSelectedIndex(0);
-    setScrollOffset(0);
-    setError(null);
+    // No-op — keep projects and selectedProject across view transitions
   }, []);
 
   return {
     projects,
     selectedProject,
-    loading,
-    error,
-    selectedIndex,
-    scrollOffset,
     init,
-    open,
-    handleInput,
     reset,
     setSelectedProject,
   };

@@ -23,9 +23,7 @@ export function ProgressLine({
   const metrics = session.context_metrics;
   const percentage = metrics.used_percentage;
   const maxTokens = metrics.context_window_size;
-  const totalSessionTokens = metrics.total_input_tokens;
   const currentTokens = Math.round(maxTokens * (percentage / 100));
-  const showSessionTotal = totalSessionTokens > currentTokens * 1.5;
 
   const barWidth = 20;
   const filled = Math.round((percentage / 100) * barWidth);
@@ -44,12 +42,6 @@ export function ProgressLine({
         {" "}
         ({formatTokens(currentTokens)}/{formatTokens(maxTokens)})
       </Text>
-      {showSessionTotal && (
-        <Text color={MUTED_TEXT}>
-          {" "}
-          {"\u2022"} {formatTokens(totalSessionTokens)} session
-        </Text>
-      )}
     </Text>
   );
 }

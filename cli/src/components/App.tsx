@@ -17,7 +17,6 @@ import { useArchiveBrowser } from "../hooks/useArchiveBrowser.js";
 import { useSettings } from "../hooks/useSettings.js";
 import { useProjectDashboard } from "../hooks/useProjectDashboard.js";
 import { useProjectSelector } from "../hooks/useProjectSelector.js";
-import { useSessions } from "../hooks/useSessions.js";
 import { useWorktrees } from "../hooks/useWorktrees.js";
 import { useSessionsExperiment } from "../hooks/useSessionsExperiment.js";
 import { useUsageLimits } from "../hooks/useUsageLimits.js";
@@ -78,28 +77,9 @@ export function App(): React.ReactElement {
 
   const projectSelector = useProjectSelector();
 
-  const sessionsHook = useSessions({
-    sessions,
-    focusedSessionId,
-    selectedProject: projectSelector.selectedProject,
-    focusTerminal,
-    maximizeWindow,
-    tileWindows,
-    launchSession,
-    showNotification,
-    returnToMain: () => returnToMainRef.current(),
-  });
-
   const worktreesHook = useWorktrees({
     listWorktreesWs,
-    createWorktreeWs,
-    removeWorktreeWs,
-    launchSession,
     listWorktreesResult,
-    createWorktreeResult,
-    removeWorktreeResult,
-    showNotification,
-    returnToMain: () => returnToMainRef.current(),
     sessions: sessions as Array<{ cwd?: string; git_worktree?: string }>,
   });
 
@@ -154,7 +134,6 @@ export function App(): React.ReactElement {
     settings.reset();
     projectDashboard.reset();
     projectSelector.reset();
-    sessionsHook.reset();
     worktreesHook.reset();
     sessionsExpHook.reset();
   }, [
@@ -163,7 +142,6 @@ export function App(): React.ReactElement {
     settings.reset,
     projectDashboard.reset,
     projectSelector.reset,
-    sessionsHook.reset,
     worktreesHook.reset,
     sessionsExpHook.reset,
   ]);
@@ -231,31 +209,33 @@ export function App(): React.ReactElement {
   // ---- Handle menu selection ----
   const handleMenuSelect = useCallback((key: string) => {
     switch (key) {
-      case "1": // Sessions
-        setCurrentView("sessions");
-        sessionsHook.reset();
-        break;
-
-      case "2": { // Worktrees
-        const root = getRepoRoot();
-        setCurrentView("worktrees");
-        worktreesHook.open(root);
-        break;
-      }
-
-      case "3": // Settings
-        settings.open();
-        claudeToken.loadStatus();
-        break;
-
-      case "4": { // Sessions Lab
+      case "1": { // All Sessions
         const root = getRepoRoot();
         worktreesHook.open(root);
         setCurrentView("sessions-experiment");
         break;
       }
+
+      case "2": // Settings
+        settings.open();
+        claudeToken.loadStatus();
+        break;
+
+      case "3": { // Web GUI
+        const guiUrl = "http://localhost:4243";
+        const openCmd = process.platform === "darwin" ? "open" :
+                        process.platform === "win32" ? "start" : "xdg-open";
+        exec(`${openCmd} ${guiUrl}`, (error) => {
+          if (error) {
+            showNotification("Failed to open browser");
+          } else {
+            showNotification("Opening web GUI...");
+          }
+        });
+        break;
+      }
     }
-  }, [sessionsHook.reset, getRepoRoot, worktreesHook.open, settings.open, claudeToken.loadStatus]);
+  }, [getRepoRoot, worktreesHook.open, settings.open, claudeToken.loadStatus, showNotification]);
 
   // ---- Handler: main view input ----
   const handleMainViewInput = useCallback((input: string, key: Key) => {
@@ -278,32 +258,14 @@ export function App(): React.ReactElement {
       exit();
       return;
     }
-    if (["1", "2", "3", "4"].includes(input)) {
+    if (["1", "2", "3"].includes(input)) {
       const index = parseInt(input) - 1;
       if (MENU_ITEMS[index]?.enabled) {
         handleMenuSelect(input);
       }
       return;
     }
-    if (input === "p" || input === "P") {
-      setCurrentView("projects");
-      projectSelector.open();
-      return;
-    }
-    if (input === "w" || input === "W") {
-      const guiUrl = "http://localhost:4243";
-      const openCmd = process.platform === "darwin" ? "open" :
-                      process.platform === "win32" ? "start" : "xdg-open";
-      exec(`${openCmd} ${guiUrl}`, (error) => {
-        if (error) {
-          showNotification("Failed to open browser");
-        } else {
-          showNotification("Opening web GUI...");
-        }
-      });
-      return;
-    }
-  }, [selectedMenuIndex, handleMenuSelect, exit, showNotification, projectSelector.open]);
+  }, [selectedMenuIndex, handleMenuSelect, exit]);
 
   // ---- Central keyboard dispatcher ----
   useInput(
@@ -311,18 +273,6 @@ export function App(): React.ReactElement {
       switch (currentView) {
         case "main":
           handleMainViewInput(input, key);
-          break;
-
-        case "sessions":
-          sessionsHook.handleInput(input, key);
-          break;
-
-        case "projects":
-          projectSelector.handleInput(input, key, setCurrentView);
-          break;
-
-        case "worktrees":
-          worktreesHook.handleInput(input, key);
           break;
 
         case "sessions-experiment":
@@ -379,29 +329,6 @@ export function App(): React.ReactElement {
         selectedMenuIndex={selectedMenuIndex}
         notification={notification}
         selectedProject={projectSelector.selectedProject}
-        // Sessions view
-        sessionsSelectedIndex={sessionsHook.selectedIndex}
-        sessionsScrollOffset={sessionsHook.scrollOffset}
-        sessionsSelectedIds={sessionsHook.selectedIds}
-        filteredSessions={sessionsHook.filteredSessions}
-        // Projects view
-        projects={projectSelector.projects}
-        projectsSelectedIndex={projectSelector.selectedIndex}
-        projectsScrollOffset={projectSelector.scrollOffset}
-        projectsLoading={projectSelector.loading}
-        projectsError={projectSelector.error}
-        // Worktrees view
-        worktrees={worktreesHook.worktrees}
-        worktreesLoading={worktreesHook.loading}
-        worktreesError={worktreesHook.error}
-        worktreesSelectedIndex={worktreesHook.selectedIndex}
-        worktreesScrollOffset={worktreesHook.scrollOffset}
-        worktreesIsCreating={worktreesHook.isCreating}
-        worktreesNewName={worktreesHook.newName}
-        worktreesCreateError={worktreesHook.createError}
-        worktreesIsConfirmingRemove={worktreesHook.isConfirmingRemove}
-        worktreesIsGitProject={worktreesHook.isGitProject}
-        worktreesRepoRoot={worktreesHook.repoRoot}
         // Settings
         settings={settings.state}
         claudeToken={claudeToken.state}
