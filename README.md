@@ -144,6 +144,10 @@ Or via the command line:
 ```bash
 curl -X POST http://localhost:4243/api/sync?force=true
 ```
+```powershell
+# Windows (PowerShell):
+Invoke-WebRequest -Method POST -Uri "http://localhost:4243/api/sync?force=true"
+```
 
 Projects are automatically discovered and grouped by git repo root — worktrees of the same repo appear as one project. Use the **x** button next to any project in the sidebar to hide unwanted entries (e.g., `/tmp` sessions).
 

@@ -131,8 +131,8 @@ describe('NotificationService', () => {
       const settings = svc.getSettings();
       expect(settings.enabled).toBe(true);
       expect(settings.categories.context).toBe(false);
-      // Other categories should use defaults
-      expect(settings.categories.operation).toBe(true);
+      // Other categories should use defaults (operation is disabled by default)
+      expect(settings.categories.operation).toBe(false);
       expect(settings.largeOperationThreshold).toBe(100_000);
     });
 
@@ -147,8 +147,8 @@ describe('NotificationService', () => {
         categories: { context: false } as any,
       });
       expect(updated.categories.context).toBe(false);
-      // Other categories should remain unchanged
-      expect(updated.categories.operation).toBe(true);
+      // Other categories should remain unchanged (operation is disabled by default)
+      expect(updated.categories.operation).toBe(false);
     });
   });
 
@@ -303,6 +303,9 @@ describe('NotificationService', () => {
 
   describe('cooldowns', () => {
     it('should respect cooldown period for same key', () => {
+      // Enable operation category (disabled by default)
+      service.updateSettings({ categories: { operation: true } as any });
+
       const session = createMockSession({
         context_metrics: {
           used_percentage: 55,
@@ -451,7 +454,7 @@ describe('NotificationService', () => {
         focusTerminal,
         logger: silentLogger,
       });
-      svc.updateSettings({ enabled: true });
+      svc.updateSettings({ enabled: true, categories: { operation: true } as any });
 
       // Operations don't have sessionId
       svc.onClaudeOperation({
@@ -566,6 +569,9 @@ describe('NotificationService', () => {
 
   describe('claude operations', () => {
     it('should fire for large operations', () => {
+      // Enable operation category (disabled by default)
+      service.updateSettings({ categories: { operation: true } as any });
+
       service.onClaudeOperation({
         id: 'op-1',
         operation: 'llm-handoff',
@@ -775,6 +781,11 @@ describe('NotificationService', () => {
   });
 
   describe('bug alert (scanForErrors)', () => {
+    beforeEach(() => {
+      // Enable bug-alert category (disabled by default)
+      service.updateSettings({ categories: { 'bug-alert': true } as any });
+    });
+
     function makeErrorEntry(): string {
       return JSON.stringify({
         type: 'assistant',
