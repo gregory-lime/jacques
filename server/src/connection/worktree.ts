@@ -286,18 +286,47 @@ export async function checkWorktreeStatus(
     // If status fails, assume clean
   }
 
-  // Check if branch is merged into default branch
+  // Check if branch is merged into default branch.
+  // Three cases:
+  // 1. Branch is NOT an ancestor of default → has unmerged work → not merged
+  // 2. Branch IS an ancestor AND its tip is on default's first-parent line
+  //    → branch just points at an old mainline commit (no unique work) → not merged
+  // 3. Branch IS an ancestor AND its tip is NOT on default's first-parent line
+  //    → branch was merged via merge commit → merged
   let isMergedToMain = false;
   if (branch && branch !== defaultBranch) {
     try {
+      // Step 1: is the branch an ancestor of the default branch?
       await execAsync(
         `git -C '${escapedRoot}' merge-base --is-ancestor '${branch}' '${defaultBranch}'`,
         { timeout: 5000 }
       );
-      // Exit code 0 means branch IS an ancestor of default branch (merged)
-      isMergedToMain = true;
+
+      // Branch IS an ancestor — check if it was merged or is just at an old commit
+      const { stdout: tipOut } = await execAsync(
+        `git -C '${escapedRoot}' rev-parse '${branch}'`,
+        { timeout: 5000 }
+      );
+      const branchTip = tipOut.trim();
+
+      // Step 2: check if branch tip is on default branch's first-parent line
+      let isOnFirstParentLine = false;
+      try {
+        const { stdout: fpCommits } = await execAsync(
+          `git -C '${escapedRoot}' rev-list --first-parent '${branchTip}^..${defaultBranch}'`,
+          { timeout: 10000 }
+        );
+        isOnFirstParentLine = fpCommits.split('\n').some(h => h.trim() === branchTip);
+      } catch {
+        // rev-list failed (e.g., root commit has no parent)
+        isOnFirstParentLine = false;
+      }
+
+      // On first-parent line → just at old mainline commit, not "merged"
+      // NOT on first-parent line → was merged via merge commit
+      isMergedToMain = !isOnFirstParentLine;
     } catch {
-      // Non-zero exit = not merged (or branch doesn't exist)
+      // is-ancestor failed → not merged
       isMergedToMain = false;
     }
   }

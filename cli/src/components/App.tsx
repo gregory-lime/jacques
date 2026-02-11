@@ -132,8 +132,10 @@ export function App(): React.ReactElement {
     showNotification,
     returnToMain: () => returnToMainRef.current(),
     createWorktreeWs,
+    removeWorktreeWs,
     repoRoot: worktreesHook.repoRoot,
     createWorktreeResult,
+    removeWorktreeResult,
     skipPermissions: settings.state.skipPermissions,
   });
 
@@ -403,6 +405,8 @@ export function App(): React.ReactElement {
         sessionsExpNewWorktreeName={sessionsExpHook.newWorktreeName}
         sessionsExpWorktreeCreateError={sessionsExpHook.worktreeCreateError}
         sessionsExpRepoRoot={worktreesHook.repoRoot}
+        sessionsExpRemoveDeleteBranch={sessionsExpHook.removeDeleteBranch}
+        sessionsExpRemoveForce={sessionsExpHook.removeForce}
       />
     </Box>
   );

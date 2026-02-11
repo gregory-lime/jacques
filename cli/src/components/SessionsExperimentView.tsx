@@ -50,6 +50,8 @@ interface SessionsExperimentViewProps {
   worktreeCreateError: string | null;
   repoRoot: string | null;
   projectName: string | null;
+  removeDeleteBranch: boolean;
+  removeForce: boolean;
 }
 
 /**
@@ -83,6 +85,8 @@ export function SessionsExperimentView({
   worktreeCreateError,
   repoRoot,
   projectName,
+  removeDeleteBranch,
+  removeForce,
 }: SessionsExperimentViewProps): React.ReactElement {
   const isWide = terminalWidth >= HORIZONTAL_LAYOUT_MIN_WIDTH;
   const currentItemIndex = selectableIndices[selectedIndex] ?? -1;
@@ -218,6 +222,91 @@ export function SessionsExperimentView({
             <Text color={MUTED_TEXT}>{"\u2514"} </Text>
             <Text color={isSelected ? ACCENT_COLOR : MUTED_TEXT}>{isSelected ? "\u25B6" : " "} </Text>
             <Text color={isSelected ? ACCENT_COLOR : MUTED_TEXT}>+ New Session</Text>
+          </Text>
+        );
+        break;
+      }
+
+      case "remove-worktree-button": {
+        const isSelected = idx === currentItemIndex;
+        contentLines.push(
+          <Text key={`rwb-${idx}`} wrap="truncate-end">
+            <Text color={MUTED_TEXT}>{"\u2514"} </Text>
+            <Text color={isSelected ? "red" : MUTED_TEXT}>{isSelected ? "\u25B6" : " "} </Text>
+            <Text color={isSelected ? "red" : MUTED_TEXT}>{"\u2717"} Remove worktree</Text>
+          </Text>
+        );
+        break;
+      }
+
+      case "remove-worktree-confirm": {
+        // Line 1: Confirmation header
+        contentLines.push(
+          <Text key={`rwc-title-${idx}`} wrap="truncate-end">
+            <Text color="red" bold>{"\u25B6"} Remove &quot;{item.worktreeName}&quot;?</Text>
+          </Text>
+        );
+
+        // Line 2: Status badges
+        const badges: React.ReactNode[] = [];
+        if (item.hasUncommittedChanges) {
+          badges.push(<Text key="uc" color="yellow">{"\u26A0"} uncommitted changes</Text>);
+        }
+        if (item.isMergedToMain) {
+          badges.push(<Text key="mg" color="green">{"\u2713"} merged</Text>);
+        } else {
+          badges.push(<Text key="um" color="red">{"\u2717"} unmerged</Text>);
+        }
+        if (item.sessionCount > 0) {
+          badges.push(
+            <Text key="sc" color={ACCENT_COLOR}>
+              {item.sessionCount} active {item.sessionCount === 1 ? "session" : "sessions"}
+            </Text>
+          );
+        }
+        contentLines.push(
+          <Text key={`rwc-status-${idx}`} wrap="truncate-end">
+            <Text>{"  "}</Text>
+            {badges.map((badge, i) => (
+              <React.Fragment key={i}>
+                {i > 0 && <Text color={MUTED_TEXT}>{"  "}</Text>}
+                {badge}
+              </React.Fragment>
+            ))}
+          </Text>
+        );
+
+        // Line 3: Toggles
+        const branchLabel = item.branch || item.worktreeName;
+        contentLines.push(
+          <Text key={`rwc-toggles-${idx}`} wrap="truncate-end">
+            <Text color={MUTED_TEXT}>{"  "}</Text>
+            <Text color={ACCENT_COLOR}>[b]</Text>
+            <Text color={removeDeleteBranch ? "white" : MUTED_TEXT}>
+              {removeDeleteBranch ? " \u2611" : " \u2610"} delete branch {branchLabel}
+            </Text>
+            {item.hasUncommittedChanges && (
+              <>
+                <Text color={MUTED_TEXT}>{"  "}</Text>
+                <Text color={ACCENT_COLOR}>[f]</Text>
+                <Text color={removeForce ? "red" : MUTED_TEXT}>
+                  {removeForce ? " \u2611" : " \u2610"} force
+                </Text>
+              </>
+            )}
+          </Text>
+        );
+
+        // Line 4: Action hints
+        const canConfirm = !item.hasUncommittedChanges || removeForce;
+        contentLines.push(
+          <Text key={`rwc-actions-${idx}`} wrap="truncate-end">
+            <Text color={MUTED_TEXT}>{"  "}</Text>
+            <Text color={canConfirm ? ACCENT_COLOR : MUTED_TEXT}>[Enter]</Text>
+            <Text color={canConfirm ? "white" : MUTED_TEXT}> confirm</Text>
+            <Text color={MUTED_TEXT}>{"  "}</Text>
+            <Text color={ACCENT_COLOR}>[Esc]</Text>
+            <Text color="white"> cancel</Text>
           </Text>
         );
         break;

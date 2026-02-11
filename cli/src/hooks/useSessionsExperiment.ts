@@ -13,7 +13,7 @@ import type { Session } from "@jacques/core";
 import { getProjectGroupKey } from "@jacques/core";
 import type { WorktreeItem } from "./useWorktrees.js";
 import { validateWorktreeName } from "./useWorktrees.js";
-import type { CreateWorktreeResult } from "./useJacquesClient.js";
+import type { CreateWorktreeResult, RemoveWorktreeResult } from "./useJacquesClient.js";
 
 // ---- Content item types ----
 
@@ -24,7 +24,9 @@ export type ContentItem =
   | { kind: "new-session-button"; worktreePath: string }
   | { kind: "new-worktree-button" }
   | { kind: "new-worktree-input" }
-  | { kind: "show-all-worktrees-button"; hiddenCount: number };
+  | { kind: "show-all-worktrees-button"; hiddenCount: number }
+  | { kind: "remove-worktree-button"; worktreePath: string; worktreeName: string }
+  | { kind: "remove-worktree-confirm"; worktreePath: string; worktreeName: string; branch: string | null; hasUncommittedChanges: boolean; isMergedToMain: boolean; sessionCount: number };
 
 // ---- Params & Return ----
 
@@ -40,8 +42,10 @@ export interface UseSessionsExperimentParams {
   showNotification: (msg: string) => void;
   returnToMain: () => void;
   createWorktreeWs: (repoRoot: string, name: string, baseBranch?: string, dangerouslySkipPermissions?: boolean) => void;
+  removeWorktreeWs: (repoRoot: string, path: string, force?: boolean, deleteBranch?: boolean) => void;
   repoRoot: string | null;
   createWorktreeResult: CreateWorktreeResult | null;
+  removeWorktreeResult: RemoveWorktreeResult | null;
   skipPermissions: boolean;
 }
 
@@ -55,6 +59,9 @@ export interface UseSessionsExperimentReturn {
   isCreatingWorktree: boolean;
   newWorktreeName: string;
   worktreeCreateError: string | null;
+  isRemovingWorktree: boolean;
+  removeDeleteBranch: boolean;
+  removeForce: boolean;
   handleInput: (input: string, key: Key) => void;
   reset: () => void;
 }
@@ -71,8 +78,10 @@ export function useSessionsExperiment({
   showNotification,
   returnToMain,
   createWorktreeWs,
+  removeWorktreeWs,
   repoRoot,
   createWorktreeResult,
+  removeWorktreeResult,
   skipPermissions,
 }: UseSessionsExperimentParams): UseSessionsExperimentReturn {
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -83,6 +92,9 @@ export function useSessionsExperiment({
   const [isCreatingWorktree, setIsCreatingWorktree] = useState(false);
   const [newWorktreeName, setNewWorktreeName] = useState("");
   const [worktreeCreateError, setWorktreeCreateError] = useState<string | null>(null);
+  const [removingWorktreePath, setRemovingWorktreePath] = useState<string | null>(null);
+  const [removeForce, setRemoveForce] = useState(false);
+  const [removeDeleteBranch, setRemoveDeleteBranch] = useState(true);
 
   // Handle createWorktreeResult
   useEffect(() => {
@@ -96,6 +108,15 @@ export function useSessionsExperiment({
       setWorktreeCreateError(createWorktreeResult.error || "Failed to create worktree");
     }
   }, [createWorktreeResult]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Handle removeWorktreeResult
+  useEffect(() => {
+    if (!removeWorktreeResult) return;
+    // useWorktrees already shows notification and refreshes the list
+    setRemovingWorktreePath(null);
+    setRemoveDeleteBranch(true);
+    setRemoveForce(false);
+  }, [removeWorktreeResult]);
 
   // Filter sessions by selected project
   const filteredSessions = useMemo(() => {
@@ -178,6 +199,28 @@ export function useSessionsExperiment({
       // New session button after each worktree's sessions
       selectable.push(result.length);
       result.push({ kind: "new-session-button", worktreePath: wt.path });
+
+      // Remove worktree button (only for non-main worktrees when showing all)
+      if (showAllWorktrees && !wt.isMain) {
+        selectable.push(result.length);
+        if (removingWorktreePath === wt.path) {
+          result.push({
+            kind: "remove-worktree-confirm",
+            worktreePath: wt.path,
+            worktreeName: wt.name,
+            branch: wt.branch,
+            hasUncommittedChanges: wt.status.hasUncommittedChanges,
+            isMergedToMain: wt.status.isMergedToMain,
+            sessionCount: wtSessions.length,
+          });
+        } else {
+          result.push({
+            kind: "remove-worktree-button",
+            worktreePath: wt.path,
+            worktreeName: wt.name,
+          });
+        }
+      }
     });
 
     // Unmatched sessions
@@ -225,7 +268,7 @@ export function useSessionsExperiment({
     }
 
     return { items: result, selectableIndices: selectable };
-  }, [filteredSessions, worktrees, showAllWorktrees, repoRoot, isCreatingWorktree]);
+  }, [filteredSessions, worktrees, showAllWorktrees, repoRoot, isCreatingWorktree, removingWorktreePath]);
 
   // Current selectable item's position in the items array
   const currentItemIndex = selectableIndices[selectedIndex] ?? -1;
@@ -262,6 +305,47 @@ export function useSessionsExperiment({
         return;
       }
       return;
+    }
+
+    // Remove confirmation mode guard
+    if (removingWorktreePath !== null) {
+      if (key.escape) {
+        setRemovingWorktreePath(null);
+        setRemoveDeleteBranch(true);
+        setRemoveForce(false);
+        return;
+      }
+      if (key.return) {
+        const item = items[currentItemIndex];
+        if (item?.kind === "remove-worktree-confirm") {
+          if (item.hasUncommittedChanges && !removeForce) {
+            showNotification("!Toggle [f]orce to remove with uncommitted changes");
+            return;
+          }
+          if (repoRoot) {
+            removeWorktreeWs(repoRoot, item.worktreePath, removeForce, removeDeleteBranch);
+            showNotification("Removing worktree...");
+          }
+        }
+        return;
+      }
+      if (input === "f" || input === "F") {
+        setRemoveForce((prev) => !prev);
+        return;
+      }
+      if (input === "b" || input === "B") {
+        setRemoveDeleteBranch((prev) => !prev);
+        return;
+      }
+      // Arrow keys cancel confirmation and fall through to normal navigation
+      if (key.upArrow || key.downArrow) {
+        setRemovingWorktreePath(null);
+        setRemoveDeleteBranch(true);
+        setRemoveForce(false);
+        // fall through
+      } else {
+        return; // swallow other keys
+      }
     }
 
     if (key.escape) {
@@ -308,6 +392,10 @@ export function useSessionsExperiment({
         setWorktreeCreateError(null);
       } else if (item.kind === "show-all-worktrees-button") {
         setShowAllWorktrees((prev) => !prev);
+      } else if (item.kind === "remove-worktree-button") {
+        setRemovingWorktreePath(item.worktreePath);
+        setRemoveDeleteBranch(true);
+        setRemoveForce(false);
       }
       return;
     }
@@ -388,7 +476,8 @@ export function useSessionsExperiment({
     selectableIndices, items, currentItemIndex, selectedIds, selectedIndex,
     returnToMain, focusTerminal, maximizeWindow, tileWindows, launchSession,
     showNotification, isCreatingWorktree, newWorktreeName,
-    repoRoot, createWorktreeWs, skipPermissions,
+    repoRoot, createWorktreeWs, removeWorktreeWs, skipPermissions,
+    removingWorktreePath, removeForce, removeDeleteBranch,
   ]);
 
   const reset = useCallback(() => {
@@ -399,6 +488,9 @@ export function useSessionsExperiment({
     setIsCreatingWorktree(false);
     setNewWorktreeName("");
     setWorktreeCreateError(null);
+    setRemovingWorktreePath(null);
+    setRemoveDeleteBranch(true);
+    setRemoveForce(false);
   }, []);
 
   return {
@@ -411,6 +503,9 @@ export function useSessionsExperiment({
     isCreatingWorktree,
     newWorktreeName,
     worktreeCreateError,
+    isRemovingWorktree: removingWorktreePath !== null,
+    removeDeleteBranch,
+    removeForce,
     handleInput,
     reset,
   };
