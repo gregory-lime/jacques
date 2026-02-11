@@ -19,7 +19,7 @@ import {
 } from "@jacques/core";
 import type { NotificationSettings, NotificationCategory } from "@jacques/core/notifications";
 import { DEFAULT_NOTIFICATION_SETTINGS } from "@jacques/core/notifications";
-import { SETTINGS_TOTAL_ITEMS } from "../components/SettingsView.js";
+import { SETTINGS_TOTAL_ITEMS, SETTINGS_DISABLED_INDICES } from "../components/SettingsView.js";
 import type { ArchiveStatsData } from "../components/SettingsView.js";
 
 export interface ClaudeTokenActions {
@@ -187,13 +187,15 @@ export function useSettings({
     }
 
     // Row positions for scrolling (approximate row in contentLines for each selectable item)
-    // 0-5: existing items, 6: master toggle, 7-12: category toggles, 13-14: thresholds
-    const SETTINGS_ROW_MAP = [4, 8, 9, 12, 13, 16, 19, 20, 21, 22, 23, 24, 25, 27, 28];
+    // 0-5: existing items, 6: master toggle, 7-12: category toggles (8,12 disabled)
+    const SETTINGS_ROW_MAP = [4, 8, 9, 12, 13, 16, 19, 20, 21, 22, 23, 24, 25];
     const VISIBLE_HEIGHT = 10;
-    const TOTAL_CONTENT_LINES = 30;
+    const TOTAL_CONTENT_LINES = 27;
 
     if (key.upArrow) {
-      const newIndex = Math.max(0, settingsIndex - 1);
+      let newIndex = settingsIndex - 1;
+      while (newIndex >= 0 && SETTINGS_DISABLED_INDICES.has(newIndex)) newIndex--;
+      newIndex = Math.max(0, newIndex);
       setSettingsIndex(newIndex);
       if (newIndex === 0) {
         setSettingsScrollOffset(0);
@@ -207,7 +209,9 @@ export function useSettings({
     }
 
     if (key.downArrow) {
-      const newIndex = Math.min(SETTINGS_TOTAL_ITEMS - 1, settingsIndex + 1);
+      let newIndex = settingsIndex + 1;
+      while (newIndex < SETTINGS_TOTAL_ITEMS && SETTINGS_DISABLED_INDICES.has(newIndex)) newIndex++;
+      newIndex = Math.min(SETTINGS_TOTAL_ITEMS - 1, newIndex);
       setSettingsIndex(newIndex);
       const targetRow = SETTINGS_ROW_MAP[newIndex];
       if (targetRow >= settingsScrollOffset + VISIBLE_HEIGHT - 2) {
@@ -217,33 +221,6 @@ export function useSettings({
       return;
     }
 
-    // Left/right arrows for threshold adjustment
-    if (key.leftArrow || key.rightArrow) {
-      if (settingsIndex === 13) {
-        const step = key.rightArrow ? 5000 : -5000;
-        const newVal = Math.max(5000, Math.min(500_000, notificationSettings.largeOperationThreshold + step));
-        if (newVal !== notificationSettings.largeOperationThreshold) {
-          setNotificationSettings(prev => ({ ...prev, largeOperationThreshold: newVal }));
-          fetch(`${API_BASE}/api/notifications/settings`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ largeOperationThreshold: newVal }),
-          }).catch(() => {});
-        }
-      } else if (settingsIndex === 14) {
-        const step = key.rightArrow ? 1 : -1;
-        const newVal = Math.max(1, Math.min(50, notificationSettings.bugAlertThreshold + step));
-        if (newVal !== notificationSettings.bugAlertThreshold) {
-          setNotificationSettings(prev => ({ ...prev, bugAlertThreshold: newVal }));
-          fetch(`${API_BASE}/api/notifications/settings`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ bugAlertThreshold: newVal }),
-          }).catch(() => {});
-        }
-      }
-      return;
-    }
 
     if (key.return || input === " ") {
       if (settingsIndex === 0) {
@@ -277,7 +254,7 @@ export function useSettings({
           setNotificationSettings(prev => ({ ...prev, enabled: !newEnabled }));
           showNotification("!Failed to update notifications");
         });
-      } else if (settingsIndex >= 7 && settingsIndex <= 12) {
+      } else if (settingsIndex >= 7 && settingsIndex <= 12 && !SETTINGS_DISABLED_INDICES.has(settingsIndex)) {
         // Category toggles
         const categories: NotificationCategory[] = ["context", "operation", "plan", "auto-compact", "handoff", "bug-alert"];
         const cat = categories[settingsIndex - 7];

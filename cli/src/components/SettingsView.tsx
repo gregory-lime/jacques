@@ -64,21 +64,22 @@ interface SettingsViewProps {
 // Index 4: Re-sync All
 // Index 5: Browse Archive
 // Index 6: Notifications master toggle
-// Index 7-12: Notification category toggles
-// Index 13: Large operation threshold
-// Index 14: Bug alert threshold
-const TOTAL_ITEMS = 15;
+// Index 7-12: Notification category toggles (8=operation and 12=bug-alert are disabled/skipped)
+const TOTAL_ITEMS = 13;
 
-const NOTIFICATION_CATEGORIES: { key: NotificationCategory; label: string }[] = [
+/** Indices that should be skipped during navigation (disabled categories) */
+const DISABLED_INDICES = new Set([8, 12]);
+
+const NOTIFICATION_CATEGORIES: { key: NotificationCategory; label: string; disabled?: boolean }[] = [
   { key: "context", label: "Context thresholds" },
-  { key: "operation", label: "Large operations" },
+  { key: "operation", label: "Large operations", disabled: true },
   { key: "plan", label: "Plan creation" },
   { key: "auto-compact", label: "Auto-compact" },
   { key: "handoff", label: "Handoff ready" },
-  { key: "bug-alert", label: "Bug alert" },
+  { key: "bug-alert", label: "Bug alert", disabled: true },
 ];
 
-export { TOTAL_ITEMS as SETTINGS_TOTAL_ITEMS };
+export { TOTAL_ITEMS as SETTINGS_TOTAL_ITEMS, DISABLED_INDICES as SETTINGS_DISABLED_INDICES };
 
 function renderUsageDots(percentage: number): React.ReactNode {
   const total = 10;
@@ -301,39 +302,23 @@ export function SettingsView({
       const cat = NOTIFICATION_CATEGORIES[i];
       const catIndex = 7 + i;
       const catSelected = selectedIndex === catIndex;
-      const catCheck = ns.categories[cat.key] ? "[x]" : "[ ]";
-      contentLines.push(
-        <Text key={`notif-cat-${cat.key}`}
-              color={catSelected ? ACCENT_COLOR : (dimmed ? MUTED_TEXT : "white")}>
-          {catSelected ? "> " : "  "}{catCheck} {cat.label}
-        </Text>
-      );
+      if (cat.disabled) {
+        contentLines.push(
+          <Text key={`notif-cat-${cat.key}`} color={MUTED_TEXT}>
+            {"  "}[ ] {cat.label} <Text color={MUTED_TEXT}>(coming soon)</Text>
+          </Text>
+        );
+      } else {
+        const catCheck = ns.categories[cat.key] ? "[x]" : "[ ]";
+        contentLines.push(
+          <Text key={`notif-cat-${cat.key}`}
+                color={catSelected ? ACCENT_COLOR : (dimmed ? MUTED_TEXT : "white")}>
+            {catSelected ? "> " : "  "}{catCheck} {cat.label}
+          </Text>
+        );
+      }
     }
 
-    // Blank line before thresholds
-    contentLines.push(<Text key="thresh-space"> </Text>);
-
-    // Large operation threshold (index 13)
-    const threshSelected = selectedIndex === 13;
-    const threshDimmed = dimmed || !ns.categories.operation;
-    contentLines.push(
-      <Text key="notif-thresh"
-            color={threshSelected ? ACCENT_COLOR : (threshDimmed ? MUTED_TEXT : "white")}>
-        {threshSelected ? "> " : "  "}
-        Operation threshold  {threshSelected ? "\u25C0 " : "  "}{ns.largeOperationThreshold.toLocaleString()}{threshSelected ? " \u25B6" : ""}
-      </Text>
-    );
-
-    // Bug alert threshold (index 14)
-    const bugSelected = selectedIndex === 14;
-    const bugDimmed = dimmed || !ns.categories["bug-alert"];
-    contentLines.push(
-      <Text key="notif-bug"
-            color={bugSelected ? ACCENT_COLOR : (bugDimmed ? MUTED_TEXT : "white")}>
-        {bugSelected ? "> " : "  "}
-        Bug alert threshold  {bugSelected ? "\u25C0 " : "  "}{ns.bugAlertThreshold}{bugSelected ? " \u25B6" : ""}
-      </Text>
-    );
   }
 
   // Apply scroll to content (keep header, scroll body)
@@ -346,9 +331,7 @@ export function SettingsView({
   // Notification for connection success
   const notification = showConnectionSuccess ? "Connected!" : null;
 
-  const bottomHints = selectedIndex >= 13 && selectedIndex <= 14
-    ? [{ key: "\u25C0\u25B6", label: " adjust" }, { key: "Esc", label: " back" }]
-    : [{ key: "Esc", label: " back" }];
+  const bottomHints = [{ key: "Esc", label: " back" }];
   const { element: bottomControls, width: controlsWidth } = buildBottomControls(bottomHints);
 
   return useHorizontalLayout ? (

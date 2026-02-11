@@ -12,12 +12,14 @@ import type { UsageLimits } from '../types';
 
 const CATEGORY_LABELS: Record<NotificationCategory, { label: string; description: string }> = {
   context: { label: 'Context thresholds', description: 'Alert at 50%, 70% usage' },
-  operation: { label: 'Large operations', description: 'Claude operations exceeding token threshold' },
+  operation: { label: 'Large operations', description: 'Coming soon' },
   plan: { label: 'Plan creation', description: 'New plan detected in a session' },
   'auto-compact': { label: 'Auto-compact', description: 'Session automatically compacted' },
   handoff: { label: 'Handoff ready', description: 'Handoff file generated for a session' },
-  'bug-alert': { label: 'Bug alert', description: 'Multiple tool errors detected in session' },
+  'bug-alert': { label: 'Bug alert', description: 'Coming soon' },
 };
+
+const DISABLED_CATEGORIES: Set<NotificationCategory> = new Set(['operation', 'bug-alert']);
 
 const PERMISSION_LABELS: Record<string, { text: string; color: string }> = {
   granted: { text: 'Granted', color: colors.success },
@@ -89,12 +91,6 @@ export function Settings() {
   const { refreshProjects } = useProjectScope();
   const [skipPermissions, setSkipPermissions] = usePersistedState('dangerouslySkipPermissions', false);
 
-  const [thresholdInput, setThresholdInput] = useState(
-    String(settings.largeOperationThreshold),
-  );
-  const [bugAlertThresholdInput, setBugAlertThresholdInput] = useState(
-    String(settings.bugAlertThreshold),
-  );
 
   // Root path state
   const [rootPathConfig, setRootPathConfig] = useState<RootPathConfig | null>(null);
@@ -152,24 +148,6 @@ export function Settings() {
         setSyncProgress(null);
       },
     }, { force });
-  };
-
-  const handleThresholdBlur = () => {
-    const parsed = parseInt(thresholdInput, 10);
-    if (!Number.isNaN(parsed) && parsed > 0) {
-      updateSettings({ largeOperationThreshold: parsed });
-    } else {
-      setThresholdInput(String(settings.largeOperationThreshold));
-    }
-  };
-
-  const handleBugAlertThresholdBlur = () => {
-    const parsed = parseInt(bugAlertThresholdInput, 10);
-    if (!Number.isNaN(parsed) && parsed >= 1) {
-      updateSettings({ bugAlertThreshold: parsed });
-    } else {
-      setBugAlertThresholdInput(String(settings.bugAlertThreshold));
-    }
   };
 
   const handleRootPathSave = async () => {
@@ -344,62 +322,26 @@ export function Settings() {
         }}>
           <div style={styles.settingLabel}>Categories</div>
           <div style={styles.categoryList}>
-            {(Object.keys(CATEGORY_LABELS) as NotificationCategory[]).map((cat) => (
-              <ToggleSwitch
-                key={cat}
-                checked={settings.categories[cat]}
-                onChange={() => toggleCategory(cat)}
-                label={CATEGORY_LABELS[cat].label}
-                description={CATEGORY_LABELS[cat].description}
-                size="sm"
-              />
-            ))}
+            {(Object.keys(CATEGORY_LABELS) as NotificationCategory[]).map((cat) => {
+              const disabled = DISABLED_CATEGORIES.has(cat);
+              return (
+                <div key={cat} style={disabled ? { opacity: 0.4, pointerEvents: 'none' } : undefined}>
+                  <ToggleSwitch
+                    checked={disabled ? false : settings.categories[cat]}
+                    onChange={() => toggleCategory(cat)}
+                    label={CATEGORY_LABELS[cat].label}
+                    description={CATEGORY_LABELS[cat].description}
+                    size="sm"
+                  />
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        {/* Token threshold */}
-        <div style={{
-          opacity: settings.enabled && settings.categories.operation ? 1 : 0.4,
-          pointerEvents: settings.enabled && settings.categories.operation ? 'auto' : 'none',
-        }}>
-          <div style={styles.settingRow}>
-            <div>
-              <div style={styles.settingLabel}>Large operation threshold</div>
-              <div style={styles.settingDescription}>Notify when operations exceed this token count</div>
-            </div>
-            <input
-              type="number"
-              min={1000}
-              step={5000}
-              value={thresholdInput}
-              onChange={(e) => setThresholdInput(e.target.value)}
-              onBlur={handleThresholdBlur}
-              style={styles.numberInput}
-            />
-          </div>
-        </div>
+        {/* Token threshold — hidden until large operations feature is implemented */}
 
-        {/* Bug alert threshold */}
-        <div style={{
-          opacity: settings.enabled && settings.categories['bug-alert'] ? 1 : 0.4,
-          pointerEvents: settings.enabled && settings.categories['bug-alert'] ? 'auto' : 'none',
-        }}>
-          <div style={styles.settingRow}>
-            <div>
-              <div style={styles.settingLabel}>Bug alert threshold</div>
-              <div style={styles.settingDescription}>Number of tool errors before alerting</div>
-            </div>
-            <input
-              type="number"
-              min={1}
-              step={1}
-              value={bugAlertThresholdInput}
-              onChange={(e) => setBugAlertThresholdInput(e.target.value)}
-              onBlur={handleBugAlertThresholdBlur}
-              style={styles.numberInput}
-            />
-          </div>
-        </div>
+        {/* Bug alert threshold — hidden until bug alert feature is implemented */}
       </SettingsSection>
 
       {/* Sync Section */}

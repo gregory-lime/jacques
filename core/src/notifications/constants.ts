@@ -10,11 +10,11 @@ export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
   enabled: false, // OFF by default — user must opt in
   categories: {
     context: true,
-    operation: true,
+    operation: false,
     plan: true,
     'auto-compact': true,
     handoff: true,
-    'bug-alert': true,
+    'bug-alert': false,
   },
   largeOperationThreshold: 50_000,
   contextThresholds: [50, 70], // Only 50% and 70%

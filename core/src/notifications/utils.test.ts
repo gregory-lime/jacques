@@ -77,12 +77,13 @@ describe('DEFAULT_NOTIFICATION_SETTINGS', () => {
     expect(DEFAULT_NOTIFICATION_SETTINGS.contextThresholds).toEqual([50, 70]);
   });
 
-  it('should have all categories enabled', () => {
+  it('should have expected category defaults', () => {
     expect(DEFAULT_NOTIFICATION_SETTINGS.categories.context).toBe(true);
-    expect(DEFAULT_NOTIFICATION_SETTINGS.categories.operation).toBe(true);
+    expect(DEFAULT_NOTIFICATION_SETTINGS.categories.operation).toBe(false);
     expect(DEFAULT_NOTIFICATION_SETTINGS.categories.plan).toBe(true);
     expect(DEFAULT_NOTIFICATION_SETTINGS.categories['auto-compact']).toBe(true);
     expect(DEFAULT_NOTIFICATION_SETTINGS.categories.handoff).toBe(true);
+    expect(DEFAULT_NOTIFICATION_SETTINGS.categories['bug-alert']).toBe(false);
   });
 
   it('should have 50k token threshold', () => {
