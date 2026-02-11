@@ -138,7 +138,10 @@ Things the next session MUST know upfront:
 
 ## After Saving
 
-Tell the user:
+IMPORTANT: Output this EXACT message (replace {filename} with the actual filename):
+
 > Handoff saved to `.jacques/handoffs/{filename}`
 >
 > To continue in a new session, run `/jacques-continue`
+
+Do NOT say "jacques-paste" or mention "pasting". The correct skill name is `/jacques-continue`.

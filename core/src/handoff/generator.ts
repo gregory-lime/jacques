@@ -508,8 +508,7 @@ export function formatHandoffMarkdown(data: HandoffData): string {
   // Instructions for continuing
   lines.push("## How to Continue");
   lines.push("");
-  lines.push("Paste this handoff at the start of a new Claude Code session to provide context.");
-  lines.push("Review the files modified and recent context to understand where the work left off.");
+  lines.push("In a new Claude Code session, run `/jacques-continue` to load this handoff and resume work.");
   lines.push("");
 
   // Footer

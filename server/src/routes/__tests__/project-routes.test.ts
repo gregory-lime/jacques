@@ -44,6 +44,10 @@ jest.unstable_mockModule('@jacques/core', () => ({
   removeContextFromIndex: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
   listHandoffs: mockListHandoffs,
   getHandoffContent: mockGetHandoffContent,
+  indexEmbeddedPlan: jest.fn<() => Promise<unknown>>().mockResolvedValue({ id: 'auto-archived', title: 'Auto Plan', filename: 'auto-plan.md' }),
+  extractPlanTitle: jest.fn<(content: string) => string>().mockReturnValue('Auto Plan'),
+  generatePlanFilename: jest.fn<(title: string) => string>().mockReturnValue('auto-plan.md'),
+  generateVersionedFilename: jest.fn<() => Promise<string>>().mockResolvedValue('auto-plan-2.md'),
 }));
 
 const { projectRoutes } = await import('../project-routes.js');

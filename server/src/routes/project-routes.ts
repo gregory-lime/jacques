@@ -37,6 +37,10 @@ import {
   removeContextFromIndex,
   listHandoffs,
   getHandoffContent,
+  indexEmbeddedPlan,
+  extractPlanTitle,
+  generatePlanFilename,
+  generateVersionedFilename,
 } from '@jacques/core';
 
 export async function projectRoutes(ctx: RouteContext): Promise<boolean> {
@@ -141,11 +145,20 @@ export async function projectRoutes(ctx: RouteContext): Promise<boolean> {
         return true;
       }
 
-      const matchedPlan = await findDuplicatePlan(planContent, projectPath);
+      let matchedPlan = await findDuplicatePlan(planContent, projectPath);
 
       if (!matchedPlan) {
-        sendJson(res, 404, { error: 'Plan not found in project catalog. Extract catalog first.' });
-        return true;
+        // Plan not yet in catalog — auto-archive it on the fly
+        const title = extractPlanTitle(planContent);
+        let filename = generatePlanFilename(title);
+        const plansDir = join(projectPath, '.jacques', 'plans');
+        try {
+          await fsPromises.access(join(plansDir, filename));
+          filename = await generateVersionedFilename(plansDir, filename);
+        } catch { /* file doesn't exist, use this filename */ }
+        matchedPlan = await indexEmbeddedPlan(
+          planContent, filename, 'handoff-continue', projectPath
+        );
       }
 
       const index = await readProjectIndex(projectPath);
