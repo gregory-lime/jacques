@@ -22,6 +22,7 @@ import { getPersistedValue } from '../hooks/usePersistedState';
 import { PlanIcon, AgentIcon, StatusDot } from '../components/Icons';
 import { ArrowDown, ArrowUp, GitBranch } from 'lucide-react';
 import type { Session } from '../types';
+import { toastStore } from '../components/ui/ToastContainer';
 import { useShortcutActions } from '../hooks/useShortcutActions';
 import { useFocusZone } from '../hooks/useFocusZone';
 import { formatTokens, formatSessionTitle } from '../utils/session-display';
@@ -301,13 +302,11 @@ export function Dashboard() {
       if (success) {
         setWorktreeCreation(null);
         const dirName = worktreePath?.split(/[\\/]/).pop() || 'worktree';
-        import('../components/ui/ToastContainer').then(({ toastStore }) => {
-          toastStore.push({
-            title: 'Worktree Created',
-            body: `Created ${dirName}`,
-            priority: 'low',
-            category: 'operation',
-          });
+        toastStore.push({
+          title: 'Worktree Created',
+          body: `Created ${dirName}`,
+          priority: 'low',
+          category: 'operation',
         });
       } else {
         setWorktreeCreation({ loading: false, error: error || 'Failed to create worktree' });
@@ -325,13 +324,11 @@ export function Dashboard() {
 
   const handleRemoveWorktreeSuccess = useCallback((worktreePath: string) => {
     const dirName = worktreePath.split(/[\\/]/).pop() || 'worktree';
-    import('../components/ui/ToastContainer').then(({ toastStore }) => {
-      toastStore.push({
-        title: 'Worktree Removed',
-        body: `Removed ${dirName}`,
-        priority: 'low',
-        category: 'operation',
-      });
+    toastStore.push({
+      title: 'Worktree Removed',
+      body: `Removed ${dirName}`,
+      priority: 'low',
+      category: 'operation',
     });
   }, []);
 
@@ -521,6 +518,14 @@ export function Dashboard() {
     handleHistorySessionClick, openSession,
   ]);
 
+  const handleBackgroundClick = useCallback((e: React.MouseEvent) => {
+    if (selectedSessionIds.size === 0) return;
+    const target = e.target as HTMLElement;
+    // Don't deselect when clicking buttons or inputs (e.g. launch, create worktree)
+    if (target.closest('button') || target.closest('input')) return;
+    setSelectedSessionIds(new Set());
+  }, [selectedSessionIds, setSelectedSessionIds]);
+
   // If viewing an open session, render the viewer
   const activeOpen = state.activeViewId
     ? state.sessions.find(s => s.id === state.activeViewId)
@@ -535,14 +540,6 @@ export function Dashboard() {
   }
 
   const hasSelection = selectedSessionIds.size > 0 || !!keyboardFocusedId || !!focusedSessionId;
-
-  const handleBackgroundClick = useCallback((e: React.MouseEvent) => {
-    if (selectedSessionIds.size === 0) return;
-    const target = e.target as HTMLElement;
-    // Don't deselect when clicking buttons or inputs (e.g. launch, create worktree)
-    if (target.closest('button') || target.closest('input')) return;
-    setSelectedSessionIds(new Set());
-  }, [selectedSessionIds, setSelectedSessionIds]);
   const visibleHistory = historyList.slice(0, visibleCount);
 
   return (

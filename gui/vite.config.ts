@@ -15,4 +15,15 @@ export default defineConfig({
     port: 5173,
     open: true,
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-markdown': ['react-markdown'],
+          'vendor-icons': ['lucide-react'],
+        },
+      },
+    },
+  },
 });
