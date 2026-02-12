@@ -125,6 +125,11 @@ export class SessionRegistry {
       if (entries.length === 0) return null;
 
       const { mode } = detectModeAndPlans(entries);
+      // If plan mode was explicitly exited (ExitPlanMode in JSONL) but parsed
+      // detection found no specific mode, return 'default' to clear stale 'planning'
+      if (!mode && lastExit !== -1 && lastExit > lastEnter) {
+        return 'default';
+      }
       return mode;
     } catch (err) {
       this.warn(`[Registry] Failed to detect mode from JSONL: ${err}`);
@@ -195,7 +200,10 @@ export class SessionRegistry {
       this.log(`[Registry] Updating ${wasDiscovered ? 'discovered' : 'auto-registered'} session with terminal info: ${event.session_id}`);
       existing.terminal = event.terminal;
       existing.terminal_key = event.terminal_key;
-      existing.session_title = event.session_title || existing.session_title;
+      const newTitle = event.session_title?.trim();
+      if (newTitle && !newTitle.startsWith('<local-command') && !newTitle.startsWith('<command-')) {
+        existing.session_title = event.session_title;
+      }
       existing.transcript_path = event.transcript_path || existing.transcript_path;
       if (event.autocompact) {
         existing.autocompact = event.autocompact;
@@ -261,9 +269,12 @@ export class SessionRegistry {
     // Update mode from permission_mode if available
     this.updateModeFromPermission(session, event.permission_mode);
 
-    // Update title if changed
+    // Update title if changed (filter internal command titles to prevent flickering)
     if (event.session_title && event.session_title !== session.session_title) {
-      session.session_title = event.session_title;
+      const trimmed = event.session_title.trim();
+      if (!trimmed.startsWith('<local-command') && !trimmed.startsWith('<command-')) {
+        session.session_title = event.session_title;
+      }
     }
 
     // Update context metrics if provided
@@ -390,7 +401,9 @@ export class SessionRegistry {
     }
 
     // Update session_title if provided and different (from statusLine hook reading transcript)
-    if (event.session_title && event.session_title.trim() !== '' && event.session_title !== session.session_title) {
+    // Filter internal command titles to prevent flickering with "Active Session"
+    if (event.session_title && event.session_title.trim() !== '' && event.session_title !== session.session_title
+      && !event.session_title.trim().startsWith('<local-command') && !event.session_title.trim().startsWith('<command-')) {
       const oldTitle = session.session_title;
       session.session_title = event.session_title.trim();
       this.log(`[Registry] Session title updated: "${oldTitle}" -> "${session.session_title}"`);
