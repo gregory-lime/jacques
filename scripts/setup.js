@@ -104,16 +104,23 @@ function checkPrerequisites() {
 
 function installDependencies() {
   header('Installing dependencies...');
-  
+
   const projectRoot = resolve(import.meta.dirname, '..');
-  
+
+  log('Installing core dependencies...');
+  if (!run('npm install', { cwd: join(projectRoot, 'core') })) {
+    error('Failed to install core dependencies');
+    return false;
+  }
+  success('Core dependencies installed');
+
   log('Installing server dependencies...');
   if (!run('npm install', { cwd: join(projectRoot, 'server') })) {
     error('Failed to install server dependencies');
     return false;
   }
   success('Server dependencies installed');
-  
+
   log('Installing CLI dependencies...');
   if (!run('npm install', { cwd: join(projectRoot, 'cli') })) {
     error('Failed to install CLI dependencies');
@@ -133,16 +140,23 @@ function installDependencies() {
 
 function buildPackages() {
   header('Building packages...');
-  
+
   const projectRoot = resolve(import.meta.dirname, '..');
-  
+
+  log('Building core...');
+  if (!run('npm run build', { cwd: join(projectRoot, 'core') })) {
+    error('Failed to build core');
+    return false;
+  }
+  success('Core built');
+
   log('Building server...');
   if (!run('npm run build', { cwd: join(projectRoot, 'server') })) {
     error('Failed to build server');
     return false;
   }
   success('Server built');
-  
+
   log('Building CLI...');
   if (!run('npm run build', { cwd: join(projectRoot, 'cli') })) {
     error('Failed to build CLI');

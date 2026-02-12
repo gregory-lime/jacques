@@ -8,7 +8,7 @@
     "jacques": "./dist/cli.js"
   },
   "scripts": {
-    "build": "tsc && chmod +x dist/cli.js",
+    "build": "tsc",
     "dev": "tsc --watch",
     "start": "node dist/cli.js",
     "test": "node --experimental-vm-modules ../node_modules/jest/bin/jest.js",
