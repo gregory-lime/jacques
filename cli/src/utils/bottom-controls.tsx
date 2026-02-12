@@ -28,6 +28,10 @@ export function buildBottomControls(items: ControlItem[]): {
   const elements: React.ReactNode[] = [];
 
   items.forEach((item, i) => {
+    if (i > 0) {
+      elements.push(<Text key={`s${i}`}> </Text>);
+      width += 1;
+    }
     const keyText = `[${item.key}]`;
     width += keyText.length + item.label.length;
     elements.push(

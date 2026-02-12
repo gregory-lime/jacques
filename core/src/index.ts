@@ -532,6 +532,35 @@ export type {
 // Branding module (endearment phrases for CLI header)
 export { ENDEARMENT_PHRASES, getRandomEndearment, APP_ENDEARMENT } from "./branding.js";
 
+// Setup module (installation wizard logic)
+export {
+  checkPrerequisites,
+  getPythonCommand,
+  getHooksDir,
+  getStatusLineConfig,
+  getHooksConfig,
+  getJacquesHooksConfig,
+  loadClaudeSettings,
+  createSettingsBackup,
+  mergeHooksIntoSettings,
+  writeClaudeSettings,
+  hasJacquesConfigured,
+  createJacquesDir,
+  setupHooksSymlink,
+  installSkills,
+  skillsAlreadyInstalled,
+  verifyInstallation,
+} from "./setup/index.js";
+
+export type {
+  PrerequisiteResult,
+  SetupOptions,
+  SetupStepResult,
+  VerificationResult,
+  SyncProgress,
+  SyncResult,
+} from "./setup/index.js";
+
 // Shortcuts module (shared keyboard shortcut definitions)
 export {
   SHORTCUTS,

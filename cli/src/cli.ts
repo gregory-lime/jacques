@@ -19,6 +19,7 @@ import {
   listSessions,
   searchArchive,
   showArchiveStats,
+  startSetup,
 } from "./commands/index.js";
 
 const VERSION = "0.0.7";
@@ -34,6 +35,11 @@ program
   .command("dashboard", { isDefault: true })
   .description("Start the interactive dashboard")
   .action(() => startDashboard());
+
+program
+  .command("setup")
+  .description("Interactive setup wizard for Claude Code integration")
+  .action(() => startSetup());
 
 program
   .command("status")
