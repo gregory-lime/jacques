@@ -20,9 +20,13 @@ export interface BranchDivergenceServiceOptions {
 
 export class BranchDivergenceService {
   private interval: NodeJS.Timeout | null = null;
+  private debounceTimer: NodeJS.Timeout | null = null;
+  private checking = false;
   private getAllSessions: () => Session[];
   private broadcastSessionUpdate: (session: Session) => void;
   private logger: Logger;
+
+  private static readonly DEBOUNCE_MS = 3000;
 
   /** Cache of default branch per repo root (cleared each cycle) */
   private defaultBranchCache = new Map<string, string>();
@@ -62,12 +66,42 @@ export class BranchDivergenceService {
       clearInterval(this.interval);
       this.interval = null;
     }
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer);
+      this.debounceTimer = null;
+    }
+  }
+
+  /**
+   * Schedule a debounced divergence check.
+   * Multiple calls within DEBOUNCE_MS coalesce into one check.
+   */
+  scheduleCheck(): void {
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer);
+    }
+    this.debounceTimer = setTimeout(() => {
+      this.debounceTimer = null;
+      this.check().catch((err) => {
+        this.logger.warn(`[Divergence] Scheduled check failed: ${err}`);
+      });
+    }, BranchDivergenceService.DEBOUNCE_MS);
   }
 
   /**
    * Run a single divergence check across all active sessions.
    */
   private async check(): Promise<void> {
+    if (this.checking) return;
+    this.checking = true;
+    try {
+      await this.runCheck();
+    } finally {
+      this.checking = false;
+    }
+  }
+
+  private async runCheck(): Promise<void> {
     const sessions = this.getAllSessions();
     if (sessions.length === 0) return;
 

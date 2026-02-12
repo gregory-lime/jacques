@@ -19,6 +19,7 @@ import type { SessionRegistry } from '../session-registry.js';
 import type { BroadcastService } from '../services/broadcast-service.js';
 import type { NotificationService } from '../services/notification-service.js';
 import type { HandoffWatcher } from '../watchers/handoff-watcher.js';
+import type { BranchDivergenceService } from '../services/branch-divergence-service.js';
 import type { Session } from '../types.js';
 import type { Logger } from '../logging/logger-factory.js';
 import { createLogger } from '../logging/logger-factory.js';
@@ -37,6 +38,8 @@ export interface EventHandlerConfig {
   handoffWatcher: HandoffWatcher;
   /** Notification service for desktop + in-app notifications */
   notificationService?: NotificationService;
+  /** Branch divergence service for reactive git status updates */
+  branchDivergenceService?: BranchDivergenceService;
   /** Optional logger */
   logger?: Logger;
 }
@@ -53,6 +56,7 @@ export class EventHandler {
   private broadcastService: BroadcastService;
   private handoffWatcher: HandoffWatcher;
   private notificationService?: NotificationService;
+  private branchDivergenceService?: BranchDivergenceService;
   private logger: Logger;
 
   constructor(config: EventHandlerConfig) {
@@ -60,6 +64,7 @@ export class EventHandler {
     this.broadcastService = config.broadcastService;
     this.handoffWatcher = config.handoffWatcher;
     this.notificationService = config.notificationService;
+    this.branchDivergenceService = config.branchDivergenceService;
     this.logger = config.logger ?? createLogger({ silent: true });
   }
 
@@ -114,6 +119,8 @@ export class EventHandler {
       this.handoffWatcher.startWatching(session.session_id, projectDir);
     }
 
+    this.branchDivergenceService?.scheduleCheck();
+
     // Detect mode asynchronously and broadcast if found
     this.registry.updateSessionMode(session.session_id).then((updatedSession) => {
       if (updatedSession && updatedSession.mode) {
@@ -133,6 +140,7 @@ export class EventHandler {
     if (session) {
       // Activity doesn't change focus — only broadcast the session update
       this.broadcastService.broadcastSessionUpdate(session);
+      this.branchDivergenceService?.scheduleCheck();
 
       this.detectModeIfBypass(session);
     }
@@ -146,6 +154,7 @@ export class EventHandler {
     if (session) {
       // Context updates don't change focus — only broadcast the session update
       this.broadcastService.broadcastSessionUpdate(session);
+      this.branchDivergenceService?.scheduleCheck();
       this.notificationService?.onContextUpdate(session);
 
       // Plan detection (debounced internally to 30s per session)
