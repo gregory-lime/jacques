@@ -22,6 +22,7 @@ import type {
 import type { Logger } from './logging/logger-factory.js';
 import { createLogger } from './logging/logger-factory.js';
 import type { DetectedSession } from './process-scanner.js';
+import { readFile } from 'fs/promises';
 import { parseJSONL } from '@jacques/core/session';
 import { detectModeAndPlans } from '@jacques/core/cache';
 import { matchTerminalKeys } from './connection/terminal-key.js';
@@ -94,18 +95,41 @@ export class SessionRegistry {
   private get warn() { return this.logger.warn.bind(this.logger); }
 
   /**
-   * Detect session mode (planning/execution) from JSONL transcript
-   * @param transcriptPath Path to the session JSONL file
-   * @returns The detected mode or null
+   * Detect session mode (planning/execution) from JSONL transcript.
+   *
+   * For plan mode detection, scans raw JSONL text for EnterPlanMode/ExitPlanMode
+   * tool names. This is more reliable than parsed entries because the parser only
+   * captures the first tool_use block per assistant message — ExitPlanMode can be
+   * bundled with other tools (Edit, Write) and get silently dropped.
    */
   private async detectSessionMode(transcriptPath: string | null): Promise<SessionMode> {
     if (!transcriptPath) return null;
 
     try {
+      // Raw text scan for plan mode — catches all tool_use blocks regardless of position
+      const raw = await readFile(transcriptPath, 'utf-8');
+      const enterPlanIdx = raw.lastIndexOf('"name":"EnterPlanMode"');
+      const exitPlanIdx = raw.lastIndexOf('"name":"ExitPlanMode"');
+      // Also check spaced variant: "name": "EnterPlanMode"
+      const enterPlanIdxSpaced = raw.lastIndexOf('"name": "EnterPlanMode"');
+      const exitPlanIdxSpaced = raw.lastIndexOf('"name": "ExitPlanMode"');
+      const lastEnter = Math.max(enterPlanIdx, enterPlanIdxSpaced);
+      const lastExit = Math.max(exitPlanIdx, exitPlanIdxSpaced);
+
+      if (lastEnter > lastExit) {
+        return 'planning';
+      }
+
+      // Fall back to parsed detection for execution mode
       const entries = await parseJSONL(transcriptPath);
       if (entries.length === 0) return null;
 
       const { mode } = detectModeAndPlans(entries);
+      // If plan mode was explicitly exited (ExitPlanMode in JSONL) but parsed
+      // detection found no specific mode, return 'default' to clear stale 'planning'
+      if (!mode && lastExit !== -1 && lastExit > lastEnter) {
+        return 'default';
+      }
       return mode;
     } catch (err) {
       this.warn(`[Registry] Failed to detect mode from JSONL: ${err}`);
@@ -176,7 +200,10 @@ export class SessionRegistry {
       this.log(`[Registry] Updating ${wasDiscovered ? 'discovered' : 'auto-registered'} session with terminal info: ${event.session_id}`);
       existing.terminal = event.terminal;
       existing.terminal_key = event.terminal_key;
-      existing.session_title = event.session_title || existing.session_title;
+      const newTitle = event.session_title?.trim();
+      if (newTitle && !newTitle.startsWith('<local-command') && !newTitle.startsWith('<command-')) {
+        existing.session_title = event.session_title;
+      }
       existing.transcript_path = event.transcript_path || existing.transcript_path;
       if (event.autocompact) {
         existing.autocompact = event.autocompact;
@@ -242,9 +269,12 @@ export class SessionRegistry {
     // Update mode from permission_mode if available
     this.updateModeFromPermission(session, event.permission_mode);
 
-    // Update title if changed
+    // Update title if changed (filter internal command titles to prevent flickering)
     if (event.session_title && event.session_title !== session.session_title) {
-      session.session_title = event.session_title;
+      const trimmed = event.session_title.trim();
+      if (!trimmed.startsWith('<local-command') && !trimmed.startsWith('<command-')) {
+        session.session_title = event.session_title;
+      }
     }
 
     // Update context metrics if provided
@@ -371,7 +401,9 @@ export class SessionRegistry {
     }
 
     // Update session_title if provided and different (from statusLine hook reading transcript)
-    if (event.session_title && event.session_title.trim() !== '' && event.session_title !== session.session_title) {
+    // Filter internal command titles to prevent flickering with "Active Session"
+    if (event.session_title && event.session_title.trim() !== '' && event.session_title !== session.session_title
+      && !event.session_title.trim().startsWith('<local-command') && !event.session_title.trim().startsWith('<command-')) {
       const oldTitle = session.session_title;
       session.session_title = event.session_title.trim();
       this.log(`[Registry] Session title updated: "${oldTitle}" -> "${session.session_title}"`);
@@ -432,7 +464,7 @@ export class SessionRegistry {
     try {
       const newMode = await this.detectSessionMode(session.transcript_path);
 
-      if (newMode !== session.mode) {
+      if (newMode && newMode !== session.mode) {
         const oldMode = session.mode;
         session.mode = newMode;
         if (newMode) {

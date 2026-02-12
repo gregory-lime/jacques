@@ -56,12 +56,12 @@ describe("getSessionStatus", () => {
 });
 
 describe("getSessionMode", () => {
-  it("returns 'bypass' when is_bypass is true", () => {
+  it("returns actual mode even when is_bypass is true", () => {
     const session = makeSession({ is_bypass: true, mode: "plan" });
-    expect(getSessionMode(session)).toBe("bypass");
+    expect(getSessionMode(session)).toBe("plan");
   });
 
-  it("returns the mode when set and not bypass", () => {
+  it("returns the mode when set", () => {
     const session = makeSession({ mode: "plan" });
     expect(getSessionMode(session)).toBe("plan");
   });
@@ -81,8 +81,13 @@ describe("getSessionMode", () => {
     expect(getSessionMode(session)).toBe("default");
   });
 
-  it("returns 'bypass' even when mode is also set", () => {
+  it("returns 'default' when is_bypass is true and no mode set", () => {
+    const session = makeSession({ is_bypass: true });
+    expect(getSessionMode(session)).toBe("default");
+  });
+
+  it("returns actual mode when is_bypass is also set", () => {
     const session = makeSession({ is_bypass: true, mode: "acceptEdits" });
-    expect(getSessionMode(session)).toBe("bypass");
+    expect(getSessionMode(session)).toBe("acceptEdits");
   });
 });

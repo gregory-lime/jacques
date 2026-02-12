@@ -36,7 +36,6 @@ const MODE_COLORS: Record<string, string> = {
   acceptEdits: ACCENT_COLOR,
   execution: ACCENT_COLOR,
   default: MUTED_TEXT,
-  bypass: ERROR_COLOR,
 };
 
 interface SessionsExperimentViewProps {
@@ -183,9 +182,12 @@ export function SessionsExperimentView({
 
         const activity = getCliActivity(session.status, session.last_tool_name);
 
-        const mode = session.is_bypass ? "bypass" : (session.mode || "default");
-        const modeColor = MODE_COLORS[mode] || MUTED_TEXT;
-        const modeLabel = mode === "acceptEdits" ? "edit" : mode;
+        const mode = session.mode || "default";
+        const isBypassPlan = session.is_bypass && (mode === "plan" || mode === "planning");
+        const modeLabel = session.is_bypass
+          ? (isBypassPlan ? "plan" : "p-less")
+          : (mode === "acceptEdits" ? "edit" : mode);
+        const modeColor = session.is_bypass ? "red" : (MODE_COLORS[mode] || MUTED_TEXT);
 
         // Responsive fixed columns budget
         // tree(2) + cursor(2) + icon(1) + activityLabel(10 or 1) + mode(8) + progress(varies)

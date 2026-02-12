@@ -54,6 +54,7 @@ export class EventHandler {
   private handoffWatcher: HandoffWatcher;
   private notificationService?: NotificationService;
   private logger: Logger;
+  private modeCheckTimestamps = new Map<string, number>();
 
   constructor(config: EventHandlerConfig) {
     this.registry = config.registry;
@@ -220,6 +221,10 @@ export class EventHandler {
    */
   private detectModeIfBypass(session: { session_id: string; mode?: string | null; is_bypass?: boolean }): void {
     if (!session.is_bypass) return;
+    // 30s debounce per session — JSONL re-read is expensive
+    const lastCheck = this.modeCheckTimestamps.get(session.session_id) ?? 0;
+    if (Date.now() - lastCheck < 30_000) return;
+    this.modeCheckTimestamps.set(session.session_id, Date.now());
     const modeBefore = session.mode;
     this.registry.updateSessionMode(session.session_id).then((updated) => {
       if (updated && updated.mode !== modeBefore) {
@@ -232,6 +237,7 @@ export class EventHandler {
    * Handle session end event
    */
   private handleSessionEnd(event: SessionEndEvent): void {
+    this.modeCheckTimestamps.delete(event.session_id);
     // unregisterSession triggers onSessionRemoved callback which handles:
     // - WebSocket broadcast (session_removed + focus_changed)
     // - Notification cleanup

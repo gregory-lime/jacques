@@ -57,7 +57,7 @@ export type SessionSource = 'claude_code' | 'cursor' | string;
  * Hook-based (real-time): plan, acceptEdits, default
  * JSONL-based (fallback): planning, execution
  */
-export type SessionMode = 'plan' | 'acceptEdits' | 'default' | 'bypass' | 'planning' | 'execution' | null;
+export type SessionMode = 'plan' | 'acceptEdits' | 'default' | 'p-less' | 'planning' | 'execution' | null;
 
 export interface Session {
   session_id: string;
@@ -482,7 +482,7 @@ export interface SessionBadges {
   /** Number of web searches */
   webSearchCount: number;
   /** Session mode from permission_mode or JSONL detection */
-  mode: 'plan' | 'acceptEdits' | 'default' | 'bypass' | 'planning' | 'execution' | null;
+  mode: 'plan' | 'acceptEdits' | 'default' | 'p-less' | 'planning' | 'execution' | null;
   /** Whether auto-compact occurred during this session */
   hadAutoCompact: boolean;
 }

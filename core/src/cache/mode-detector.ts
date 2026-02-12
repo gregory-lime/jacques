@@ -22,15 +22,18 @@ export function detectModeAndPlans(entries: ParsedEntry[]): {
   let mode: 'planning' | 'execution' | null = null;
   const planRefs: PlanRef[] = [];
 
-  // Track if EnterPlanMode was called (planning mode)
-  let hasEnterPlanMode = false;
+  // Track if currently in plan mode (enter/exit pairs)
+  let inPlanMode = false;
   // Track first real user message for execution mode detection
   let firstUserMessageChecked = false;
 
   entries.forEach((entry, index) => {
-    // Check for EnterPlanMode tool call (planning mode)
+    // Check for EnterPlanMode / ExitPlanMode tool calls
     if (entry.type === 'tool_call' && entry.content.toolName === 'EnterPlanMode') {
-      hasEnterPlanMode = true;
+      inPlanMode = true;
+    }
+    if (entry.type === 'tool_call' && entry.content.toolName === 'ExitPlanMode') {
+      inPlanMode = false;
     }
 
     // Check first user message for execution mode
@@ -178,8 +181,8 @@ export function detectModeAndPlans(entries: ParsedEntry[]): {
     }
   });
 
-  // Planning mode takes precedence if EnterPlanMode was called
-  if (hasEnterPlanMode) {
+  // Planning mode takes precedence if currently in plan mode
+  if (inPlanMode) {
     mode = 'planning';
   }
 

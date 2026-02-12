@@ -106,7 +106,8 @@ In-memory session store indexed by `session_id`. The registry is a thin facade t
 - **Auto-focus**: Most recently active session gets focus
 - **Terminal identity**: `terminal_key` combines TTY, iTerm session ID, terminal PID
 - **Auto-compact tracking**: Reads `~/.claude/settings.json` for autoCompact settings
-- **Session mode**: Tracked via `permission_mode` from hook events (`plan`, `acceptEdits`, `default`); JSONL detection as fallback for bypass sessions (where hooks always report `acceptEdits`)
+- **Session mode**: Tracked via `permission_mode` from hook events (`plan`, `acceptEdits`, `default`); JSONL detection as fallback for bypass sessions (where hooks always report `acceptEdits`). Bypass JSONL detection uses raw text scan for EnterPlanMode/ExitPlanMode, debounced to 30s per session
+- **Title filtering**: All title update paths (`registerSession`, `updateActivity`, `updateContext`) reject titles starting with `<local-command` or `<command-` to prevent CLI flickering
 - **Bypass tracking**: `is_bypass` boolean (orthogonal to mode). Detected via three paths: launch-time CWD tracking, startup PID checking, hook-based PID storage. See `docs/CONNECTION.md` for details.
 - **Session status**: `active` → `working` → `idle` or `awaiting` (4 states)
 - **Awaiting detection**: PreToolUse starts 1s debounce timer; if PostToolUse arrives in time, timer cancelled; otherwise status becomes `awaiting` with tool-specific labels

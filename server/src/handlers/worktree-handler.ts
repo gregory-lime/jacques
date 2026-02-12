@@ -271,6 +271,10 @@ export class WorktreeHandler {
             }
           }
 
+          if (dangerously_skip_permissions) {
+            this.registry.markPendingBypass(result.worktreePath);
+          }
+
           const launchResult = await launchTerminalSession({
             cwd: result.worktreePath,
             targetBounds,

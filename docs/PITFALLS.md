@@ -64,7 +64,15 @@ fi
 
 ### Bypass Sessions Report Wrong permission_mode
 **Problem**: Sessions launched with `--dangerously-skip-permissions` always report `permission_mode: "acceptEdits"` in hook events, regardless of actual mode (plan, exec, etc.)
-**Solution**: Disable hook-based `updateModeFromPermission()` for bypass sessions. Use JSONL transcript scanning (`detectModeAndPlans`) instead, which detects `EnterPlanMode` tool calls.
+**Solution**: Disable hook-based `updateModeFromPermission()` for bypass sessions. Use JSONL transcript scanning instead:
+- **Raw text scan** for `"name":"EnterPlanMode"` / `"name":"ExitPlanMode"` (catches tool_use blocks in any position, not just first per message)
+- Falls back to parsed `detectModeAndPlans()` for execution mode
+- When ExitPlanMode is found after the last EnterPlanMode but parsed detection returns no mode, returns `'default'` to clear stale `'planning'` state
+- **30s per-session debounce** on `detectModeIfBypass()` in EventHandler prevents re-reading full JSONL on every Activity/Idle event
+
+### Bypass Session Title Flickering
+**Problem**: In bypass mode, the CLI sessions tab alternates between the real title and "Active Session". Two code paths update `session_title` and they disagree: `updateContext()` (from statusline) correctly filters `<local-command`/`<command-` prefixed messages, but `updateActivity()` (from Activity events) passes through whatever `sessions-index.json` recorded as the summary — which can be a `<local-command-caveat>` message if the session started with a slash command. `formatSessionTitle()` sees the `<local-command` prefix and displays "Active Session", then the next statusline update restores the correct title.
+**Solution**: Filter titles starting with `<local-command` or `<command-` server-side in all three title update paths: `registerSession()`, `updateActivity()`, and `updateContext()` in `session-registry.ts`.
 
 ### CWD-based Process Matching Is Unreliable
 **Problem**: `pgrep -x claude` doesn't find all Claude processes (some run under different process names like `node`). Attempting to match sessions to processes by CWD can assign bypass flags to wrong sessions.
