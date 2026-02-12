@@ -93,6 +93,10 @@ export class SessionHandler {
 
     this.logger.log(`Launching new terminal session in ${cwd}`);
 
+    if (dangerously_skip_permissions) {
+      this.registry.markPendingBypass(cwd);
+    }
+
     try {
       const result = await launchTerminalSession({
         cwd,

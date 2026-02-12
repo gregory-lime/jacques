@@ -317,8 +317,8 @@ export function Archive() {
                                 {(session.mode === 'planning' || session.mode === 'plan') && (
                                   <Badge label="Planning" variant="planning" />
                                 )}
-                                {session.mode === 'bypass' && (
-                                  <Badge label="Bypass" variant="bypass" />
+                                {(session.mode as string) === 'bypass' && (
+                                  <Badge label="p-less" variant="p-less" />
                                 )}
                                 {(session.mode === 'execution' || session.mode === 'acceptEdits' || session.mode === 'default') && session.mode !== null && (
                                   <Badge label="Executing" variant="execution" />

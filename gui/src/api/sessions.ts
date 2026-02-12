@@ -59,7 +59,7 @@ export interface SessionEntry {
   /** File modification time */
   modifiedAt: string;
   /** Session mode from permission_mode or JSONL detection */
-  mode?: 'plan' | 'acceptEdits' | 'default' | 'bypass' | 'planning' | 'execution' | null;
+  mode?: 'plan' | 'acceptEdits' | 'default' | 'p-less' | 'planning' | 'execution' | null;
   /** Number of plans detected in this session */
   planCount?: number;
   /** Plan references for display */

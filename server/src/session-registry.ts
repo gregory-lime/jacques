@@ -22,6 +22,7 @@ import type {
 import type { Logger } from './logging/logger-factory.js';
 import { createLogger } from './logging/logger-factory.js';
 import type { DetectedSession } from './process-scanner.js';
+import { readFile } from 'fs/promises';
 import { parseJSONL } from '@jacques/core/session';
 import { detectModeAndPlans } from '@jacques/core/cache';
 import { matchTerminalKeys } from './connection/terminal-key.js';
@@ -94,14 +95,32 @@ export class SessionRegistry {
   private get warn() { return this.logger.warn.bind(this.logger); }
 
   /**
-   * Detect session mode (planning/execution) from JSONL transcript
-   * @param transcriptPath Path to the session JSONL file
-   * @returns The detected mode or null
+   * Detect session mode (planning/execution) from JSONL transcript.
+   *
+   * For plan mode detection, scans raw JSONL text for EnterPlanMode/ExitPlanMode
+   * tool names. This is more reliable than parsed entries because the parser only
+   * captures the first tool_use block per assistant message — ExitPlanMode can be
+   * bundled with other tools (Edit, Write) and get silently dropped.
    */
   private async detectSessionMode(transcriptPath: string | null): Promise<SessionMode> {
     if (!transcriptPath) return null;
 
     try {
+      // Raw text scan for plan mode — catches all tool_use blocks regardless of position
+      const raw = await readFile(transcriptPath, 'utf-8');
+      const enterPlanIdx = raw.lastIndexOf('"name":"EnterPlanMode"');
+      const exitPlanIdx = raw.lastIndexOf('"name":"ExitPlanMode"');
+      // Also check spaced variant: "name": "EnterPlanMode"
+      const enterPlanIdxSpaced = raw.lastIndexOf('"name": "EnterPlanMode"');
+      const exitPlanIdxSpaced = raw.lastIndexOf('"name": "ExitPlanMode"');
+      const lastEnter = Math.max(enterPlanIdx, enterPlanIdxSpaced);
+      const lastExit = Math.max(exitPlanIdx, exitPlanIdxSpaced);
+
+      if (lastEnter > lastExit) {
+        return 'planning';
+      }
+
+      // Fall back to parsed detection for execution mode
       const entries = await parseJSONL(transcriptPath);
       if (entries.length === 0) return null;
 
@@ -432,7 +451,7 @@ export class SessionRegistry {
     try {
       const newMode = await this.detectSessionMode(session.transcript_path);
 
-      if (newMode !== session.mode) {
+      if (newMode && newMode !== session.mode) {
         const oldMode = session.mode;
         session.mode = newMode;
         if (newMode) {

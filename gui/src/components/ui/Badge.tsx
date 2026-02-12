@@ -20,7 +20,7 @@ type BadgeVariant =
   | 'compacted'
   | 'planning'
   | 'execution'
-  | 'bypass'
+  | 'p-less'
   | 'focused'
   | 'live'
   | 'idle'
@@ -48,7 +48,7 @@ const variantConfig: Record<
   compacted: { color: colors.textMuted, bg: 'rgba(107, 112, 117, 0.15)', Icon: Zap },
   planning: { color: '#34D399', bg: 'rgba(52, 211, 153, 0.15)', Icon: GitBranch },
   execution: { color: '#60A5FA', bg: 'rgba(96, 165, 250, 0.15)', Icon: Play },
-  bypass: { color: '#EF4444', bg: 'rgba(239, 68, 68, 0.15)', Icon: ShieldOff },
+  'p-less': { color: '#EF4444', bg: 'rgba(239, 68, 68, 0.15)', Icon: ShieldOff },
   focused: { color: colors.bgPrimary, bg: colors.accent },
   live: { color: colors.success, bg: 'rgba(74, 222, 128, 0.15)', dot: true, pulse: true },
   idle: { color: colors.textMuted, bg: 'rgba(107, 112, 117, 0.15)', dot: true },

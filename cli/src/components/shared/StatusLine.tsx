@@ -17,7 +17,6 @@ const MODE_COLORS: Record<string, string> = {
   acceptEdits: ACCENT_COLOR,
   execution: ACCENT_COLOR,
   default: MUTED_TEXT,
-  bypass: "red",
 };
 
 export function getSessionStatus(session: Session): string {
@@ -28,7 +27,6 @@ export function getSessionStatus(session: Session): string {
 }
 
 export function getSessionMode(session: Session): string {
-  if (session.is_bypass) return "bypass";
   if (session.mode) return session.mode;
   return "default";
 }
@@ -44,9 +42,14 @@ export function StatusLine({
 
   const activity = getCliActivity(session.status, session.last_tool_name);
   const mode = getSessionMode(session);
-  const modeColor = MODE_COLORS[mode] || MUTED_TEXT;
-  const modeLabel = mode === "acceptEdits" ? "edit" : mode;
   const worktree = session.git_worktree || session.git_branch || "\u2014";
+
+  // Bypass sessions: "plan" in red for planning, "p-less" in red for anything else
+  const isBypassPlan = session.is_bypass && (mode === "plan" || mode === "planning");
+  const modeLabel = session.is_bypass
+    ? (isBypassPlan ? "plan" : "p-less")
+    : (mode === "acceptEdits" ? "edit" : mode);
+  const modeColor = session.is_bypass ? "red" : (MODE_COLORS[mode] || MUTED_TEXT);
 
   return (
     <Text wrap="truncate-end">

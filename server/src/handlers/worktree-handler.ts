@@ -265,6 +265,10 @@ export class WorktreeHandler {
             // Window management not available, launch without targeting
           }
 
+          if (dangerously_skip_permissions) {
+            this.registry.markPendingBypass(result.worktreePath);
+          }
+
           const launchResult = await launchTerminalSession({
             cwd: result.worktreePath,
             targetBounds,

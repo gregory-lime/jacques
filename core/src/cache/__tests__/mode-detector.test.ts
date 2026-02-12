@@ -66,6 +66,33 @@ describe('mode-detector', () => {
         expect(result.mode).toBe('planning');
       });
 
+      it('should not report planning mode after ExitPlanMode is called', () => {
+        const entries = [
+          makeUserMessage('Add authentication'),
+          makeToolCall('EnterPlanMode'),
+          makeToolCall('Write', {
+            file_path: '/Users/gole/.claude/plans/auth-plan.md',
+            content: '# Auth Plan\n\n- Step 1: Add OAuth\n- Step 2: Add JWT\n\nDetailed implementation plan.',
+          }),
+          makeToolCall('ExitPlanMode'),
+          makeAssistantMessage('Now implementing the plan.'),
+        ];
+        const result = detectModeAndPlans(entries);
+        expect(result.mode).not.toBe('planning');
+      });
+
+      it('should detect planning mode again after re-entering plan mode', () => {
+        const entries = [
+          makeUserMessage('Add authentication'),
+          makeToolCall('EnterPlanMode'),
+          makeToolCall('ExitPlanMode'),
+          makeAssistantMessage('Implementing...'),
+          makeToolCall('EnterPlanMode'),
+        ];
+        const result = detectModeAndPlans(entries);
+        expect(result.mode).toBe('planning');
+      });
+
       it('should override execution mode with planning when both are present', () => {
         // Long enough plan content for embedded detection
         const planContent = '# My Plan\n\n- Step 1: Do the thing\n- Step 2: Do the other thing\n' +
