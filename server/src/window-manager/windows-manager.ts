@@ -133,31 +133,30 @@ export class WindowsWindowManager implements WindowManager {
   }
 
   /**
-   * Position a terminal window by its terminal key
+   * Position a terminal window by its terminal key.
+   *
+   * Handles DISCOVERED: prefix wrapping (e.g., DISCOVERED:PID:12345).
+   * Extracts the PID from any key format that contains one.
    */
   async positionWindow(terminalKey: string, geometry: WindowGeometry): Promise<PositionResult> {
-    const colonIndex = terminalKey.indexOf(':');
-    if (colonIndex === -1) {
-      return { success: false, error: `Invalid terminal key format: ${terminalKey}` };
+    // Strip DISCOVERED: prefix if present
+    const effectiveKey = terminalKey.startsWith('DISCOVERED:')
+      ? terminalKey.substring(11)
+      : terminalKey;
+
+    // Extract PID from the key using regex (handles PID:xxx, TTY:xxx:pid, etc.)
+    const pidMatch = effectiveKey.match(/(?:^PID:|^CONPTY:|^WINTERM:)(\d+)$/);
+    if (pidMatch) {
+      return this.positionByPid(pidMatch[1], geometry);
     }
 
-    const prefix = terminalKey.substring(0, colonIndex);
-    const value = terminalKey.substring(colonIndex + 1);
-
-    switch (prefix) {
-      case 'PID':
-        return this.positionByPid(value, geometry);
-      case 'CONPTY':
-      case 'WINTERM':
-        // Windows Terminal specific handling
-        return this.positionByPid(value, geometry);
-      default:
-        // Try PID-based positioning as fallback
-        if (/^\d+$/.test(value)) {
-          return this.positionByPid(value, geometry);
-        }
-        return { success: false, error: `Unsupported terminal key prefix: ${prefix}` };
+    // Fallback: try to extract trailing PID (e.g., TTY:ttys001:12345)
+    const trailingPidMatch = effectiveKey.match(/:(\d+)$/);
+    if (trailingPidMatch) {
+      return this.positionByPid(trailingPidMatch[1], geometry);
     }
+
+    return { success: false, error: `Cannot extract PID from terminal key: ${terminalKey}` };
   }
 
   /**
