@@ -9,14 +9,14 @@
  */
 
 // ============================================================
-// Types (extended from @jacques/core with GUI-specific `read` field)
+// Types (extended from @jacques-ai/core with GUI-specific `read` field)
 // ============================================================
 
 import type {
   NotificationPriority,
   NotificationCategory,
   NotificationItem as CoreNotificationItem,
-} from '@jacques/core/notifications';
+} from '@jacques-ai/core/notifications';
 
 export type { NotificationPriority, NotificationCategory };
 

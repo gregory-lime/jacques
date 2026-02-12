@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, createContext, useContext } from 'react';
 import type { Session, ClaudeOperation, ApiLog, WorktreeWithStatus } from '../types';
-import type { NotificationItem } from '@jacques/core/notifications';
+import type { NotificationItem } from '@jacques-ai/core/notifications';
 import { toastStore } from '../components/ui/ToastContainer';
 import { notificationStore } from '../components/ui/NotificationStore';
 

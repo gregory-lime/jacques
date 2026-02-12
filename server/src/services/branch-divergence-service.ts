@@ -8,7 +8,7 @@
 import type { Session } from '../types.js';
 import type { Logger } from '../logging/logger-factory.js';
 import { createLogger } from '../logging/logger-factory.js';
-import { computeBranchDivergence, checkDirtyStatus } from '@jacques/core';
+import { computeBranchDivergence, checkDirtyStatus } from '@jacques-ai/core';
 import { detectDefaultBranch } from '../connection/worktree.js';
 import { BRANCH_DIVERGENCE_INTERVAL_MS } from '../connection/constants.js';
 

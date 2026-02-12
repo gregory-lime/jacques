@@ -7,7 +7,7 @@
 
 import { describe, it, expect } from "@jest/globals";
 import { getSessionStatus } from "./StatusLine.js";
-import type { Session } from "@jacques/core";
+import type { Session } from "@jacques-ai/core";
 
 function makeSession(overrides: Partial<Session> = {}): Session {
   return {

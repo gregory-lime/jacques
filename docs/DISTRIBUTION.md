@@ -14,10 +14,10 @@ Jacques is a Node.js monorepo with 4 workspaces:
 
 | Package | Role | Has `bin`? |
 |---|---|---|
-| `@jacques/core` | Shared business logic | No |
-| `@jacques/server` | Server + HTTP API + GUI hosting | `jacques-mcp` |
-| `@jacques/cli` | Terminal TUI (Ink/React) | `jacques` |
-| `@jacques/gui` | Web GUI (Vite/React, builds to static) | No |
+| `@jacques-ai/core` | Shared business logic | No |
+| `@jacques-ai/server` | Server + HTTP API + GUI hosting | `jacques-mcp` |
+| `@jacques-ai/cli` | Terminal TUI (Ink/React) | `jacques` |
+| `@jacques-ai/gui` | Web GUI (Vite/React, builds to static) | No |
 
 The GUI builds to static files served by the server at `http://localhost:4243`.
 
@@ -40,7 +40,7 @@ npx jacques
 **What's needed to publish:**
 - Remove `"private": true` from root `package.json`
 - Resolve workspace `file:` references — either:
-  - Publish all 4 packages separately (`@jacques/core`, `@jacques/server`, `@jacques/cli`, `@jacques/gui`)
+  - Publish all 4 packages separately (`@jacques-ai/core`, `@jacques-ai/server`, `@jacques-ai/cli`, `@jacques-ai/gui`)
   - Or flatten into a single `jacques` package (simpler for users)
 - Add a `prepublishOnly` script that builds TS and the GUI
 - Ensure `npm run setup` and `npm run configure` work from a global install path (not just the repo checkout)
@@ -159,7 +159,7 @@ Jacques already has an MCP server (`jacques-mcp`). Since the target audience use
 
 **Current state:**
 - Users can add Jacques MCP to their Claude Code config manually
-- `@jacques/server` already exports `jacques-mcp` as a bin entry
+- `@jacques-ai/server` already exports `jacques-mcp` as a bin entry
 
 **Future opportunity:**
 - When Anthropic launches an MCP registry/marketplace, Jacques could be discoverable directly inside Claude Code
@@ -303,7 +303,7 @@ These aren't per-release — they're ongoing concerns:
 
 Detailed steps for Phase 1:
 
-1. **Choose package structure**: single `jacques` package (recommended) vs separate `@jacques/*` scoped packages
+1. **Choose package structure**: single `jacques` package (recommended) vs separate `@jacques-ai/*` scoped packages
 2. Remove `"private": true` from root `package.json`
 3. Replace `file:` workspace references with versioned dependencies
 4. Add `"files"` field to control what gets published (exclude tests, docs, dev configs)

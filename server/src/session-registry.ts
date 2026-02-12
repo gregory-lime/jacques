@@ -23,8 +23,8 @@ import type { Logger } from './logging/logger-factory.js';
 import { createLogger } from './logging/logger-factory.js';
 import type { DetectedSession } from './process-scanner.js';
 import { readFile } from 'fs/promises';
-import { parseJSONL } from '@jacques/core/session';
-import { detectModeAndPlans } from '@jacques/core/cache';
+import { parseJSONL } from '@jacques-ai/core/session';
+import { detectModeAndPlans } from '@jacques-ai/core/cache';
 import { matchTerminalKeys } from './connection/terminal-key.js';
 import {
   createFromHook,

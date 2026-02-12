@@ -47,10 +47,10 @@ export async function notificationRoutes(ctx: RouteContext): Promise<boolean> {
       return true;
     }
     const body = await parseBody<{ category?: string; title?: string; body?: string; priority?: string; sessionId?: string }>(req);
-    const category = (body?.category ?? 'context') as import('@jacques/core/notifications').NotificationCategory;
+    const category = (body?.category ?? 'context') as import('@jacques-ai/core/notifications').NotificationCategory;
     const title = body?.title ?? 'Test Notification';
     const notifBody = body?.body ?? 'This is a test notification from Jacques';
-    const priority = (body?.priority ?? 'medium') as import('@jacques/core/notifications').NotificationPriority;
+    const priority = (body?.priority ?? 'medium') as import('@jacques-ai/core/notifications').NotificationPriority;
     const sessionId = body?.sessionId ?? 'test-session';
 
     notificationService.fireTestNotification(category, title, notifBody, priority, sessionId);

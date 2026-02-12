@@ -1,5 +1,5 @@
 {
-  "name": "@jacques/core",
+  "name": "@jacques-ai/core",
   "version": "0.0.7-alpha.1",
   "description": "Core business logic for Jacques - shared between CLI and GUI",
   "main": "dist/index.js",
@@ -23,7 +23,8 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "test": "node --experimental-vm-modules ../node_modules/jest/bin/jest.js",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "@dqbd/tiktoken": "^1.0.15",
@@ -37,6 +38,16 @@
     "ts-jest": "^29.2.0",
     "typescript": "^5.7.0"
   },
+  "files": ["dist"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gregory-lime/jacques.git",
+    "directory": "core"
+  },
+  "homepage": "https://github.com/gregory-lime/jacques#readme",
+  "bugs": { "url": "https://github.com/gregory-lime/jacques/issues" },
+  "license": "MIT",
+  "keywords": ["claude-code", "context-monitor", "ai", "coding-assistant", "mcp"],
   "engines": {
     "node": ">=20.0.0"
   }

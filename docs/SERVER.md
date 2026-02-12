@@ -1,6 +1,6 @@
-# Server (`@jacques/server`)
+# Server (`@jacques-ai/server`)
 
-Real-time session tracking, event processing, and REST/WebSocket API. Depends on `@jacques/core` (must be built first).
+Real-time session tracking, event processing, and REST/WebSocket API. Depends on `@jacques-ai/core` (must be built first).
 
 **Build**: `cd server && npx tsc`
 **Test**: `cd server && npm test`
@@ -83,7 +83,7 @@ At startup, Jacques scans for running Claude Code sessions **before** hooks fire
 **Hook upgrade**: When hooks fire, `DISCOVERED:*` sessions upgrade to real terminal keys.
 
 **Metadata sources** (priority order):
-1. **Jacques session index** (`getSessionIndex()` from `@jacques/core/cache`) — Pre-extracted titles, git info, token stats from `.jacques/index.json`
+1. **Jacques session index** (`getSessionIndex()` from `@jacques-ai/core/cache`) — Pre-extracted titles, git info, token stats from `.jacques/index.json`
 2. **Git detection** — Inline `git rev-parse` for uncataloged sessions
 3. **JSONL parsing** — Fallback for brand-new sessions not in catalog
 
@@ -256,7 +256,7 @@ Client messages are routed by `start-server.ts` to domain handler classes:
 ## Services
 
 - `broadcast-service.ts` — Dispatch events to all WebSocket clients
-- `notification-service.ts` — Server-authoritative notification service. Detects events, fires native OS notifications via `node-notifier` with click-to-focus, broadcasts `notification_fired` WebSocket messages. Uses types/constants from `@jacques/core/notifications`. See `docs/NOTIFICATIONS.md`
+- `notification-service.ts` — Server-authoritative notification service. Detects events, fires native OS notifications via `node-notifier` with click-to-focus, broadcasts `notification_fired` WebSocket messages. Uses types/constants from `@jacques-ai/core/notifications`. See `docs/NOTIFICATIONS.md`
 - `watchers/handoff-watcher.ts` — Monitor `.jacques/handoffs/` for new files
 
 ## MCP Server (`server/src/mcp/`)

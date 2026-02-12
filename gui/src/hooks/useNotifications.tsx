@@ -14,8 +14,8 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import type { NotificationCategory, NotificationSettings } from '@jacques/core/notifications';
-import { DEFAULT_NOTIFICATION_SETTINGS } from '@jacques/core/notifications';
+import type { NotificationCategory, NotificationSettings } from '@jacques-ai/core/notifications';
+import { DEFAULT_NOTIFICATION_SETTINGS } from '@jacques-ai/core/notifications';
 import { getNotificationSettings, updateNotificationSettings } from '../api';
 
 // ---------------------------------------------------------------------------

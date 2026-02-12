@@ -13,7 +13,7 @@ const mockReadSubagent = jest.fn<() => Promise<unknown | null>>();
 const mockListSubagentsForSession = jest.fn<() => Promise<unknown[]>>();
 const mockInitializeArchive = jest.fn<() => Promise<unknown>>();
 
-jest.unstable_mockModule('@jacques/core', () => ({
+jest.unstable_mockModule('@jacques-ai/core', () => ({
   getArchiveStats: mockGetArchiveStats,
   listAllManifests: mockListAllManifests,
   listManifestsByProject: mockListManifestsByProject,

@@ -14,12 +14,12 @@ import {
   FilterType,
   getArchiveStats,
   getArchivePath,
-} from "@jacques/core";
+} from "@jacques-ai/core";
 import type {
   ConversationManifest,
   ArchiveProgress,
   ArchiveInitResult,
-} from "@jacques/core";
+} from "@jacques-ai/core";
 import {
   ARCHIVE_VISIBLE_ITEMS,
   buildArchiveList,

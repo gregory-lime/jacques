@@ -2,8 +2,8 @@
  * Shared helper for CLI commands that need a temporary JacquesClient connection.
  */
 
-import { JacquesClient } from "@jacques/core";
-import type { Session } from "@jacques/core";
+import { JacquesClient } from "@jacques-ai/core";
+import type { Session } from "@jacques-ai/core";
 
 const SERVER_URL = process.env.JACQUES_SERVER_URL || "ws://localhost:4242";
 

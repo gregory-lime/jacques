@@ -7,8 +7,8 @@
 
 import React from "react";
 import { Box, Text } from "ink";
-import type { HandoffEntry } from "@jacques/core";
-import { formatHandoffDate, formatTokenEstimate } from "@jacques/core";
+import type { HandoffEntry } from "@jacques-ai/core";
+import { formatHandoffDate, formatTokenEstimate } from "@jacques-ai/core";
 import {
   HorizontalLayout,
   VerticalLayout,

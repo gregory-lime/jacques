@@ -1,4 +1,4 @@
-# Web GUI (`@jacques/gui`)
+# Web GUI (`@jacques-ai/gui`)
 
 Browser-based session monitoring and management. Built with React 18 + Vite + React Router. Connects to the server via HTTP API (4243) and WebSocket (4242).
 
@@ -6,7 +6,7 @@ Browser-based session monitoring and management. Built with React 18 + Vite + Re
 **Dev**: `cd gui && npm run dev`
 **Test**: `cd gui && npm run test` (vitest)
 
-The GUI does **not** depend on `@jacques/core` or `@jacques/server` directly — it uses the HTTP API instead.
+The GUI does **not** depend on `@jacques-ai/core` or `@jacques-ai/server` directly — it uses the HTTP API instead.
 
 ## Routes
 

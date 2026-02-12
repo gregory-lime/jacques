@@ -18,7 +18,7 @@ import type {
   ApiLogMessage,
   CatalogUpdatedMessage,
 } from './types.js';
-import type { ClaudeOperation } from '@jacques/core';
+import type { ClaudeOperation } from '@jacques-ai/core';
 import type { Logger } from './logging/logger-factory.js';
 import { createLogger } from './logging/logger-factory.js';
 

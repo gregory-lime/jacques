@@ -7,8 +7,8 @@
 import { useState, useCallback } from "react";
 import type { Key } from "ink";
 import type { DashboardView } from "../components/Dashboard.js";
-import { addContext } from "@jacques/core";
-import type { ObsidianFile, Session } from "@jacques/core";
+import { addContext } from "@jacques-ai/core";
+import type { ObsidianFile, Session } from "@jacques-ai/core";
 
 export interface UseAddContextFlowParams {
   setCurrentView: (view: DashboardView) => void;

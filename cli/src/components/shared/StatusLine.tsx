@@ -10,7 +10,7 @@ import { Text } from "ink";
 import { MUTED_TEXT } from "../layout/theme.js";
 import { getCliActivity } from "../../utils/activity.js";
 import { getSessionModeDisplay } from "../../utils/session-mode.js";
-import type { Session } from "@jacques/core";
+import type { Session } from "@jacques-ai/core";
 
 export function getSessionStatus(session: Session): string {
   if (session.status === "working" || session.status === "tool_use") return "working";

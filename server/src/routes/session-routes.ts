@@ -18,7 +18,7 @@ import { promises as fsPromises } from 'fs';
 import { basename, join } from 'path';
 import type { RouteContext } from './types.js';
 import { sendJson, parseBody, createSSEWriter } from './http-utils.js';
-import type { CacheSessionEntry } from '@jacques/core';
+import type { CacheSessionEntry } from '@jacques-ai/core';
 import {
   getSessionIndex,
   buildSessionIndex,
@@ -32,7 +32,7 @@ import {
   decodeProjectPath,
   detectModeAndPlans,
   extractTaskSignals,
-} from '@jacques/core';
+} from '@jacques-ai/core';
 
 export async function sessionRoutes(ctx: RouteContext): Promise<boolean> {
   const { method, url, req, res } = ctx;
@@ -622,7 +622,7 @@ async function handlePlanByMessageIndex(ctx: RouteContext, sessionId: string, me
       }
 
       const text = entry.content.text;
-      const { PLAN_TRIGGER_PATTERNS } = await import('@jacques/core');
+      const { PLAN_TRIGGER_PATTERNS } = await import('@jacques-ai/core');
       let planContent = text;
       for (const pattern of PLAN_TRIGGER_PATTERNS) {
         const match = text.match(pattern);

@@ -8,7 +8,7 @@
 import React from "react";
 import { Box, Text } from "ink";
 import { MUTED_TEXT, ERROR_COLOR, WARNING_COLOR, SUCCESS_COLOR } from "./layout/theme.js";
-import type { Session } from "@jacques/core";
+import type { Session } from "@jacques-ai/core";
 
 interface ContextProgressProps {
   session: Session | null;

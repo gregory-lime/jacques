@@ -22,7 +22,7 @@ import { WorktreeHandler } from './handlers/worktree-handler.js';
 import { SessionHandler } from './handlers/session-handler.js';
 import { SettingsHandler } from './handlers/settings-handler.js';
 import { scanForActiveSessions } from './process-scanner.js';
-import { extractSessionCatalog, getSessionIndex } from '@jacques/core';
+import { extractSessionCatalog, getSessionIndex } from '@jacques-ai/core';
 import type {
   ClientMessage,
   ServerLogMessage,
@@ -44,7 +44,7 @@ import type {
 import { TileStateManager } from './window-manager/tile-state.js';
 import { ChatService } from './services/chat-service.js';
 import { WebSocket } from 'ws';
-import { ClaudeOperationLogger } from '@jacques/core';
+import { ClaudeOperationLogger } from '@jacques-ai/core';
 import { PROCESS_VERIFY_INTERVAL_MS, BRANCH_DIVERGENCE_INTERVAL_MS } from './connection/constants.js';
 import { BranchDivergenceService } from './services/branch-divergence-service.js';
 

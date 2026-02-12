@@ -1,6 +1,6 @@
 # CLI TUI (`jacques`)
 
-Terminal UI for real-time session monitoring. Built with Ink (React for CLIs). Depends on both `@jacques/core` and `@jacques/server`.
+Terminal UI for real-time session monitoring. Built with Ink (React for CLIs). Depends on both `@jacques-ai/core` and `@jacques-ai/server`.
 
 **Build**: `cd cli && npx tsc`
 **Test**: `cd cli && npm test`
@@ -26,7 +26,7 @@ cli.ts (Commander)
     ↓
 startEmbeddedServer() → Server (embedded)
     ↓
-JacquesClient (WebSocket from @jacques/core) → App.tsx (Ink root)
+JacquesClient (WebSocket from @jacques-ai/core) → App.tsx (Ink root)
     ↓
 Dashboard (view router) → Views
 ```
@@ -69,7 +69,7 @@ Each view has a dedicated hook. Hooks manage their own state and expose `open()`
 
 ### Import Conventions
 
-Types and business logic come from `@jacques/core`:
+Types and business logic come from `@jacques-ai/core`:
 - `Session`, `DiscoveredProject` — canonical types
 - `getProjectGroupKey()` — groups sessions by git repo root basename
 

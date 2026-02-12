@@ -23,8 +23,8 @@ import type { BranchDivergenceService } from '../services/branch-divergence-serv
 import type { Session } from '../types.js';
 import type { Logger } from '../logging/logger-factory.js';
 import { createLogger } from '../logging/logger-factory.js';
-import { isContinueSession } from '@jacques/core/session';
-import { extractContinueTitleFromHandoff } from '@jacques/core/cache';
+import { isContinueSession } from '@jacques-ai/core/session';
+import { extractContinueTitleFromHandoff } from '@jacques-ai/core/cache';
 
 /**
  * Configuration for EventHandler

@@ -9,7 +9,7 @@ import { useState, useRef, useEffect, useSyncExternalStore } from 'react';
 import { Bell, Check, Trash2, X } from 'lucide-react';
 import { colors } from '../../styles/theme';
 import { notificationStore, type NotificationItem, type NotificationPriority } from './NotificationStore';
-import { CATEGORY_LABELS } from '@jacques/core/notifications';
+import { CATEGORY_LABELS } from '@jacques-ai/core/notifications';
 
 // ============================================================
 // Priority colors

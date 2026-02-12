@@ -18,7 +18,7 @@ import {
   FIXED_CONTENT_HEIGHT,
 } from "./layout/index.js";
 import { buildBottomControls } from "../utils/bottom-controls.js";
-import type { ArchiveProgress, ArchiveInitResult } from "@jacques/core";
+import type { ArchiveProgress, ArchiveInitResult } from "@jacques-ai/core";
 
 interface ArchiveInitProgressViewProps {
   progress: ArchiveProgress | null;

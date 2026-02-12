@@ -4,7 +4,7 @@
  * Sessions from the same git repo (including worktrees) should be grouped
  * together. The `git_repo_root` field provides the canonical identity.
  *
- * Canonical source: @jacques/core getProjectGroupKey (core/src/cache/project-discovery.ts)
+ * Canonical source: @jacques-ai/core getProjectGroupKey (core/src/cache/project-discovery.ts)
  * Duplicated here because GUI is a browser app and cannot import from core (Node.js APIs).
  */
 

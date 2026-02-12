@@ -7,7 +7,7 @@
  */
 
 import React, { useCallback, useState, useEffect, useRef } from "react";
-import { useInput, useApp, useStdin, useStdout, Box } from "ink";
+import { useInput, useApp, useStdin, Box } from "ink";
 import type { Key } from "ink";
 import { exec } from "child_process";
 import { useJacquesClient } from "../hooks/useJacquesClient.js";
@@ -84,22 +84,6 @@ export function App(): React.ReactElement {
     sessions: sessions as Array<{ cwd?: string; git_worktree?: string }>,
   });
 
-  // Track terminal height for experiment view viewport calculation
-  const { stdout } = useStdout();
-  const [terminalHeight, setTerminalHeight] = useState(stdout?.rows || 24);
-  useEffect(() => {
-    const handleResize = () => {
-      if (stdout?.rows) setTerminalHeight(stdout.rows);
-    };
-    if (stdout && "on" in stdout && typeof stdout.on === "function") {
-      stdout.on("resize", handleResize);
-      return () => {
-        if ("off" in stdout && typeof stdout.off === "function") {
-          stdout.off("resize", handleResize);
-        }
-      };
-    }
-  }, [stdout]);
 
   const sessionsExpHook = useSessionsExperiment({
     sessions,

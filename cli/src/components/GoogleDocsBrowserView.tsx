@@ -7,7 +7,7 @@
 
 import React from "react";
 import { Box, Text } from "ink";
-import type { FlatTreeItem } from "@jacques/core";
+import type { FlatTreeItem } from "@jacques-ai/core";
 import {
   HorizontalLayout,
   VerticalLayout,

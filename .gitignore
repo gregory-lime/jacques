@@ -30,6 +30,13 @@ Thumbs.db
 .env
 .env.*
 
+# Publish artifacts (created by scripts/prepare-publish.js)
+server/gui-dist/
+cli/hooks/
+cli/skills/
+wrapper/node_modules/
+*.bak
+
 # Root-level images (canonical copies live in assets/)
 /*.png
 pixel.py

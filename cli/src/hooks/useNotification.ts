@@ -13,9 +13,9 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import type { NotificationItem } from "@jacques/core/notifications";
-import { CATEGORY_SYMBOLS } from "@jacques/core/notifications";
-import type { JacquesClient } from "@jacques/core";
+import type { NotificationItem } from "@jacques-ai/core/notifications";
+import { CATEGORY_SYMBOLS } from "@jacques-ai/core/notifications";
+import type { JacquesClient } from "@jacques-ai/core";
 
 const MAX_QUEUE = 10;
 const AUTO_DISMISS_MS = 5000;

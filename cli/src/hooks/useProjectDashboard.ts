@@ -16,7 +16,7 @@ import {
   readLocalPlanContent,
   computePlanProgress,
   computePlanProgressSummary,
-} from "@jacques/core";
+} from "@jacques-ai/core";
 import type {
   ProjectStatistics,
   ProjectSessionItem,
@@ -24,7 +24,7 @@ import type {
   PlanProgress,
   PlanProgressListItem,
   Session,
-} from "@jacques/core";
+} from "@jacques-ai/core";
 import { VISIBLE_SESSIONS, VISIBLE_PLANS } from "../components/ProjectDashboardView.js";
 import { PLAN_VIEWER_VISIBLE_LINES } from "../components/PlanViewerView.js";
 

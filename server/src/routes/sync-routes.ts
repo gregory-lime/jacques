@@ -11,7 +11,7 @@ import {
   buildSessionIndex,
   extractAllCatalogs,
   extractProjectCatalog,
-} from '@jacques/core';
+} from '@jacques-ai/core';
 
 export async function syncRoutes(ctx: RouteContext): Promise<boolean> {
   const { method, url, res } = ctx;

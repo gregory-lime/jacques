@@ -1,5 +1,5 @@
 {
-  "name": "@jacques/server",
+  "name": "@jacques-ai/server",
   "version": "0.0.7-alpha.1",
   "description": "Jacques multi-session Claude Code monitor server",
   "main": "dist/server.js",
@@ -21,10 +21,11 @@
     "dev": "tsc --watch",
     "start": "node dist/server.js",
     "start:mcp": "node dist/mcp/server.js",
-    "test": "node --experimental-vm-modules ../node_modules/jest/bin/jest.js"
+    "test": "node --experimental-vm-modules ../node_modules/jest/bin/jest.js",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@jacques/core": "file:../core",
+    "@jacques-ai/core": "0.0.7-alpha.1",
     "@modelcontextprotocol/sdk": "^1.11.0",
     "node-notifier": "^10.0.1",
     "ws": "^8.18.0",
@@ -39,6 +40,27 @@
     "ts-jest": "^29.4.6",
     "typescript": "^5.7.0"
   },
+  "files": [
+    "dist",
+    "gui-dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gregory-lime/jacques.git",
+    "directory": "server"
+  },
+  "homepage": "https://github.com/gregory-lime/jacques#readme",
+  "bugs": {
+    "url": "https://github.com/gregory-lime/jacques/issues"
+  },
+  "license": "MIT",
+  "keywords": [
+    "claude-code",
+    "context-monitor",
+    "ai",
+    "coding-assistant",
+    "mcp"
+  ],
   "engines": {
     "node": ">=20.0.0"
   }

@@ -9,7 +9,7 @@ import { Text, Box } from "ink";
 import { Mascot } from "./Mascot.js";
 import { ProgressBar } from "./ProgressBar.js";
 import { ACCENT_COLOR, WARNING_COLOR, ERROR_COLOR, SUCCESS_COLOR } from "./layout/theme.js";
-import type { Session } from "@jacques/core";
+import type { Session } from "@jacques-ai/core";
 
 interface CompactHeaderProps {
   version: string;

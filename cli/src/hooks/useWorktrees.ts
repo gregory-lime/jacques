@@ -6,7 +6,7 @@
  */
 
 import { useState, useCallback, useEffect } from "react";
-import type { WorktreeWithStatus } from "@jacques/core";
+import type { WorktreeWithStatus } from "@jacques-ai/core";
 import type { ListWorktreesResult } from "./useJacquesClient.js";
 
 export interface WorktreeItem extends WorktreeWithStatus {

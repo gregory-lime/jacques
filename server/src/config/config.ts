@@ -5,7 +5,7 @@
  * Values are sourced from environment variables with sensible defaults.
  */
 
-import { getClaudeSettingsPath } from '@jacques/core/session';
+import { getClaudeSettingsPath } from '@jacques-ai/core/session';
 
 /**
  * Server configuration object

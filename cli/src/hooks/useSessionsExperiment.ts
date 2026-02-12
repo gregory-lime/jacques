@@ -9,7 +9,7 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
 
 import type { Key } from "ink";
-import type { Session, DiscoveredProject, WorktreeWithStatus } from "@jacques/core";
+import type { Session, DiscoveredProject, WorktreeWithStatus } from "@jacques-ai/core";
 import type { WorktreeItem } from "./useWorktrees.js";
 import { validateWorktreeName } from "./useWorktrees.js";
 import type { CreateWorktreeResult, RemoveWorktreeResult } from "./useJacquesClient.js";

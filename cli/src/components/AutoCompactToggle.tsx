@@ -8,7 +8,7 @@
 import React from "react";
 import { Box, Text } from "ink";
 import { MUTED_TEXT, SUCCESS_COLOR, WARNING_COLOR } from "./layout/theme.js";
-import type { AutoCompactStatus } from "@jacques/core";
+import type { AutoCompactStatus } from "@jacques-ai/core";
 
 interface AutoCompactToggleProps {
   autocompact: AutoCompactStatus | null;

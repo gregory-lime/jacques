@@ -25,8 +25,8 @@ import {
 } from "./layout/index.js";
 import { buildBottomControls } from "../utils/bottom-controls.js";
 import type { UsageLimits } from "../hooks/useUsageLimits.js";
-import type { NotificationSettings, NotificationCategory } from "@jacques/core/notifications";
-import { DEFAULT_NOTIFICATION_SETTINGS } from "@jacques/core/notifications";
+import type { NotificationSettings, NotificationCategory } from "@jacques-ai/core/notifications";
+import { DEFAULT_NOTIFICATION_SETTINGS } from "@jacques-ai/core/notifications";
 
 export interface ArchiveStatsData {
   totalConversations: number;

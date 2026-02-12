@@ -6,7 +6,7 @@
  */
 
 import { useState, useCallback } from "react";
-import type { DiscoveredProject } from "@jacques/core";
+import type { DiscoveredProject } from "@jacques-ai/core";
 
 export type { DiscoveredProject };
 

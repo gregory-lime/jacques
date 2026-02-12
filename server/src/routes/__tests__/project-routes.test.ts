@@ -31,7 +31,7 @@ const mockFindDuplicatePlan = jest.fn<() => Promise<unknown | null>>();
 const mockListHandoffs = jest.fn<() => Promise<unknown>>();
 const mockGetHandoffContent = jest.fn<() => Promise<string>>();
 
-jest.unstable_mockModule('@jacques/core', () => ({
+jest.unstable_mockModule('@jacques-ai/core', () => ({
   discoverProjects: mockDiscoverProjects,
   hideProject: mockHideProject,
   decodeProjectPath: jest.fn<(path: string) => Promise<string>>().mockImplementation((path: string) => Promise.resolve('/decoded/' + path)),

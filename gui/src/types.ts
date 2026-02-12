@@ -1,7 +1,7 @@
 /**
  * Jacques GUI Types
  *
- * These types are duplicated from @jacques/core for browser compatibility.
+ * These types are duplicated from @jacques-ai/core for browser compatibility.
  * The core package uses Node.js APIs which aren't available in browsers.
  */
 

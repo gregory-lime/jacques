@@ -7,7 +7,7 @@ import React from "react";
 import { Box, Text } from "ink";
 import { MASCOT_ANSI } from "../../assets/mascot-ansi.js";
 import { ACCENT_COLOR, MUTED_TEXT, SUCCESS_COLOR, ERROR_COLOR } from "./theme.js";
-import { APP_ENDEARMENT } from "@jacques/core";
+import { APP_ENDEARMENT } from "@jacques-ai/core";
 import { buildBottomControls, MAIN_CONTROLS } from "../../utils/bottom-controls.js";
 
 export interface VerticalLayoutProps {

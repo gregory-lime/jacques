@@ -6,8 +6,8 @@
  * can reference and modify them.
  */
 
-import { readProjectIndex } from '@jacques/core';
-import type { ProjectIndex } from '@jacques/core';
+import { readProjectIndex } from '@jacques-ai/core';
+import type { ProjectIndex } from '@jacques-ai/core';
 
 // Re-export the type so chat-service can use it
 export type { ProjectIndex };

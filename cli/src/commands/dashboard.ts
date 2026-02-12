@@ -9,8 +9,8 @@ import { existsSync, statSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { App } from "../components/App.js";
-import { startEmbeddedServer } from "@jacques/server";
-import type { EmbeddedServer } from "@jacques/server";
+import { startEmbeddedServer } from "@jacques-ai/server";
+import type { EmbeddedServer } from "@jacques-ai/server";
 
 // Embedded server instance
 let embeddedServer: EmbeddedServer | null = null;
@@ -156,15 +156,37 @@ export async function startDashboard(): Promise<void> {
 
   // Enter alternate screen buffer to prevent scrolling and ghosting
   process.stdout.write("\x1b[?1049h"); // Enter alternate screen
+  process.stdout.write("\x1b[?1007h"); // Alternate scroll mode: mouse wheel → arrow keys
   process.stdout.write("\x1b[2J"); // Clear entire screen
   process.stdout.write("\x1b[H"); // Move cursor to home position
 
-  const { waitUntilExit } = render(React.createElement(App));
+  // Wrap stdout.write with synchronized output (DEC private mode 2026).
+  // iTerm2 and other modern terminals buffer all writes between the begin/end
+  // markers and paint them in a single frame, eliminating flicker.
+  const origWrite = process.stdout.write.bind(process.stdout);
+  let syncActive = false;
+  process.stdout.write = function (chunk: unknown, encodingOrCb?: unknown, cb?: unknown): boolean {
+    if (!syncActive) {
+      syncActive = true;
+      origWrite("\x1b[?2026h");
+      queueMicrotask(() => {
+        origWrite("\x1b[?2026l");
+        syncActive = false;
+      });
+    }
+    return origWrite(chunk as string | Uint8Array, encodingOrCb as BufferEncoding, cb as () => void);
+  } as typeof process.stdout.write;
+
+  const { waitUntilExit } = render(React.createElement(App), { patchConsole: true });
 
   try {
     await waitUntilExit();
   } finally {
+    // Restore original stdout.write before cleanup output
+    process.stdout.write = origWrite;
+
     // Exit alternate screen buffer
+    process.stdout.write("\x1b[?1007l"); // Disable alternate scroll mode
     process.stdout.write("\x1b[?1049l");
 
     // Cleanup with timeout to prevent hanging

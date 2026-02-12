@@ -13,8 +13,15 @@ import { serveStaticFile } from './http-utils.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// GUI dist folder location (relative to server dist/routes)
-const GUI_DIST_PATH = join(__dirname, '..', '..', '..', 'gui', 'dist');
+// GUI dist folder locations:
+// - npm-installed: server/gui-dist/ (copied by prepare-publish.js)
+// - monorepo dev: gui/dist/ (relative to server dist/routes)
+const NPM_GUI_PATH = join(__dirname, '..', '..', 'gui-dist');
+const MONOREPO_GUI_PATH = join(__dirname, '..', '..', '..', 'gui', 'dist');
+
+const GUI_DIST_PATH = existsSync(join(NPM_GUI_PATH, 'index.html'))
+  ? NPM_GUI_PATH
+  : MONOREPO_GUI_PATH;
 
 /** Check if GUI is built */
 export function isGuiAvailable(): boolean {

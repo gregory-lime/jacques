@@ -37,11 +37,11 @@ jest.unstable_mockModule('fs/promises', () => ({
   stat: mockFsStat,
 }));
 
-// Mock @jacques/core for plan detection
+// Mock @jacques-ai/core for plan detection
 const mockParseJSONL = jest.fn<() => Promise<unknown[]>>();
 const mockDetectModeAndPlans = jest.fn<() => { mode: string | null; planRefs: Array<{ title: string; source: string; messageIndex: number }> }>();
 
-jest.unstable_mockModule('@jacques/core', () => ({
+jest.unstable_mockModule('@jacques-ai/core', () => ({
   parseJSONL: mockParseJSONL,
   detectModeAndPlans: mockDetectModeAndPlans,
 }));

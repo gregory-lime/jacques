@@ -18,8 +18,8 @@ import {
   applyFilter,
   FILTER_CONFIGS,
   saveToArchive,
-} from "@jacques/core";
-import type { SessionFile, ParsedEntry, Session } from "@jacques/core";
+} from "@jacques-ai/core";
+import type { SessionFile, ParsedEntry, Session } from "@jacques-ai/core";
 import type {
   SavePreviewData,
   SaveSuccessData,

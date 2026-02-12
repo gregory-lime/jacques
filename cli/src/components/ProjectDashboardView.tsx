@@ -15,7 +15,7 @@
 
 import React from "react";
 import { Box, Text } from "ink";
-import type { ProjectStatistics, ProjectSessionItem, PlanEntry, PlanProgressListItem } from "@jacques/core";
+import type { ProjectStatistics, ProjectSessionItem, PlanEntry, PlanProgressListItem } from "@jacques-ai/core";
 import {
   SCENE_FULL,
   SCENE_COMPACT,

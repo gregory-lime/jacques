@@ -7,7 +7,7 @@
 import { describe, it, expect } from "@jest/globals";
 import { getSessionMode, getSessionModeDisplay } from "./session-mode.js";
 import { SUCCESS_COLOR, ACCENT_COLOR, MUTED_TEXT, ERROR_COLOR } from "../components/layout/theme.js";
-import type { Session } from "@jacques/core";
+import type { Session } from "@jacques-ai/core";
 
 function makeSession(overrides: Partial<Session> = {}): Session {
   return {

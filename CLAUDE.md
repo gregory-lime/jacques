@@ -191,7 +191,7 @@ jacques-context-manager/
 ├── cli/src/             # CLI TUI (Ink/React)
 │   ├── components/      # React/Ink UI components
 │   ├── hooks/           # Custom React hooks (state management)
-│   ├── handoff/         # Handoff tests (imports from @jacques/core)
+│   ├── handoff/         # Handoff tests (imports from @jacques-ai/core)
 │   └── templates/       # Skill templates
 ├── gui/src/             # Web GUI (React + Vite)
 │   ├── api/             # HTTP API client (9 domain modules: sources, archive, sessions, plans, context, sync, handoffs, usage, server-config)

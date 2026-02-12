@@ -7,7 +7,7 @@
 
 import type { RouteContext } from './types.js';
 import { sendJson } from './http-utils.js';
-import { ClaudeOperationLogger } from '@jacques/core';
+import { ClaudeOperationLogger } from '@jacques-ai/core';
 
 export async function claudeRoutes(ctx: RouteContext): Promise<boolean> {
   const { method, url, res } = ctx;

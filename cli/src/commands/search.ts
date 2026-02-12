@@ -2,7 +2,7 @@
  * Search and archive-stats commands.
  */
 
-import { searchConversations, getArchiveStats } from "@jacques/core";
+import { searchConversations, getArchiveStats } from "@jacques-ai/core";
 
 export async function searchArchive(
   query: string,

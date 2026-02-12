@@ -5,7 +5,7 @@ import { colors } from '../styles/theme';
 import { SectionHeader, SettingsSection, ToggleSwitch } from '../components/ui';
 import { useNotifications } from '../hooks/useNotifications';
 import { usePersistedState } from '../hooks/usePersistedState';
-import type { NotificationCategory } from '@jacques/core/notifications';
+import type { NotificationCategory } from '@jacques-ai/core/notifications';
 import { getRootPath, setRootPath, syncSessions, getUsageLimits, type RootPathConfig, type SyncProgress, type SyncResult } from '../api';
 import { useProjectScope } from '../hooks/useProjectScope';
 import type { UsageLimits } from '../types';

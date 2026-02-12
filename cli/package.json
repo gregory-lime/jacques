@@ -1,5 +1,5 @@
 {
-  "name": "@jacques/cli",
+  "name": "@jacques-ai/cli",
   "version": "0.0.7-alpha.1",
   "description": "Jacques CLI TUI for Claude Code context monitoring",
   "main": "dist/cli.js",
@@ -13,11 +13,12 @@
     "start": "node dist/cli.js",
     "test": "node --experimental-vm-modules ../node_modules/jest/bin/jest.js",
     "convert-mascot": "tsx scripts/convert-mascot.ts",
-    "prebuild": "npm run convert-mascot"
+    "prebuild": "npm run convert-mascot",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@jacques/core": "*",
-    "@jacques/server": "*",
+    "@jacques-ai/core": "0.0.7-alpha.1",
+    "@jacques-ai/server": "0.0.7-alpha.1",
     "commander": "^12.1.0",
     "ink": "^6.6.0",
     "react": "^19.2.4",
@@ -34,6 +35,28 @@
     "tsx": "^4.7.0",
     "typescript": "^5.7.0"
   },
+  "files": [
+    "dist",
+    "hooks",
+    "skills"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gregory-lime/jacques.git",
+    "directory": "cli"
+  },
+  "homepage": "https://github.com/gregory-lime/jacques#readme",
+  "bugs": {
+    "url": "https://github.com/gregory-lime/jacques/issues"
+  },
+  "license": "MIT",
+  "keywords": [
+    "claude-code",
+    "context-monitor",
+    "ai",
+    "coding-assistant",
+    "mcp"
+  ],
   "engines": {
     "node": ">=20.0.0"
   }

@@ -1,5 +1,5 @@
 /**
- * @jacques/core/notifications — barrel export
+ * @jacques-ai/core/notifications — barrel export
  *
  * Single source of truth for notification types, constants, and utilities.
  */

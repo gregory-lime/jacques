@@ -221,7 +221,7 @@ export interface SubagentData {
 
 /**
  * A discovered project, grouped by git repo root.
- * Canonical source: @jacques/core DiscoveredProject (core/src/cache/types.ts)
+ * Canonical source: @jacques-ai/core DiscoveredProject (core/src/cache/types.ts)
  * Duplicated here because GUI is a browser app and cannot import from core (Node.js APIs).
  */
 export interface DiscoveredProject {

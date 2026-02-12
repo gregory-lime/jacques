@@ -10,7 +10,7 @@
 
 import React from "react";
 import { Box, Text } from "ink";
-import type { PlanEntry, PlanProgress, PlanItemStatus } from "@jacques/core";
+import type { PlanEntry, PlanProgress, PlanItemStatus } from "@jacques-ai/core";
 import { dotLine, sectionLine, progressBar } from "./ascii-art/index.js";
 import { ACCENT_COLOR, MUTED_TEXT, SUCCESS_COLOR } from "./layout/index.js";
 

@@ -514,14 +514,14 @@ export interface FocusTerminalResultMessage {
 }
 
 // ============================================================
-// Notification System (re-exported from @jacques/core)
+// Notification System (re-exported from @jacques-ai/core)
 // ============================================================
 
 import type {
   NotificationCategory as _NotificationCategory,
   NotificationSettings as _NotificationSettings,
   NotificationItem as _NotificationItem,
-} from '@jacques/core/notifications';
+} from '@jacques-ai/core/notifications';
 
 export type NotificationCategory = _NotificationCategory;
 export type NotificationSettings = _NotificationSettings;

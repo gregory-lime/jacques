@@ -8,7 +8,7 @@ const mockExtractAllCatalogs = jest.fn<() => Promise<Record<string, number>>>();
 const mockExtractProjectCatalog = jest.fn<() => Promise<Record<string, number>>>();
 const mockBuildSessionIndex = jest.fn<() => Promise<{ sessions: unknown[]; lastScanned: string }>>();
 
-jest.unstable_mockModule('@jacques/core', () => ({
+jest.unstable_mockModule('@jacques-ai/core', () => ({
   extractAllCatalogs: mockExtractAllCatalogs,
   extractProjectCatalog: mockExtractProjectCatalog,
   buildSessionIndex: mockBuildSessionIndex,

@@ -16,7 +16,7 @@ import type { JacquesWebSocketServer } from '../websocket.js';
 import type { NotificationService } from '../services/notification-service.js';
 import type { Logger } from '../logging/logger-factory.js';
 import { ServerConfig } from '../config/config.js';
-import { getCompactContextForSkill } from '@jacques/core/handoff';
+import { getCompactContextForSkill } from '@jacques-ai/core/handoff';
 import type {
   AutoCompactToggledMessage,
   GetHandoffContextRequest,

@@ -7,8 +7,8 @@
  */
 
 import { describe, it, expect } from "@jest/globals";
-import { CATEGORY_SYMBOLS } from "@jacques/core/notifications";
-import type { NotificationItem } from "@jacques/core/notifications";
+import { CATEGORY_SYMBOLS } from "@jacques-ai/core/notifications";
+import type { NotificationItem } from "@jacques-ai/core/notifications";
 
 describe("useNotification", () => {
   describe("notification text formatting", () => {

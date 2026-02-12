@@ -13,8 +13,8 @@ import {
   flattenGoogleDocsTree,
   exportGoogleDoc,
   addContext,
-} from "@jacques/core";
-import type { FileTreeNode, FlatTreeItem, Session } from "@jacques/core";
+} from "@jacques-ai/core";
+import type { FileTreeNode, FlatTreeItem, Session } from "@jacques-ai/core";
 import { GOOGLE_DOCS_VISIBLE_ITEMS } from "../components/GoogleDocsBrowserView.js";
 
 export interface UseGoogleDocsBrowserParams {

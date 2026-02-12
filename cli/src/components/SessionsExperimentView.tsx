@@ -25,7 +25,7 @@ import {
   FIXED_CONTENT_HEIGHT,
   HORIZONTAL_LAYOUT_MIN_WIDTH,
 } from "./layout/theme.js";
-import { formatSessionTitle, APP_ENDEARMENT } from "@jacques/core";
+import { formatSessionTitle, APP_ENDEARMENT } from "@jacques-ai/core";
 import type { ContentItem } from "../hooks/useSessionsExperiment.js";
 import { getCliActivity } from "../utils/activity.js";
 import { getSessionModeDisplay } from "../utils/session-mode.js";

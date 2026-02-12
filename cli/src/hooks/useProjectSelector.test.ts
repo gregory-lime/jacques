@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect } from "@jest/globals";
-import type { DiscoveredProject } from "@jacques/core";
+import type { DiscoveredProject } from "@jacques-ai/core";
 
 function makeProject(overrides: Partial<DiscoveredProject> = {}): DiscoveredProject {
   return {

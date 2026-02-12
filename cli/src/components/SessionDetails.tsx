@@ -10,7 +10,7 @@ import { Box, Text } from "ink";
 import { ProgressBar } from "./ProgressBar.js";
 import { formatTokens } from "../utils/format.js";
 import { ACCENT_COLOR, WARNING_COLOR, ERROR_COLOR, SUCCESS_COLOR } from "./layout/theme.js";
-import type { Session, AutoCompactStatus } from "@jacques/core";
+import type { Session, AutoCompactStatus } from "@jacques-ai/core";
 
 interface SessionDetailsProps {
   session: Session | undefined;

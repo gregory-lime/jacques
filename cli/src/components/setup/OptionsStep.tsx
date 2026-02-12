@@ -9,7 +9,7 @@ import {
   MUTED_TEXT,
   SUCCESS_COLOR,
 } from "../layout/theme.js";
-import type { SetupOptions } from "@jacques/core";
+import type { SetupOptions } from "@jacques-ai/core";
 
 const OPTION_ITEMS = [
   {

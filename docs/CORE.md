@@ -1,4 +1,4 @@
-# Core Package (`@jacques/core`)
+# Core Package (`@jacques-ai/core`)
 
 Shared business logic used by server, CLI, and GUI. Must be built first — server and CLI depend on its compiled `.d.ts` files.
 
@@ -10,17 +10,17 @@ Shared business logic used by server, CLI, and GUI. Must be built first — serv
 
 | Module | Import Path | Responsibility |
 |--------|-------------|----------------|
-| Session | `@jacques/core/session` | JSONL parsing, filtering, token estimation |
-| Archive | `@jacques/core/archive` | Cross-project search, plan extraction/dedup |
-| Context | `@jacques/core/context` | `.jacques/index.json` CRUD, project knowledge |
-| Catalog | `@jacques/core` | Pre-extract JSONL → `.jacques/` manifests |
-| Sources | `@jacques/core/sources` | External adapters (Obsidian, Google Docs, Notion) |
-| Storage | `@jacques/core/storage` | Save context (JSONL → JSON transformation) |
-| Client | `@jacques/core/client` | WebSocket client (`JacquesClient`) |
-| Handoff | `@jacques/core/handoff` | Session handoff generation |
-| Utils | `@jacques/core/utils` | Settings, Claude token management |
-| Cache | `@jacques/core/cache` | Session indexing, project discovery, mode detection |
-| Notifications | `@jacques/core/notifications` | Shared notification types, constants, utilities. See `docs/NOTIFICATIONS.md` |
+| Session | `@jacques-ai/core/session` | JSONL parsing, filtering, token estimation |
+| Archive | `@jacques-ai/core/archive` | Cross-project search, plan extraction/dedup |
+| Context | `@jacques-ai/core/context` | `.jacques/index.json` CRUD, project knowledge |
+| Catalog | `@jacques-ai/core` | Pre-extract JSONL → `.jacques/` manifests |
+| Sources | `@jacques-ai/core/sources` | External adapters (Obsidian, Google Docs, Notion) |
+| Storage | `@jacques-ai/core/storage` | Save context (JSONL → JSON transformation) |
+| Client | `@jacques-ai/core/client` | WebSocket client (`JacquesClient`) |
+| Handoff | `@jacques-ai/core/handoff` | Session handoff generation |
+| Utils | `@jacques-ai/core/utils` | Settings, Claude token management |
+| Cache | `@jacques-ai/core/cache` | Session indexing, project discovery, mode detection |
+| Notifications | `@jacques-ai/core/notifications` | Shared notification types, constants, utilities. See `docs/NOTIFICATIONS.md` |
 | Logging | `core/src/logging/` | Structured logging, error classification (internal) |
 | Project | `core/src/project/` | Aggregation for CLI |
 

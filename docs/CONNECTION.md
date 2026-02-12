@@ -417,7 +417,7 @@ Server → Client:
 | Data | Transport | Endpoint | Source |
 |------|-----------|----------|--------|
 | **Live/active sessions** | WebSocket (port 4242) | WS broadcast `session_update` | `SessionRegistry` in server memory |
-| **Archive/history** | HTTP API (port 4243) | `GET /api/sessions` | `@jacques/core/cache` on disk |
+| **Archive/history** | HTTP API (port 4243) | `GET /api/sessions` | `@jacques-ai/core/cache` on disk |
 
 The **live session registry** (`SessionRegistry`) tracks currently running sessions in memory. It's populated by:
 - Hooks (Unix socket events: `context_update`, `session_start`, `session_end`)

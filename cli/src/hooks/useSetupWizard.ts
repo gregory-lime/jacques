@@ -20,14 +20,14 @@ import {
   writeClaudeSettings,
   installSkills,
   verifyInstallation,
-} from "@jacques/core/setup";
+} from "@jacques-ai/core/setup";
 import type {
   PrerequisiteResult,
   SetupOptions,
   SetupStepResult,
   VerificationResult,
   SyncResult,
-} from "@jacques/core/setup";
+} from "@jacques-ai/core/setup";
 import { OPTIONS_COUNT, OPTION_KEYS } from "../components/setup/OptionsStep.js";
 import type { InstallSubstep } from "../components/setup/InstallingStep.js";
 
@@ -367,7 +367,7 @@ export function useSetupWizard(): UseSetupWizardReturn {
 
     try {
       // Dynamically import to avoid pulling server deps at module load
-      const { startEmbeddedServer } = await import("@jacques/server");
+      const { startEmbeddedServer } = await import("@jacques-ai/server");
       const server = await startEmbeddedServer({ silent: true });
       syncServerRef.current = server;
 

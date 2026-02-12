@@ -17,11 +17,11 @@ import {
   parseJSONLContent,
   parseJSONL,
   getEntryStatistics,
-} from '@jacques/core/session';
+} from '@jacques-ai/core/session';
 import {
   detectModeAndPlans,
   type SessionEntry,
-} from '@jacques/core/cache';
+} from '@jacques-ai/core/cache';
 import type { ContextMetrics, SessionMode } from '../types.js';
 import {
   ACTIVE_SESSION_THRESHOLD_MS,

@@ -6,8 +6,8 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { JacquesClient } from '@jacques/core';
-import type { Session, WorktreeWithStatus } from '@jacques/core';
+import { JacquesClient } from '@jacques-ai/core';
+import type { Session, WorktreeWithStatus } from '@jacques-ai/core';
 
 const SERVER_URL = process.env.JACQUES_SERVER_URL || 'ws://localhost:4242';
 
@@ -16,7 +16,7 @@ export interface JacquesState {
   focusedSessionId: string | null;
   connected: boolean;
   scanning: boolean;
-  lastUpdate: number;
+
 }
 
 export interface FocusTerminalResult {
@@ -88,7 +88,6 @@ export function useJacquesClient(): UseJacquesClientReturn {
   const [focusedSessionId, setFocusedSessionId] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
   const [scanning, setScanning] = useState(true);
-  const [lastUpdate, setLastUpdate] = useState(Date.now());
   const [client, setClient] = useState<JacquesClient | null>(null);
   const [handoffReady, setHandoffReady] = useState(false);
   const [handoffPath, setHandoffPath] = useState<string | null>(null);
@@ -106,19 +105,17 @@ export function useJacquesClient(): UseJacquesClientReturn {
     // Event handlers
     jacquesClient.on('connected', () => {
       setConnected(true);
-      setLastUpdate(Date.now());
     });
 
     jacquesClient.on('disconnected', () => {
       setConnected(false);
-      setLastUpdate(Date.now());
     });
 
     jacquesClient.on('initial_state', (initialSessions: Session[], initialFocusedId: string | null, isScanning?: boolean) => {
       setSessions(initialSessions);
       setFocusedSessionId(initialFocusedId);
       setScanning(isScanning ?? false);
-      setLastUpdate(Date.now());
+
     });
 
     jacquesClient.on('server_status', (msg: { status: string; session_count: number; scanning?: boolean }) => {
@@ -140,7 +137,7 @@ export function useJacquesClient(): UseJacquesClientReturn {
         // Stable sort by registration time (oldest first)
         return newSessions.sort((a, b) => a.registered_at - b.registered_at);
       });
-      setLastUpdate(Date.now());
+
     });
 
     jacquesClient.on('session_removed', (sessionId: string) => {
@@ -152,7 +149,7 @@ export function useJacquesClient(): UseJacquesClientReturn {
         }
         return prev;
       });
-      setLastUpdate(Date.now());
+
     });
 
     jacquesClient.on('focus_changed', (sessionId: string | null, session: Session | null) => {
@@ -171,7 +168,7 @@ export function useJacquesClient(): UseJacquesClientReturn {
         });
       }
 
-      setLastUpdate(Date.now());
+
     });
 
     jacquesClient.on('autocompact_toggled', (enabled: boolean, _warning?: string) => {
@@ -188,13 +185,13 @@ export function useJacquesClient(): UseJacquesClientReturn {
           bug_threshold: enabled ? null : 78,
         },
       })));
-      setLastUpdate(Date.now());
+
       // Warning is handled silently in dashboard mode
     });
 
     jacquesClient.on('focus_terminal_result', (sessionId: string, success: boolean, method: string, error?: string) => {
       setFocusTerminalResult({ sessionId, success, method, error });
-      setLastUpdate(Date.now());
+
       // Auto-clear after 3 seconds
       setTimeout(() => setFocusTerminalResult(null), 3000);
     });
@@ -204,7 +201,7 @@ export function useJacquesClient(): UseJacquesClientReturn {
         setHandoffReady(true);
         setHandoffPath(path);
       }
-      setLastUpdate(Date.now());
+
     });
 
     // Extended message handlers (result events from server)
@@ -332,7 +329,6 @@ export function useJacquesClient(): UseJacquesClientReturn {
     focusedSessionId,
     connected,
     scanning,
-    lastUpdate,
     selectSession,
     triggerAction,
     toggleAutoCompact,

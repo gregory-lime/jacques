@@ -1,0 +1,33 @@
+{
+  "name": "jacques",
+  "version": "0.0.7-alpha.1",
+  "description": "Real-time context monitor for AI coding assistants (Claude Code, Cursor)",
+  "bin": {
+    "jacques": "./bin/jacques.js"
+  },
+  "type": "module",
+  "files": [
+    "bin"
+  ],
+  "dependencies": {
+    "@jacques-ai/cli": "0.0.7-alpha.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gregory-lime/jacques.git"
+  },
+  "homepage": "https://github.com/gregory-lime/jacques#readme",
+  "bugs": {
+    "url": "https://github.com/gregory-lime/jacques/issues"
+  },
+  "license": "MIT",
+  "keywords": [
+    "claude-code",
+    "context-monitor",
+    "ai",
+    "coding-assistant"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

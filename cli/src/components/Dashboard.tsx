@@ -20,8 +20,8 @@ import type { UseProjectDashboardState } from "../hooks/useProjectDashboard.js";
 import type { UseClaudeTokenState } from "../hooks/useClaudeToken.js";
 import type { ContentItem } from "../hooks/useSessionsExperiment.js";
 import type { UsageLimits } from "../hooks/useUsageLimits.js";
-import type { Session } from "@jacques/core";
-import { getProjectGroupKey } from "@jacques/core";
+import type { Session } from "@jacques-ai/core";
+import { getProjectGroupKey } from "@jacques-ai/core";
 
 // View types for the dashboard
 export type DashboardView =
@@ -88,9 +88,6 @@ export function Dashboard(props: DashboardProps): React.ReactElement {
 
   useEffect(() => {
     const handleResize = () => {
-      if (stdout && "write" in stdout && typeof stdout.write === "function") {
-        stdout.write("\x1Bc");
-      }
       if (stdout?.columns) setTerminalWidth(stdout.columns);
       if (stdout?.rows) setTerminalHeight(stdout.rows);
     };

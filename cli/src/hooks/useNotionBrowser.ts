@@ -14,8 +14,8 @@ import {
   flattenNotionTree,
   getNotionPageContent,
   addContext,
-} from "@jacques/core";
-import type { FileTreeNode, FlatTreeItem, Session } from "@jacques/core";
+} from "@jacques-ai/core";
+import type { FileTreeNode, FlatTreeItem, Session } from "@jacques-ai/core";
 import { NOTION_VISIBLE_ITEMS } from "../components/NotionBrowserView.js";
 
 export interface UseNotionBrowserParams {

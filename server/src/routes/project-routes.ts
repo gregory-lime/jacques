@@ -23,7 +23,7 @@ import { homedir } from 'os';
 import { join } from 'path';
 import type { RouteContext } from './types.js';
 import { sendJson, parseBody } from './http-utils.js';
-import type { PlanEntry, ContextFile } from '@jacques/core';
+import type { PlanEntry, ContextFile } from '@jacques-ai/core';
 import {
   discoverProjects,
   hideProject,
@@ -41,7 +41,7 @@ import {
   extractPlanTitle,
   generatePlanFilename,
   generateVersionedFilename,
-} from '@jacques/core';
+} from '@jacques-ai/core';
 
 export async function projectRoutes(ctx: RouteContext): Promise<boolean> {
   const { method, url, req, res, log } = ctx;

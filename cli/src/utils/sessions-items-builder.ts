@@ -5,8 +5,8 @@
  * Extracted from useSessionsExperiment to enable unit testing without React hooks.
  */
 
-import type { Session, DiscoveredProject, WorktreeWithStatus } from "@jacques/core";
-import { getProjectGroupKey } from "@jacques/core";
+import type { Session, DiscoveredProject, WorktreeWithStatus } from "@jacques-ai/core";
+import { getProjectGroupKey } from "@jacques-ai/core";
 import type { WorktreeItem } from "../hooks/useWorktrees.js";
 import type { ContentItem } from "../hooks/useSessionsExperiment.js";
 

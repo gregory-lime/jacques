@@ -12,8 +12,8 @@ import {
   validateVaultPath,
   configureObsidian,
   getVaultName,
-} from "@jacques/core";
-import type { ObsidianVault } from "@jacques/core";
+} from "@jacques-ai/core";
+import type { ObsidianVault } from "@jacques-ai/core";
 
 export interface UseObsidianConfigParams {
   setCurrentView: (view: DashboardView) => void;

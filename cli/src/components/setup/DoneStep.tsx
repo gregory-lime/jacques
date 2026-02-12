@@ -9,7 +9,7 @@ import {
   MUTED_TEXT,
   SUCCESS_COLOR,
 } from "../layout/theme.js";
-import type { SetupOptions, SyncResult } from "@jacques/core";
+import type { SetupOptions, SyncResult } from "@jacques-ai/core";
 
 export function buildDoneContent(
   options: SetupOptions,

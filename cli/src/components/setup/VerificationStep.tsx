@@ -11,7 +11,7 @@ import {
   ERROR_COLOR,
 } from "../layout/theme.js";
 import { Spinner } from "./Spinner.js";
-import type { VerificationResult } from "@jacques/core";
+import type { VerificationResult } from "@jacques-ai/core";
 
 export function buildVerificationContent(
   results: VerificationResult[],

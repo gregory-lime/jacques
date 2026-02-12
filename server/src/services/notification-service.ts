@@ -19,7 +19,7 @@ import type {
   NotificationCategory,
   NotificationSettings,
   NotificationItem,
-} from '@jacques/core/notifications';
+} from '@jacques-ai/core/notifications';
 import {
   DEFAULT_NOTIFICATION_SETTINGS,
   NOTIFICATION_COOLDOWNS,
@@ -27,8 +27,8 @@ import {
   CATEGORY_LABELS,
   MAX_NOTIFICATION_HISTORY,
   getContextThresholdPriority,
-} from '@jacques/core/notifications';
-import { parseJSONL, detectModeAndPlans } from '@jacques/core';
+} from '@jacques-ai/core/notifications';
+import { parseJSONL, detectModeAndPlans } from '@jacques-ai/core';
 import type { NotificationFiredMessage, Session } from '../types.js';
 import type { Logger } from '../logging/logger-factory.js';
 import { createLogger } from '../logging/logger-factory.js';

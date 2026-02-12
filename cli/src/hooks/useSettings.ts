@@ -16,9 +16,9 @@ import {
   getArchivePath,
   getSkipPermissions,
   toggleSkipPermissions,
-} from "@jacques/core";
-import type { NotificationSettings, NotificationCategory } from "@jacques/core/notifications";
-import { DEFAULT_NOTIFICATION_SETTINGS } from "@jacques/core/notifications";
+} from "@jacques-ai/core";
+import type { NotificationSettings, NotificationCategory } from "@jacques-ai/core/notifications";
+import { DEFAULT_NOTIFICATION_SETTINGS } from "@jacques-ai/core/notifications";
 import { SETTINGS_TOTAL_ITEMS, SETTINGS_DISABLED_INDICES } from "../components/SettingsView.js";
 import type { ArchiveStatsData } from "../components/SettingsView.js";
 

@@ -1,5 +1,5 @@
 /**
- * @jacques/core
+ * @jacques-ai/core
  *
  * Core business logic for Jacques - shared between CLI dashboard and GUI.
  *

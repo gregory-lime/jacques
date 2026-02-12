@@ -18,7 +18,7 @@ import {
   hasHandoffs,
   getLatestHandoff,
   ensureHandoffsDir,
-} from "@jacques/core";
+} from "@jacques-ai/core";
 
 describe("HandoffCatalog", () => {
   let testDir: string;

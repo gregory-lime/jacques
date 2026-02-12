@@ -10,8 +10,8 @@ import type { Key } from "ink";
 import {
   listHandoffs,
   getHandoffContent,
-} from "@jacques/core";
-import type { HandoffEntry } from "@jacques/core";
+} from "@jacques-ai/core";
+import type { HandoffEntry } from "@jacques-ai/core";
 import { VISIBLE_ITEMS as HANDOFF_VISIBLE_ITEMS } from "../components/HandoffBrowserView.js";
 import { copyToClipboard } from "../utils/clipboard.js";
 

@@ -11,7 +11,7 @@ import {
   ERROR_COLOR,
 } from "../layout/theme.js";
 import { Spinner } from "./Spinner.js";
-import type { SyncResult } from "@jacques/core";
+import type { SyncResult } from "@jacques-ai/core";
 
 export function buildSyncContent(
   phase: "ask" | "starting" | "running" | "done" | "error",

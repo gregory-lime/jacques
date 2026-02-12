@@ -7,7 +7,7 @@
 
 import React from "react";
 import { Box, Text } from "ink";
-import type { ObsidianVault } from "@jacques/core";
+import type { ObsidianVault } from "@jacques-ai/core";
 import {
   HorizontalLayout,
   VerticalLayout,

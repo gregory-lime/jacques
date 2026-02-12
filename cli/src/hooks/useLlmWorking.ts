@@ -11,7 +11,7 @@ import type { DashboardView } from "../components/Dashboard.js";
 import {
   generateHandoffWithLLM,
   ClaudeCodeError,
-} from "@jacques/core";
+} from "@jacques-ai/core";
 
 export interface UseLlmWorkingParams {
   setCurrentView: (view: DashboardView) => void;

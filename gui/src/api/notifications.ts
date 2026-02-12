@@ -5,7 +5,7 @@
  */
 
 import { API_URL } from './client';
-import type { NotificationSettings } from '@jacques/core/notifications';
+import type { NotificationSettings } from '@jacques-ai/core/notifications';
 
 export async function getNotificationSettings(): Promise<NotificationSettings> {
   const response = await fetch(`${API_URL}/notifications/settings`);

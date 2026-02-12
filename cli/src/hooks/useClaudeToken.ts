@@ -15,7 +15,7 @@ import {
   verifyToken,
   maskToken,
   disconnectClaude,
-} from "@jacques/core";
+} from "@jacques-ai/core";
 
 export interface UseClaudeTokenParams {
   showNotification: (msg: string, duration?: number) => void;

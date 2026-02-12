@@ -8,8 +8,8 @@
 import { useCallback } from "react";
 import type { Key } from "ink";
 import type { DashboardView } from "../components/Dashboard.js";
-import { getVaultName } from "@jacques/core";
-import type { Session } from "@jacques/core";
+import { getVaultName } from "@jacques-ai/core";
+import type { Session } from "@jacques-ai/core";
 import { useObsidianConfig } from "./useObsidianConfig.js";
 import { useObsidianFileBrowser } from "./useObsidianFileBrowser.js";
 import { useAddContextFlow } from "./useAddContextFlow.js";

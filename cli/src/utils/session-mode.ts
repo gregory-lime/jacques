@@ -6,7 +6,7 @@
  */
 
 import { ACCENT_COLOR, MUTED_TEXT, SUCCESS_COLOR, ERROR_COLOR } from "../components/layout/theme.js";
-import type { Session } from "@jacques/core";
+import type { Session } from "@jacques-ai/core";
 
 const MODE_COLORS: Record<string, string> = {
   plan: SUCCESS_COLOR,

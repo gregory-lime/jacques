@@ -7,8 +7,8 @@
 import { useState, useCallback } from "react";
 import type { Key } from "ink";
 import type { DashboardView } from "../components/Dashboard.js";
-import { getVaultFileTree, flattenTree } from "@jacques/core";
-import type { ObsidianFile, FileTreeNode, FlatTreeItem } from "@jacques/core";
+import { getVaultFileTree, flattenTree } from "@jacques-ai/core";
+import type { ObsidianFile, FileTreeNode, FlatTreeItem } from "@jacques-ai/core";
 import { VISIBLE_ITEMS } from "../components/ObsidianBrowserView.js";
 
 export interface UseObsidianFileBrowserParams {

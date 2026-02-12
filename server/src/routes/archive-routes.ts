@@ -26,8 +26,8 @@ import {
   listSubagentsForSession,
   createSubagentReference,
   initializeArchive,
-} from '@jacques/core';
-import type { ConversationManifest, SearchInput } from '@jacques/core';
+} from '@jacques-ai/core';
+import type { ConversationManifest, SearchInput } from '@jacques-ai/core';
 
 export async function archiveRoutes(ctx: RouteContext): Promise<boolean> {
   const { method, url, req, res } = ctx;

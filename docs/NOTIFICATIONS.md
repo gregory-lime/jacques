@@ -20,7 +20,7 @@ Hook Event → Unix Socket → Server EventHandler → NotificationService.fire(
 
 | Layer | Package | Role |
 |-------|---------|------|
-| Core | `@jacques/core/notifications` | Shared types, constants, utilities |
+| Core | `@jacques-ai/core/notifications` | Shared types, constants, utilities |
 | Server | `server/src/services/notification-service.ts` | Event detection, threshold tracking, cooldowns, broadcasting |
 | GUI | `gui/src/hooks/useJacquesClient.ts` | Receives `notification_fired`, pushes to stores |
 | CLI | `cli/src/hooks/useNotification.ts` | Receives `notification_fired`, shows inline text |

@@ -58,38 +58,33 @@ jobs:
           generate_release_notes: true
           prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
 
-  # Uncomment when npm org and NPM_TOKEN secret are configured
-  # publish-npm:
-  #   needs: build-and-test
-  #   runs-on: ubuntu-latest
-  #
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #
-  #     - name: Setup Node.js
-  #       uses: actions/setup-node@v4
-  #       with:
-  #         node-version: 22
-  #         cache: npm
-  #         registry-url: https://registry.npmjs.org
-  #
-  #     - name: Install dependencies
-  #       run: npm ci
-  #
-  #     - name: Build all
-  #       run: npm run build:all
-  #
-  #     - name: Publish @jacques/core
-  #       run: cd core && npm publish --access public
-  #       env:
-  #         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-  #
-  #     - name: Publish @jacques/server
-  #       run: cd server && npm publish --access public
-  #       env:
-  #         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-  #
-  #     - name: Publish @jacques/cli
-  #       run: cd cli && npm publish --access public
-  #       env:
-  #         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+  publish-npm:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          registry-url: https://registry.npmjs.org
+      - run: npm install -g npm@latest
+      - run: npm ci
+      - run: npm run build:all
+      - run: node scripts/prepare-publish.js
+      - name: Determine npm tag
+        id: tag
+        run: |
+          V="${GITHUB_REF_NAME#v}"
+          if [[ "$V" == *alpha* || "$V" == *beta* || "$V" == *rc* ]]; then
+            echo "tag=alpha" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=latest" >> "$GITHUB_OUTPUT"
+          fi
+      - run: cd core && npm publish --access public --provenance --tag ${{ steps.tag.outputs.tag }}
+      - run: cd server && npm publish --access public --provenance --tag ${{ steps.tag.outputs.tag }}
+      - run: cd cli && npm publish --access public --provenance --tag ${{ steps.tag.outputs.tag }}
+      - run: cd wrapper && npm publish --access public --provenance --tag ${{ steps.tag.outputs.tag }}

@@ -36,7 +36,7 @@ const mockListSubagentFiles = jest.fn<() => Promise<unknown[]>>();
 const mockDetectModeAndPlans = jest.fn();
 const mockExtractTaskSignals = jest.fn<() => unknown[]>();
 
-jest.unstable_mockModule('@jacques/core', () => ({
+jest.unstable_mockModule('@jacques-ai/core', () => ({
   getSessionIndex: mockGetSessionIndex,
   getSessionsByProject: mockGetSessionsByProject,
   getCacheIndexStats: mockGetCacheIndexStats,

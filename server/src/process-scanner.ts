@@ -30,7 +30,7 @@ import * as path from "path";
 import {
   getSessionIndex,
   type SessionEntry,
-} from "@jacques/core/cache";
+} from "@jacques-ai/core/cache";
 import type { ContextMetrics, SessionMode } from "./types.js";
 import { CATALOG_CACHE_MAX_AGE_MS } from "./connection/constants.js";
 import {
@@ -99,7 +99,7 @@ export interface DetectedSession {
  *
  * ## Catalog-First Strategy
  *
- * Uses Jacques session index (from @jacques/core/cache) for pre-extracted metadata:
+ * Uses Jacques session index (from @jacques-ai/core/cache) for pre-extracted metadata:
  * - Session titles (from summary or first user message)
  * - Git info (branch, worktree, repo root)
  * - Token usage stats

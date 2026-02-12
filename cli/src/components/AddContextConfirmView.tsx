@@ -7,12 +7,12 @@
 
 import React from "react";
 import { Box, Text } from "ink";
-import type { ObsidianFile } from "@jacques/core";
+import type { ObsidianFile } from "@jacques-ai/core";
 import {
   formatContextFileSize as formatFileSize,
   estimateTokensFromSize,
   formatContextTokenCount as formatTokenCount,
-} from "@jacques/core";
+} from "@jacques-ai/core";
 import {
   HorizontalLayout,
   VerticalLayout,

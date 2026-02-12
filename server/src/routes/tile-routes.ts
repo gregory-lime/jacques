@@ -8,7 +8,7 @@
 
 import type { RouteContext } from './types.js';
 import { sendJson, parseBody } from './http-utils.js';
-import { getSessionEntry } from '@jacques/core';
+import { getSessionEntry } from '@jacques-ai/core';
 
 export async function tileRoutes(ctx: RouteContext): Promise<boolean> {
   const { method, url, req, res } = ctx;

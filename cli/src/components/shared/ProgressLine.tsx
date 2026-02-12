@@ -7,7 +7,7 @@ import React from "react";
 import { Text } from "ink";
 import { ACCENT_COLOR, MUTED_TEXT } from "../layout/theme.js";
 import { formatTokens } from "../../utils/format.js";
-import type { Session } from "@jacques/core";
+import type { Session } from "@jacques-ai/core";
 
 export function ProgressLine({
   session,

@@ -11,7 +11,7 @@ import {
   ERROR_COLOR,
 } from "../layout/theme.js";
 import { Spinner } from "./Spinner.js";
-import type { PrerequisiteResult } from "@jacques/core";
+import type { PrerequisiteResult } from "@jacques-ai/core";
 
 export function buildPrerequisitesContent(
   results: PrerequisiteResult[],

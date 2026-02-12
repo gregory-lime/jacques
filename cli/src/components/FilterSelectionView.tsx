@@ -10,9 +10,9 @@ import {
   formatSessionTokenCount as formatTokenCount,
   FILTER_CONFIGS,
   FilterType,
-} from "@jacques/core";
+} from "@jacques-ai/core";
 import { ACCENT_COLOR } from "./layout/theme.js";
-import type { FilterTokenEstimates } from "@jacques/core";
+import type { FilterTokenEstimates } from "@jacques-ai/core";
 
 interface FilterSelectionViewProps {
   estimates: FilterTokenEstimates;

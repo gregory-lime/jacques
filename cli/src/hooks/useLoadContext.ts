@@ -12,7 +12,7 @@ import {
   isObsidianConfigured,
   isGoogleDocsConfigured,
   isNotionConfigured,
-} from "@jacques/core";
+} from "@jacques-ai/core";
 import { buildSourceItems } from "../components/SourceSelectionView.js";
 import type { SourceItem } from "../components/SourceSelectionView.js";
 import { LOAD_OPTIONS } from "../components/LoadContextView.js";
