@@ -537,9 +537,11 @@ export function Dashboard() {
   const hasSelection = selectedSessionIds.size > 0 || !!keyboardFocusedId || !!focusedSessionId;
 
   const handleBackgroundClick = useCallback((e: React.MouseEvent) => {
-    if (e.target === e.currentTarget && selectedSessionIds.size > 0) {
-      setSelectedSessionIds(new Set());
-    }
+    if (selectedSessionIds.size === 0) return;
+    const target = e.target as HTMLElement;
+    // Don't deselect when clicking buttons or inputs (e.g. launch, create worktree)
+    if (target.closest('button') || target.closest('input')) return;
+    setSelectedSessionIds(new Set());
   }, [selectedSessionIds, setSelectedSessionIds]);
   const visibleHistory = historyList.slice(0, visibleCount);
 

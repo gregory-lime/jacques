@@ -502,8 +502,9 @@ button {
 }
 
 @keyframes deselect-settle {
-  0%   { outline-color: var(--color-accent); }
-  100% { outline-color: transparent; }
+  0%   { transform: scale(1) translateY(0); outline-color: var(--color-accent); }
+  40%  { transform: scale(0.975) translateY(1px); }
+  100% { transform: scale(1) translateY(0); outline-color: transparent; }
 }
 
 /* Window toolbar buttons */
