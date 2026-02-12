@@ -11,8 +11,20 @@ import { exec as execCb } from 'child_process';
 import { promisify } from 'util';
 import { existsSync } from 'fs';
 import * as path from 'path';
+import { platform } from 'process';
 
 const execAsync = promisify(execCb);
+
+/**
+ * Cross-platform shell quoting for command arguments.
+ * Windows cmd.exe uses double quotes; Unix shells use single quotes.
+ */
+function q(s: string): string {
+  if (platform === 'win32') {
+    return `"${s.replace(/"/g, '\\"')}"`;
+  }
+  return `'${s.replace(/'/g, "'\\''")}'`;
+}
 
 // ─── Types ────────────────────────────────────────────────────
 
@@ -126,9 +138,8 @@ export async function createWorktree(options: CreateWorktreeOptions): Promise<Cr
   }
 
   // Build git command
-  const baseArg = baseBranch ? ` ${baseBranch}` : '';
-  const escapedPath = worktreePath.replace(/'/g, "'\\''");
-  const cmd = `git -C '${repoRoot.replace(/'/g, "'\\''")}' worktree add -b '${name}' '${escapedPath}'${baseArg}`;
+  const baseArg = baseBranch ? ` ${q(baseBranch)}` : '';
+  const cmd = `git -C ${q(repoRoot)} worktree add -b ${q(name)} ${q(worktreePath)}${baseArg}`;
 
   try {
     await execAsync(cmd, { timeout: 15000 });
@@ -160,17 +171,15 @@ export async function createWorktree(options: CreateWorktreeOptions): Promise<Cr
  */
 export async function listWorktrees(repoRoot: string): Promise<WorktreeEntry[]> {
   try {
-    const escapedRoot = repoRoot.replace(/'/g, "'\\''");
-
     // Prune stale worktree entries (directories already removed)
     try {
-      await execAsync(`git -C '${escapedRoot}' worktree prune`, { timeout: 5000 });
+      await execAsync(`git -C ${q(repoRoot)} worktree prune`, { timeout: 5000 });
     } catch {
       // Prune failure is non-fatal
     }
 
     const { stdout } = await execAsync(
-      `git -C '${escapedRoot}' worktree list --porcelain`,
+      `git -C ${q(repoRoot)} worktree list --porcelain`,
       { timeout: 5000 }
     );
 
@@ -195,7 +204,9 @@ export async function listWorktrees(repoRoot: string): Promise<WorktreeEntry[]> 
  */
 export function parsePorcelainOutput(output: string, repoRoot: string): WorktreeEntry[] {
   const entries: WorktreeEntry[] = [];
-  const blocks = output.trim().split('\n\n');
+  // Normalize \r\n to \n for cross-platform compatibility
+  const normalized = output.replace(/\r\n/g, '\n');
+  const blocks = normalized.trim().split('\n\n');
 
   for (const block of blocks) {
     if (!block.trim()) continue;
@@ -205,11 +216,12 @@ export function parsePorcelainOutput(output: string, repoRoot: string): Worktree
     let branch: string | null = null;
 
     for (const line of lines) {
-      if (line.startsWith('worktree ')) {
-        worktreePath = line.slice('worktree '.length);
-      } else if (line.startsWith('branch ')) {
+      const trimmedLine = line.trim();
+      if (trimmedLine.startsWith('worktree ')) {
+        worktreePath = trimmedLine.slice('worktree '.length);
+      } else if (trimmedLine.startsWith('branch ')) {
         // refs/heads/main → main
-        branch = line.slice('branch '.length).replace(/^refs\/heads\//, '');
+        branch = trimmedLine.slice('branch '.length).replace(/^refs\/heads\//, '');
       }
     }
 
@@ -236,12 +248,10 @@ export function parsePorcelainOutput(output: string, repoRoot: string): Worktree
  * if 'main' or 'master' branch exists locally.
  */
 export async function detectDefaultBranch(repoRoot: string): Promise<string> {
-  const escaped = repoRoot.replace(/'/g, "'\\''");
-
   // Try symbolic-ref first (requires remote tracking)
   try {
     const { stdout } = await execAsync(
-      `git -C '${escaped}' symbolic-ref refs/remotes/origin/HEAD`,
+      `git -C ${q(repoRoot)} symbolic-ref refs/remotes/origin/HEAD`,
       { timeout: 5000 }
     );
     const ref = stdout.trim().replace(/^refs\/remotes\/origin\//, '');
@@ -252,7 +262,7 @@ export async function detectDefaultBranch(repoRoot: string): Promise<string> {
 
   // Fall back: check if 'main' branch exists
   try {
-    await execAsync(`git -C '${escaped}' rev-parse --verify refs/heads/main`, { timeout: 5000 });
+    await execAsync(`git -C ${q(repoRoot)} rev-parse --verify refs/heads/main`, { timeout: 5000 });
     return 'main';
   } catch {
     // 'main' doesn't exist
@@ -271,14 +281,11 @@ export async function checkWorktreeStatus(
   defaultBranch: string,
   repoRoot: string,
 ): Promise<WorktreeStatus> {
-  const escapedPath = worktreePath.replace(/'/g, "'\\''");
-  const escapedRoot = repoRoot.replace(/'/g, "'\\''");
-
   // Check for uncommitted changes
   let hasUncommittedChanges = false;
   try {
     const { stdout } = await execAsync(
-      `git -C '${escapedPath}' status --porcelain`,
+      `git -C ${q(worktreePath)} status --porcelain`,
       { timeout: 5000 }
     );
     hasUncommittedChanges = stdout.trim().length > 0;
@@ -298,13 +305,13 @@ export async function checkWorktreeStatus(
     try {
       // Step 1: is the branch an ancestor of the default branch?
       await execAsync(
-        `git -C '${escapedRoot}' merge-base --is-ancestor '${branch}' '${defaultBranch}'`,
+        `git -C ${q(repoRoot)} merge-base --is-ancestor ${q(branch)} ${q(defaultBranch)}`,
         { timeout: 5000 }
       );
 
       // Branch IS an ancestor — check if it was merged or is just at an old commit
       const { stdout: tipOut } = await execAsync(
-        `git -C '${escapedRoot}' rev-parse '${branch}'`,
+        `git -C ${q(repoRoot)} rev-parse ${q(branch)}`,
         { timeout: 5000 }
       );
       const branchTip = tipOut.trim();
@@ -313,7 +320,7 @@ export async function checkWorktreeStatus(
       let isOnFirstParentLine = false;
       try {
         const { stdout: fpCommits } = await execAsync(
-          `git -C '${escapedRoot}' rev-list --first-parent '${branchTip}^..${defaultBranch}'`,
+          `git -C ${q(repoRoot)} rev-list --first-parent ${q(branchTip + '^..' + defaultBranch)}`,
           { timeout: 10000 }
         );
         isOnFirstParentLine = fpCommits.split('\n').some(h => h.trim() === branchTip);
@@ -377,8 +384,6 @@ export async function listWorktreesWithStatus(repoRoot: string): Promise<Worktre
  */
 export async function removeWorktree(options: RemoveWorktreeOptions): Promise<RemoveWorktreeResult> {
   const { repoRoot, worktreePath, force, deleteBranch } = options;
-  const escapedRoot = repoRoot.replace(/'/g, "'\\''");
-  const escapedPath = worktreePath.replace(/'/g, "'\\''");
 
   // Validate repo root exists
   if (!existsSync(repoRoot)) {
@@ -400,7 +405,7 @@ export async function removeWorktree(options: RemoveWorktreeOptions): Promise<Re
   if (deleteBranch) {
     try {
       const { stdout } = await execAsync(
-        `git -C '${escapedPath}' rev-parse --abbrev-ref HEAD`,
+        `git -C ${q(worktreePath)} rev-parse --abbrev-ref HEAD`,
         { timeout: 5000 }
       );
       branchName = stdout.trim() || null;
@@ -411,7 +416,7 @@ export async function removeWorktree(options: RemoveWorktreeOptions): Promise<Re
 
   // Remove the worktree
   const forceFlag = force ? ' --force' : '';
-  const cmd = `git -C '${escapedRoot}' worktree remove '${escapedPath}'${forceFlag}`;
+  const cmd = `git -C ${q(repoRoot)} worktree remove ${q(worktreePath)}${forceFlag}`;
 
   try {
     await execAsync(cmd, { timeout: 15000 });
@@ -431,7 +436,7 @@ export async function removeWorktree(options: RemoveWorktreeOptions): Promise<Re
     const branchFlag = force ? '-D' : '-d';
     try {
       await execAsync(
-        `git -C '${escapedRoot}' branch ${branchFlag} '${branchName}'`,
+        `git -C ${q(repoRoot)} branch ${branchFlag} ${q(branchName)}`,
         { timeout: 5000 }
       );
       branchDeleted = true;

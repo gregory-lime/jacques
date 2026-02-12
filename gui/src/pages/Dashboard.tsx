@@ -300,7 +300,7 @@ export function Dashboard() {
     onCreateWorktreeResult((success, worktreePath, _branch, _sessionLaunched, _launchMethod, error) => {
       if (success) {
         setWorktreeCreation(null);
-        const dirName = worktreePath?.split('/').pop() || 'worktree';
+        const dirName = worktreePath?.split(/[\\/]/).pop() || 'worktree';
         import('../components/ui/ToastContainer').then(({ toastStore }) => {
           toastStore.push({
             title: 'Worktree Created',
@@ -324,7 +324,7 @@ export function Dashboard() {
   }, [filteredLiveSessions]);
 
   const handleRemoveWorktreeSuccess = useCallback((worktreePath: string) => {
-    const dirName = worktreePath.split('/').pop() || 'worktree';
+    const dirName = worktreePath.split(/[\\/]/).pop() || 'worktree';
     import('../components/ui/ToastContainer').then(({ toastStore }) => {
       toastStore.push({
         title: 'Worktree Removed',

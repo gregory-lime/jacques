@@ -14,7 +14,7 @@
  */
 export function getProjectGroupKey(session: { git_repo_root?: string | null; project: string }): string {
   if (session.git_repo_root) {
-    return session.git_repo_root.split('/').pop() || session.project;
+    return session.git_repo_root.split(/[\\/]/).pop() || session.project;
   }
   return session.project;
 }

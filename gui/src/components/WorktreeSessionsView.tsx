@@ -80,10 +80,11 @@ function validateWorktreeName(value: string): string | null {
 }
 
 function getPathPreview(repoRoot: string, name: string): string {
-  const parts = repoRoot.split('/');
+  const sep = repoRoot.includes('\\') ? '\\' : '/';
+  const parts = repoRoot.split(/[\\/]/);
   const base = parts.pop() || '';
-  const parent = parts.slice(-2).join('/');
-  return `~/${parent}/${base}-${name}`;
+  const parent = parts.slice(-2).join(sep);
+  return `${sep === '\\' ? '' : '~/'}${parent}${sep}${base}-${name}`;
 }
 
 // Pixel sizes
@@ -209,12 +210,16 @@ export function WorktreeSessionsView({
     // For linked worktrees, git_repo_root points to the MAIN repo root (wrong).
     // Derive the worktree root from cwd: find the git_worktree basename in the path.
     if (s.git_worktree && s.cwd) {
-      const marker = '/' + s.git_worktree;
-      const idx = s.cwd.lastIndexOf(marker);
-      if (idx >= 0) {
-        const endIdx = idx + marker.length;
-        if (endIdx === s.cwd.length || s.cwd[endIdx] === '/') {
-          return s.cwd.substring(0, endIdx);
+      // Try both separators for cross-platform support (/ and \)
+      const fwdMarker = '/' + s.git_worktree;
+      const bwdMarker = '\\' + s.git_worktree;
+      for (const marker of [fwdMarker, bwdMarker]) {
+        const idx = s.cwd.lastIndexOf(marker);
+        if (idx >= 0) {
+          const endIdx = idx + marker.length;
+          if (endIdx === s.cwd.length || s.cwd[endIdx] === '/' || s.cwd[endIdx] === '\\') {
+            return s.cwd.substring(0, endIdx);
+          }
         }
       }
     }
