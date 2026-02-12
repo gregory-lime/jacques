@@ -85,7 +85,7 @@ describe('sessionRoutes', () => {
       webSearches: 0,
     });
     mockListSubagentFiles.mockResolvedValue([]);
-    mockDetectModeAndPlans.mockReturnValue({ mode: null, planRefs: [] });
+    mockDetectModeAndPlans.mockReturnValue({ mode: null, planRefs: [], planModeCompletions: [] });
     mockExtractTaskSignals.mockReturnValue([]);
   });
 

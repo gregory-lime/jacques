@@ -35,6 +35,7 @@ export {
 
 // Mode detection
 export { detectModeAndPlans } from "./mode-detector.js";
+export type { PlanModeCompletion } from "./mode-detector.js";
 
 // Git utilities
 export { detectGitInfo, readGitBranchFromJsonl, readWorktreeRepoRoot, computeBranchDivergence, checkDirtyStatus } from "./git-utils.js";

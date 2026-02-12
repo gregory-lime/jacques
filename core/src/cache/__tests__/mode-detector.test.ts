@@ -257,6 +257,112 @@ describe('mode-detector', () => {
       });
     });
 
+    describe('planModeCompletions', () => {
+      it('should return empty array when no plan mode cycles', () => {
+        const entries = [
+          makeUserMessage('Fix the bug'),
+          makeAssistantMessage('Done.'),
+        ];
+        const result = detectModeAndPlans(entries);
+        expect(result.planModeCompletions).toEqual([]);
+      });
+
+      it('should return empty array for empty entries', () => {
+        const result = detectModeAndPlans([]);
+        expect(result.planModeCompletions).toEqual([]);
+      });
+
+      it('should return completion when EnterPlanMode followed by ExitPlanMode with Write', () => {
+        const entries = [
+          makeUserMessage('Add auth'),                          // 0
+          makeToolCall('EnterPlanMode'),                         // 1
+          makeAgentProgress('Plan', 'agent-1', 'Design auth'),  // 2
+          makeToolCall('Write', {                                // 3
+            file_path: '/Users/gole/.claude/plans/auth.md',
+            content: '# Auth Plan\n\n- Step 1: Add OAuth\n- Step 2: Add JWT\n\nDetailed implementation plan.',
+          }),
+          makeToolCall('ExitPlanMode'),                          // 4
+        ];
+        const result = detectModeAndPlans(entries);
+        expect(result.planModeCompletions).toHaveLength(1);
+        expect(result.planModeCompletions[0].exitIndex).toBe(4);
+        expect(result.planModeCompletions[0].title).toBe('Auth Plan');
+      });
+
+      it('should prefer write title over agent title', () => {
+        const entries = [
+          makeToolCall('EnterPlanMode'),                              // 0
+          makeAgentProgress('Plan', 'agent-1', 'Agent description'), // 1
+          makeToolCall('Write', {                                     // 2
+            file_path: '/Users/gole/.claude/plans/plan.md',
+            content: '# Better Title\n\n- Step 1\n\nDetailed plan content here with enough text.',
+          }),
+          makeToolCall('ExitPlanMode'),                               // 3
+        ];
+        const result = detectModeAndPlans(entries);
+        expect(result.planModeCompletions[0].title).toBe('Better Title');
+      });
+
+      it('should use agent title when no write ref exists', () => {
+        const entries = [
+          makeToolCall('EnterPlanMode'),                           // 0
+          makeAgentProgress('Plan', 'agent-1', 'My Agent Plan'),  // 1
+          makeToolCall('ExitPlanMode'),                            // 2
+        ];
+        const result = detectModeAndPlans(entries);
+        expect(result.planModeCompletions[0].title).toBe('My Agent Plan');
+      });
+
+      it('should fall back to "Plan Ready" when no refs in interval', () => {
+        const entries = [
+          makeToolCall('EnterPlanMode'),   // 0
+          makeToolCall('ExitPlanMode'),    // 1
+        ];
+        const result = detectModeAndPlans(entries);
+        expect(result.planModeCompletions).toHaveLength(1);
+        expect(result.planModeCompletions[0].title).toBe('Plan Ready');
+      });
+
+      it('should return empty when plan mode entered but never exited', () => {
+        const entries = [
+          makeUserMessage('Plan this'),                              // 0
+          makeToolCall('EnterPlanMode'),                              // 1
+          makeAgentProgress('Plan', 'agent-1', 'Designing...'),      // 2
+        ];
+        const result = detectModeAndPlans(entries);
+        expect(result.planModeCompletions).toEqual([]);
+      });
+
+      it('should track multiple completed plan mode cycles', () => {
+        const entries = [
+          makeToolCall('EnterPlanMode'),                                // 0
+          makeAgentProgress('Plan', 'agent-1', 'Plan v1'),             // 1
+          makeToolCall('ExitPlanMode'),                                 // 2
+          makeUserMessage('Revise the plan'),                           // 3
+          makeToolCall('EnterPlanMode'),                                // 4
+          makeAgentProgress('Plan', 'agent-2', 'Plan v2 revised'),     // 5
+          makeToolCall('ExitPlanMode'),                                 // 6
+        ];
+        const result = detectModeAndPlans(entries);
+        expect(result.planModeCompletions).toHaveLength(2);
+        expect(result.planModeCompletions[0].exitIndex).toBe(2);
+        expect(result.planModeCompletions[0].title).toBe('Plan v1');
+        expect(result.planModeCompletions[1].exitIndex).toBe(6);
+        expect(result.planModeCompletions[1].title).toBe('Plan v2 revised');
+      });
+
+      it('should use default agent title as fallback when agentDescription is "Agent-Generated Plan"', () => {
+        const entries = [
+          makeToolCall('EnterPlanMode'),                     // 0
+          makeAgentProgress('Plan', 'agent-1', undefined),   // 1
+          makeToolCall('ExitPlanMode'),                      // 2
+        ];
+        const result = detectModeAndPlans(entries);
+        // 'Agent-Generated Plan' is treated as a non-descriptive default, falls through to fallback
+        expect(result.planModeCompletions[0].title).toBe('Agent-Generated Plan');
+      });
+    });
+
     describe('Write tool plan detection', () => {
       it('should detect plan written to .jacques/plans/ path', () => {
         const planContent = '# Build Plan\n\n- Phase 1: Setup\n- Phase 2: Implementation\n\nDetailed description of the plan.';

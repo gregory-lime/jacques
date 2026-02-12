@@ -465,6 +465,7 @@ export type {
   SessionIndex as CacheSessionIndex,
   DiscoveredProject,
   BranchDivergence,
+  PlanModeCompletion,
 } from "./cache/index.js";
 
 // Project module (dashboard aggregation)
