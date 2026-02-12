@@ -195,6 +195,7 @@ export async function startEmbeddedServer(
     broadcastService,
     handoffWatcher,
     notificationService,
+    branchDivergenceService,
     logger,
   });
 
