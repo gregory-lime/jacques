@@ -209,11 +209,4 @@ if [ -n "$git_branch" ]; then
   git_part=" @${git_branch}"
 fi
 
-# Auto-compact status
-if [ "$autocompact_enabled" = "true" ]; then
-  ac_part="ON@${autocompact_threshold}%"
-else
-  ac_part="OFF"
-fi
-
-printf "[%s] ctx:%s%%%s [AC:%s]" "$model_display" "$used_int" "$git_part" "$ac_part"
+printf "[%s] ctx:%s%%%s" "$model_display" "$used_int" "$git_part"

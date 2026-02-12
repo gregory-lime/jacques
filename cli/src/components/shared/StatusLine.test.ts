@@ -1,11 +1,12 @@
 /**
  * StatusLine Pure Function Tests
  *
- * Tests getSessionStatus and getSessionMode logic.
+ * Tests getSessionStatus logic.
+ * (getSessionMode tests moved to utils/session-mode.test.ts)
  */
 
 import { describe, it, expect } from "@jest/globals";
-import { getSessionStatus, getSessionMode } from "./StatusLine.js";
+import { getSessionStatus } from "./StatusLine.js";
 import type { Session } from "@jacques/core";
 
 function makeSession(overrides: Partial<Session> = {}): Session {
@@ -52,42 +53,5 @@ describe("getSessionStatus", () => {
   it("returns 'active' for unrecognized status", () => {
     const session = makeSession({ status: "active" });
     expect(getSessionStatus(session)).toBe("active");
-  });
-});
-
-describe("getSessionMode", () => {
-  it("returns actual mode even when is_bypass is true", () => {
-    const session = makeSession({ is_bypass: true, mode: "plan" });
-    expect(getSessionMode(session)).toBe("plan");
-  });
-
-  it("returns the mode when set", () => {
-    const session = makeSession({ mode: "plan" });
-    expect(getSessionMode(session)).toBe("plan");
-  });
-
-  it("returns 'acceptEdits' mode correctly", () => {
-    const session = makeSession({ mode: "acceptEdits" });
-    expect(getSessionMode(session)).toBe("acceptEdits");
-  });
-
-  it("returns 'default' when no mode set", () => {
-    const session = makeSession({ mode: null });
-    expect(getSessionMode(session)).toBe("default");
-  });
-
-  it("returns 'default' when mode is undefined", () => {
-    const session = makeSession();
-    expect(getSessionMode(session)).toBe("default");
-  });
-
-  it("returns 'default' when is_bypass is true and no mode set", () => {
-    const session = makeSession({ is_bypass: true });
-    expect(getSessionMode(session)).toBe("default");
-  });
-
-  it("returns actual mode when is_bypass is also set", () => {
-    const session = makeSession({ is_bypass: true, mode: "acceptEdits" });
-    expect(getSessionMode(session)).toBe("acceptEdits");
   });
 });

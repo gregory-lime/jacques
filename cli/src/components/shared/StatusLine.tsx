@@ -7,28 +7,16 @@
 
 import React from "react";
 import { Text } from "ink";
-import { ACCENT_COLOR, MUTED_TEXT, SUCCESS_COLOR, ERROR_COLOR } from "../layout/theme.js";
+import { MUTED_TEXT } from "../layout/theme.js";
 import { getCliActivity } from "../../utils/activity.js";
+import { getSessionModeDisplay } from "../../utils/session-mode.js";
 import type { Session } from "@jacques/core";
-
-const MODE_COLORS: Record<string, string> = {
-  plan: SUCCESS_COLOR,
-  planning: SUCCESS_COLOR,
-  acceptEdits: ACCENT_COLOR,
-  execution: ACCENT_COLOR,
-  default: MUTED_TEXT,
-};
 
 export function getSessionStatus(session: Session): string {
   if (session.status === "working" || session.status === "tool_use") return "working";
   if (session.status === "waiting") return "awaiting";
   if (session.status === "idle") return "idle";
   return "active";
-}
-
-export function getSessionMode(session: Session): string {
-  if (session.mode) return session.mode;
-  return "default";
 }
 
 export function StatusLine({
@@ -41,15 +29,8 @@ export function StatusLine({
   }
 
   const activity = getCliActivity(session.status, session.last_tool_name);
-  const mode = getSessionMode(session);
+  const { label: modeLabel, color: modeColor } = getSessionModeDisplay(session);
   const worktree = session.git_worktree || session.git_branch || "\u2014";
-
-  // Bypass sessions: "plan" in red for planning, "p-less" in red for anything else
-  const isBypassPlan = session.is_bypass && (mode === "plan" || mode === "planning");
-  const modeLabel = session.is_bypass
-    ? (isBypassPlan ? "plan" : "p-less")
-    : (mode === "acceptEdits" ? "edit" : mode);
-  const modeColor = session.is_bypass ? "red" : (MODE_COLORS[mode] || MUTED_TEXT);
 
   return (
     <Text wrap="truncate-end">

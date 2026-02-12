@@ -450,12 +450,7 @@ def main():
 
     git_part = f' @{git_info["git_branch"]}' if git_info['git_branch'] else ''
 
-    if ac['enabled']:
-        ac_part = f'ON@{ac["threshold"]}%'
-    else:
-        ac_part = 'OFF'
-
-    sys.stdout.write(f'[{model_display}] ctx:{used_int}%{git_part} [AC:{ac_part}]')
+    sys.stdout.write(f'[{model_display}] ctx:{used_int}%{git_part}')
 
 
 if __name__ == '__main__':
