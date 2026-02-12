@@ -5,7 +5,7 @@
  * with mascot on the left and wizard steps on the right.
  */
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Text, useInput, useStdout } from "ink";
 import { useSetupWizard } from "../../hooks/useSetupWizard.js";
 import {
@@ -95,7 +95,24 @@ function getControls(
 export function SetupWizard(): React.ReactElement {
   const wizard = useSetupWizard();
   const { stdout } = useStdout();
-  const terminalWidth = stdout?.columns || 80;
+  const [terminalWidth, setTerminalWidth] = useState(stdout?.columns || 80);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (stdout && "write" in stdout && typeof stdout.write === "function") {
+        stdout.write("\x1Bc");
+      }
+      if (stdout?.columns) setTerminalWidth(stdout.columns);
+    };
+    if (stdout && "on" in stdout && typeof stdout.on === "function") {
+      stdout.on("resize", handleResize);
+      return () => {
+        if ("off" in stdout && typeof stdout.off === "function") {
+          stdout.off("resize", handleResize);
+        }
+      };
+    }
+  }, [stdout]);
 
   useInput((input, key) => {
     wizard.handleInput(input, key);
