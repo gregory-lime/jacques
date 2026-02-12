@@ -59,6 +59,8 @@ All hooks use adapters to normalize events from different AI tools:
 
 Active sessions typically show the first user message until Claude generates a summary or the session gets indexed.
 
+**Server-side filtering**: As defense-in-depth, `session-registry.ts` rejects titles starting with `<local-command` or `<command-` in all title update paths (`registerSession`, `updateActivity`, `updateContext`). This prevents title flickering when Activity events carry unfiltered `sessions-index.json` summaries that start with slash command artifacts.
+
 ## Permission Mode & Session Mode Detection
 
 Claude Code includes a `permission_mode` field in every hook event input. This reflects the current UI mode and updates in real-time when the user presses Shift+Tab to cycle modes or uses `/plan`.
@@ -74,7 +76,7 @@ All hook adapters extract `permission_mode` and include it in the event payload 
 | `"default"` | `default` | Blue "exec" pill |
 | `"dontAsk"` / `"bypassPermissions"` | `default` | Blue "exec" pill |
 
-**Bypass sessions**: Sessions launched with `--dangerously-skip-permissions` always report `permission_mode: "acceptEdits"` regardless of actual mode. The server disables hook-based mode detection for bypass sessions and uses JSONL transcript scanning instead (detecting `EnterPlanMode` tool calls).
+**Bypass sessions**: Sessions launched with `--dangerously-skip-permissions` always report `permission_mode: "acceptEdits"` regardless of actual mode. The server disables hook-based mode detection for bypass sessions and uses JSONL transcript scanning instead — raw text scan for `EnterPlanMode`/`ExitPlanMode` tool names, with parsed `detectModeAndPlans()` as fallback. This scan is debounced to once per 30s per session to avoid expensive JSONL re-reads on every hook event.
 
 JSONL-based mode detection (`planning`/`execution`) is kept as fallback for discovered sessions that don't have hook data, and as the primary mode source for bypass sessions.
 
