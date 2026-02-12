@@ -36,7 +36,7 @@ export {
 export { detectModeAndPlans } from "./mode-detector.js";
 
 // Git utilities
-export { detectGitInfo, readGitBranchFromJsonl } from "./git-utils.js";
+export { detectGitInfo, readGitBranchFromJsonl, readWorktreeRepoRoot } from "./git-utils.js";
 
 // Metadata extraction & index building
 export {

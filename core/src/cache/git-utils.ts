@@ -106,3 +106,30 @@ export async function readGitBranchFromJsonl(jsonlPath: string): Promise<string 
   }
   return null;
 }
+
+/**
+ * Read the .git file in a worktree directory to extract the main repo root.
+ * Worktree .git files contain: gitdir: /path/to/main-repo/.git/worktrees/<name>
+ * Returns the repo root path, or null if not a worktree .git file.
+ */
+export async function readWorktreeRepoRoot(dirPath: string): Promise<string | null> {
+  const dotGitPath = path.join(dirPath, ".git");
+  try {
+    const stat = await fs.stat(dotGitPath);
+    if (!stat.isFile()) return null; // Regular .git directory, not a worktree
+
+    const content = await fs.readFile(dotGitPath, "utf-8");
+    const match = content.match(/^gitdir:\s*(.+)/m);
+    if (!match) return null;
+
+    const gitdir = match[1].trim();
+    // Find .git/worktrees/ segment and extract repo root before it
+    for (const marker of ["/.git/worktrees/", `${path.sep}.git${path.sep}worktrees${path.sep}`]) {
+      const idx = gitdir.indexOf(marker);
+      if (idx >= 0) return gitdir.substring(0, idx);
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}

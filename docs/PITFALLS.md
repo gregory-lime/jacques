@@ -78,6 +78,10 @@ fi
 **Problem**: When a new git worktree is created and a session starts in it, the CLI's cached worktree list (from `git worktree list`) may not include the new worktree yet. Sessions that can't match any known worktree were dumped under a hardcoded `"other"` header with `branch: null`.
 **Solution**: `sessions-items-builder.ts` now groups unmatched sessions by their `git_branch` (or `git_worktree`) instead of using a hardcoded "other" label. The literal "other" only appears as a last resort when a session has no git info at all.
 
+### Parent-Directory Matching Silently Loses Sessions
+**Problem**: The second pass of `discoverProjects()` merged orphaned worktrees into git projects by matching parent directories (`path.dirname()`). When multiple git repos shared the same parent (e.g., `/Users/user/Desktop`), `Array.find()` returned the first arbitrary match. If that match was a hidden project, the merged sessions were deleted by the hidden-projects filter — silently losing 20% of sessions on some machines.
+**Solution**: Replaced parent-directory matching with two reliable strategies: (1) `readWorktreeRepoRoot()` reads the `.git` text file in zombie worktrees to find the exact repo root (no ambiguity), (2) name-prefix heuristic matches worktree dirname to repo basename (e.g., `my-repo-feature` → `my-repo`), using longest prefix match when multiple candidates exist and skipping when no match is found. See `core/src/cache/project-discovery.ts` and `core/src/cache/git-utils.ts`.
+
 ### ToggleSwitch Click Bug
 **Problem**: Inner `<div role="switch">` had `onClick={(e) => e.stopPropagation()}` which prevented direct clicks on the switch from toggling
 **Solution**: Changed to `onClick={handleClick}` so clicks on the switch element itself trigger the toggle

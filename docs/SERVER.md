@@ -193,12 +193,13 @@ The HTTP API is organized into domain-specific route modules in `routes/`. Each 
 
 ## Catalog Overlay
 
-The session API overlays deduplicated `planRefs` from catalog manifests onto the session index cache. This is critical for the Plan Identity System:
+The session API overlays deduplicated `planRefs` from catalog manifests onto the session index cache. This is critical for the Plan Identity System. The shared `overlayCatalogPlanRefs()` helper in `session-routes.ts` handles this for both `handleGetSession` and `handlePlanByMessageIndex`:
 
-1. `GET /api/sessions/:id` reads session from cache
-2. Looks up `.jacques/sessions/{id}.json` catalog manifest
-3. If found, replaces cache `planRefs` with catalog's deduplicated version (has `catalogId`, `sources`)
-4. Falls back to raw cache planRefs when no catalog exists
+1. Reads session from cache
+2. Tries `.jacques/sessions/{id}.json` at `sessionEntry.projectPath`
+3. If not found, falls back to `sessionEntry.gitRepoRoot` (covers deleted worktrees where `.jacques/` lives at the repo root)
+4. If found, replaces cache `planRefs` with catalog's deduplicated version (has `catalogId`, `sources`)
+5. Falls back to raw cache planRefs when no catalog exists at either location
 
 ## WebSocket Messages
 

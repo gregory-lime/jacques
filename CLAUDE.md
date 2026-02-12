@@ -109,7 +109,11 @@ Projects are discovered from `~/.claude/projects/` where Claude Code stores JSON
 2. `cwd` field from first JSONL entry — reliable fallback (most projects)
 3. Naive decode (all `-` → `/`) — last resort, ambiguous for paths with hyphens
 
-**Git worktree grouping**: Multiple worktrees of the same repo are grouped into a single project using `gitRepoRoot`. For deleted worktrees (directory exists but `.git` is gone), `gitBranch` is recovered from JSONL entries and the project is merged into a matching sibling git repo. The `discoverProjects()` function (`core/src/cache/project-discovery.ts`) handles all grouping.
+**Git worktree grouping**: Multiple worktrees of the same repo are grouped into a single project using `gitRepoRoot`. The `discoverProjects()` function (`core/src/cache/project-discovery.ts`) handles all grouping in two passes:
+- **First pass**: Groups projects where sessions have `gitRepoRoot` in the index or `detectGitInfo()` succeeds on disk.
+- **Second pass**: Merges orphaned non-git projects that have `gitBranch` evidence (deleted/zombie worktrees) into matching git projects via two strategies:
+  1. **Zombie worktree `.git` file**: `readWorktreeRepoRoot()` reads the `.git` text file (contains `gitdir: /path/to/main-repo/.git/worktrees/<name>`) to find the exact repo root. Works when the directory exists but git metadata is cleaned up.
+  2. **Name-prefix heuristic**: For truly deleted worktrees (directory gone), matches by repo name prefix (e.g., `my-repo-feature` → `my-repo`). Uses longest prefix match when ambiguous; skips if no match.
 
 **Non-git projects**: Projects without a git repo are standalone entries — each directory is its own project.
 

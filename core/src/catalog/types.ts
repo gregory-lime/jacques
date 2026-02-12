@@ -19,6 +19,13 @@ export interface SessionManifest {
   /** Project slug (basename) */
   projectSlug: string;
 
+  /** Git repository root path (persisted for index rebuild resilience) */
+  gitRepoRoot?: string;
+  /** Git branch name at extraction time */
+  gitBranch?: string;
+  /** Git worktree name (if this was a worktree session) */
+  gitWorktree?: string;
+
   /** Session timestamps */
   startedAt: string;
   endedAt: string;
