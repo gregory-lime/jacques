@@ -35,7 +35,7 @@ export function PlaceholderView({
     </Text>,
     <Text color={MUTED_TEXT}>{"─".repeat(40)}</Text>,
     <Box />,
-    <Text color="#D4A574">Coming soon</Text>,
+    <Text color={MUTED_TEXT}>Coming soon</Text>,
     <Box />,
     <Text color={MUTED_TEXT}>This feature will allow you to {feature}.</Text>,
     <Box />,

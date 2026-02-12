@@ -10,6 +10,8 @@ import {
   BORDER_COLOR,
   ACCENT_COLOR,
   MUTED_TEXT,
+  SUCCESS_COLOR,
+  ERROR_COLOR,
   MASCOT_WIDTH,
   MIN_CONTENT_WIDTH,
   CONTENT_PADDING,
@@ -154,7 +156,7 @@ export function HorizontalLayout({
           ╰{"─".repeat(bottomLeftBorder)}
         </Text>
         {bottomIsNotification ? (
-          <Text color={bottomIsError ? "red" : "green"}>{bottomNotificationText}</Text>
+          <Text color={bottomIsError ? ERROR_COLOR : SUCCESS_COLOR}>{bottomNotificationText}</Text>
         ) : bottomControls ? (
           bottomControls
         ) : (

@@ -6,6 +6,7 @@
 
 import React from "react";
 import { Text, Box } from "ink";
+import { ACCENT_COLOR } from "./layout/theme.js";
 
 export interface MenuItem {
   key: string;
@@ -30,7 +31,7 @@ export function HorizontalMenu({ items, selectedIndex }: HorizontalMenuProps): R
       {items.map((item, index) => {
         const isSelected = index === selectedIndex && item.enabled;
         const prefix = isSelected ? "> " : "  ";
-        const color = isSelected ? "cyan" : item.enabled ? "white" : "gray";
+        const color = isSelected ? ACCENT_COLOR : item.enabled ? "white" : "gray";
         const bold = isSelected;
 
         return (

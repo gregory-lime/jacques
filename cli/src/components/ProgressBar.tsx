@@ -7,6 +7,7 @@
 
 import React from "react";
 import { Text, Box } from "ink";
+import { ACCENT_COLOR, MUTED_TEXT } from "./layout/theme.js";
 
 interface ProgressBarProps {
   percentage: number;
@@ -26,9 +27,8 @@ export function ProgressBar({
   const filled = Math.round((clampedPct / 100) * width);
   const empty = width - filled;
 
-  // Use softer coral color matching mascot (pastel design)
-  const color = "#E67E52";
-  const emptyColor = "#8B9296";
+  const color = ACCENT_COLOR;
+  const emptyColor = MUTED_TEXT;
 
   const estimatePrefix = isEstimate ? "~" : "";
 
@@ -63,8 +63,7 @@ export function MiniProgress({
     return <Text color="gray">ctx:?%</Text>;
   }
 
-  // Use softer coral color matching mascot (pastel design)
-  const color = "#E67E52";
+  const color = ACCENT_COLOR;
 
   const estimatePrefix = isEstimate ? "~" : "";
 

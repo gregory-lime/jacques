@@ -89,7 +89,7 @@ export function LLMWorkingView({
         ? line.substring(0, maxLineWidth - 3) + "..."
         : line;
       contentLines.push(
-        <Text key={`stream${i}`} color="#6B7280">
+        <Text key={`stream${i}`} color={MUTED_TEXT}>
           {truncatedLine}
         </Text>
       );

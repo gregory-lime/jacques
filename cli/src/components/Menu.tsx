@@ -7,6 +7,7 @@
 
 import React from "react";
 import { Box, Text } from "ink";
+import { ACCENT_COLOR, BORDER_COLOR } from "./layout/theme.js";
 
 export interface MenuItem {
   key: string; // "1", "2", etc.
@@ -36,7 +37,7 @@ export function Menu({ items, selectedKey }: MenuProps): React.ReactElement {
   return (
     <Box flexDirection="column" marginTop={1}>
       {/* Top border */}
-      <Text color="#FF6600">╭{"─".repeat(boxWidth)}╮</Text>
+      <Text color={BORDER_COLOR}>╭{"─".repeat(boxWidth)}╮</Text>
 
       {/* Menu items */}
       {items.map((item) => (
@@ -49,7 +50,7 @@ export function Menu({ items, selectedKey }: MenuProps): React.ReactElement {
       ))}
 
       {/* Bottom border */}
-      <Text color="#FF6600">╰{"─".repeat(boxWidth)}╯</Text>
+      <Text color={BORDER_COLOR}>╰{"─".repeat(boxWidth)}╯</Text>
     </Box>
   );
 }
@@ -73,8 +74,8 @@ function MenuItemRow({
   const paddedContent = content + " ".repeat(Math.max(0, padding));
 
   // Determine styling
-  const textColor = enabled ? (isSelected ? "cyan" : "white") : "gray";
-  const borderColor = "#FF6600";
+  const textColor = enabled ? (isSelected ? ACCENT_COLOR : "white") : "gray";
+  const borderColor = BORDER_COLOR;
 
   return (
     <Text>

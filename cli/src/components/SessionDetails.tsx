@@ -9,6 +9,7 @@ import React from "react";
 import { Box, Text } from "ink";
 import { ProgressBar } from "./ProgressBar.js";
 import { formatTokens } from "../utils/format.js";
+import { ACCENT_COLOR, WARNING_COLOR, ERROR_COLOR, SUCCESS_COLOR } from "./layout/theme.js";
 import type { Session, AutoCompactStatus } from "@jacques/core";
 
 interface SessionDetailsProps {
@@ -51,7 +52,7 @@ export function SessionDetails({
         <Text bold color="white">
           Project:{" "}
         </Text>
-        <Text color="#FF6600">{session.project}</Text>
+        <Text color={ACCENT_COLOR}>{session.project}</Text>
       </Text>
 
       {/* Context Metrics */}
@@ -124,12 +125,12 @@ function ContextMetricsDisplay({
 
       {/* Warnings */}
       {pct >= 80 && (
-        <Text color="red" bold>
+        <Text color={ERROR_COLOR} bold>
           ⚠️ Context nearly full! Consider compacting.
         </Text>
       )}
       {pct >= 60 && pct < 80 && (
-        <Text color="yellow">⚠️ Context usage is moderate</Text>
+        <Text color={WARNING_COLOR}>⚠️ Context usage is moderate</Text>
       )}
     </Box>
   );
@@ -160,24 +161,24 @@ function AutoCompactDisplay({
 
   // Determine warning level based on context usage and auto-compact settings
   let warningText: string | null = null;
-  let warningColor: string = "yellow";
+  let warningColor: string = WARNING_COLOR;
 
   if (!enabled && bug_threshold) {
     // Auto-compact disabled but bug may trigger at 78%
     // IMPORTANT: Known bug #18264 - setting is IGNORED, triggers at ~78% anyway
     if (pct >= 70) {
       warningText = `⚠️ CRITICAL: Bug #18264 may trigger auto-compact at ~${bug_threshold}%!`;
-      warningColor = "red";
+      warningColor = ERROR_COLOR;
     } else if (pct >= 60) {
       warningText = `Warning: Bug #18264 may trigger at ~${bug_threshold}% despite setting`;
-      warningColor = "yellow";
+      warningColor = WARNING_COLOR;
     }
   } else if (enabled) {
     // Auto-compact enabled, warn when approaching threshold
     const warningThreshold = threshold - 15;
     if (pct >= warningThreshold) {
       warningText = `Approaching auto-compact at ${threshold}%`;
-      warningColor = pct >= threshold - 5 ? "red" : "yellow";
+      warningColor = pct >= threshold - 5 ? ERROR_COLOR : WARNING_COLOR;
     }
   }
 
@@ -187,13 +188,13 @@ function AutoCompactDisplay({
         <Text bold color="white">
           Auto-compact:{" "}
         </Text>
-        <Text color={enabled ? "green" : "yellow"} bold>
+        <Text color={enabled ? SUCCESS_COLOR : WARNING_COLOR} bold>
           [{enabled ? "ON" : "OFF"}]
         </Text>
         {enabled ? (
           <Text color="gray"> at {threshold}%</Text>
         ) : (
-          <Text color="red"> (BUG: still triggers at ~{bug_threshold}%!)</Text>
+          <Text color={ERROR_COLOR}> (BUG: still triggers at ~{bug_threshold}%!)</Text>
         )}
         <Text color="gray"> [a] toggle</Text>
       </Text>

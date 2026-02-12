@@ -6,6 +6,7 @@
 
 import React from "react";
 import { Text, Box } from "ink";
+import { MUTED_TEXT, ERROR_COLOR, WARNING_COLOR, SUCCESS_COLOR } from "./layout/theme.js";
 import type { Session } from "@jacques/core";
 import { getCliActivity } from "../utils/activity.js";
 
@@ -51,11 +52,11 @@ function formatPercentage(percentage: number | undefined): string {
  */
 function getContextColor(percentage: number | undefined): string {
   if (percentage === undefined || percentage === null) {
-    return "gray";
+    return MUTED_TEXT;
   }
-  if (percentage < 50) return "green";
-  if (percentage < 70) return "yellow";
-  return "red";
+  if (percentage < 50) return SUCCESS_COLOR;
+  if (percentage < 70) return WARNING_COLOR;
+  return ERROR_COLOR;
 }
 
 // Activity label now provided by shared getCliActivity() utility
@@ -80,7 +81,7 @@ export function SessionsList({ sessions, focusedSessionId }: SessionsListProps):
 
   return (
     <Box flexDirection="column">
-      <Text color="gray">
+      <Text color={MUTED_TEXT}>
         Active Sessions ({sessions.length}):
       </Text>
       {displaySessions.map((session) => {
@@ -107,7 +108,7 @@ export function SessionsList({ sessions, focusedSessionId }: SessionsListProps):
       })}
       {remainingCount > 0 && (
         <Box marginLeft={2}>
-          <Text color="gray">... and {remainingCount} more</Text>
+          <Text color={MUTED_TEXT}>... and {remainingCount} more</Text>
         </Box>
       )}
     </Box>

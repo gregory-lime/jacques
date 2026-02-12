@@ -6,7 +6,7 @@
 import React from "react";
 import { Box, Text } from "ink";
 import { MASCOT_ANSI } from "../../assets/mascot-ansi.js";
-import { ACCENT_COLOR, MUTED_TEXT } from "./theme.js";
+import { ACCENT_COLOR, MUTED_TEXT, SUCCESS_COLOR, ERROR_COLOR } from "./theme.js";
 import { APP_ENDEARMENT } from "@jacques/core";
 import { buildBottomControls, MAIN_CONTROLS } from "../../utils/bottom-controls.js";
 
@@ -79,7 +79,7 @@ export function VerticalLayout({
             const isError = notification.startsWith("!");
             const cleanMessage = isError ? notification.slice(1) : notification;
             return (
-              <Text color={isError ? "red" : "green"}>
+              <Text color={isError ? ERROR_COLOR : SUCCESS_COLOR}>
                 {isError ? "✗" : "✓"} {cleanMessage}
               </Text>
             );

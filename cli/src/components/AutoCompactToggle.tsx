@@ -7,6 +7,7 @@
 
 import React from "react";
 import { Box, Text } from "ink";
+import { MUTED_TEXT, SUCCESS_COLOR, WARNING_COLOR } from "./layout/theme.js";
 import type { AutoCompactStatus } from "@jacques/core";
 
 interface AutoCompactToggleProps {
@@ -23,8 +24,8 @@ export function AutoCompactToggle({
   if (!autocompact) {
     return (
       <Box>
-        <Text color="gray">Auto-compact: Unknown </Text>
-        {showHint && <Text color="gray">[a] toggle</Text>}
+        <Text color={MUTED_TEXT}>Auto-compact: Unknown </Text>
+        {showHint && <Text color={MUTED_TEXT}>[a] toggle</Text>}
       </Box>
     );
   }
@@ -34,15 +35,15 @@ export function AutoCompactToggle({
   return (
     <Box>
       <Text>Auto-compact: </Text>
-      <Text color={enabled ? "green" : "yellow"} bold>
+      <Text color={enabled ? SUCCESS_COLOR : WARNING_COLOR} bold>
         [{enabled ? "ON" : "OFF"}]
       </Text>
       {enabled ? (
-        <Text color="gray"> at {threshold}%</Text>
+        <Text color={MUTED_TEXT}> at {threshold}%</Text>
       ) : (
-        <Text color="yellow"> (bug@~{bug_threshold}%)</Text>
+        <Text color={WARNING_COLOR}> (bug@~{bug_threshold}%)</Text>
       )}
-      {showHint && onToggle && <Text color="gray"> [a] toggle</Text>}
+      {showHint && onToggle && <Text color={MUTED_TEXT}> [a] toggle</Text>}
     </Box>
   );
 }

@@ -6,6 +6,7 @@
 
 import React from "react";
 import { Box, Text } from "ink";
+import { ACCENT_COLOR } from "./layout/theme.js";
 
 export interface VerticalMenuItem {
   key: string;
@@ -28,7 +29,7 @@ export function VerticalMenu({
         const isSelected = index === selectedIndex;
         const textColor = item.enabled
           ? isSelected
-            ? "#FF6600"
+            ? ACCENT_COLOR
             : "white"
           : "gray";
 

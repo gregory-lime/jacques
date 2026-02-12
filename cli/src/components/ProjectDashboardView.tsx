@@ -28,7 +28,7 @@ import {
   truncate,
   pad,
 } from "./ascii-art/index.js";
-import { ACCENT_COLOR, MUTED_TEXT } from "./layout/index.js";
+import { ACCENT_COLOR, MUTED_TEXT, SUCCESS_COLOR } from "./layout/index.js";
 
 // Layout constants
 const FULL_LAYOUT_MIN_WIDTH = 90;
@@ -36,8 +36,7 @@ const COMPACT_LAYOUT_MIN_WIDTH = 70;
 const VISIBLE_SESSIONS = 4;
 const VISIBLE_PLANS = 3;
 
-const GREEN = "#22C55E";
-const SCENE_COLOR = "#9CA3AF"; // Gray for scene art
+const SCENE_COLOR = MUTED_TEXT;
 
 export interface ProjectDashboardViewProps {
   projectName: string;
@@ -355,7 +354,7 @@ function SessionsList({
         const globalIndex = scrollOffset + i;
         const isSelected = isActive && globalIndex === selectedIndex;
         const prefix = session.isActive ? (
-          <Text color={GREEN}>● </Text>
+          <Text color={SUCCESS_COLOR}>● </Text>
         ) : (
           <Text>  </Text>
         );
@@ -443,7 +442,7 @@ function PlansList({
           const pct = progress.percentage;
           progressDisplay = `${progressBar(pct, 6)} ${pad(pct.toString(), 3, "left")}%`;
           if (pct === 100) {
-            progressColor = GREEN;
+            progressColor = SUCCESS_COLOR;
           } else if (pct > 0) {
             progressColor = ACCENT_COLOR;
           }

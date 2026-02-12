@@ -17,6 +17,9 @@ import {
   VerticalLayout,
   ACCENT_COLOR,
   MUTED_TEXT,
+  SUCCESS_COLOR,
+  WARNING_COLOR,
+  ERROR_COLOR,
   HORIZONTAL_LAYOUT_MIN_WIDTH,
   FIXED_CONTENT_HEIGHT,
 } from "./layout/index.js";
@@ -85,7 +88,7 @@ function renderUsageDots(percentage: number): React.ReactNode {
   const total = 10;
   const filled = Math.round((percentage / 100) * total);
   const empty = total - filled;
-  const color = percentage < 50 ? "green" : percentage < 80 ? "yellow" : "red";
+  const color = percentage < 50 ? SUCCESS_COLOR : percentage < 80 ? WARNING_COLOR : ERROR_COLOR;
   return (
     <Text>
       <Text color={color}>{"\u25CF".repeat(filled)}</Text>
@@ -138,7 +141,7 @@ export function SettingsView({
     contentLines.push(
       <Text key="claude-val" color={claudeSelected ? ACCENT_COLOR : "white"}>
         {claudeSelected ? "> " : "  "}
-        <Text color="green">{"\u25CF"}</Text> Connected
+        <Text color={SUCCESS_COLOR}>{"\u25CF"}</Text> Connected
         <Text color={MUTED_TEXT}> ({claudeTokenMasked})</Text>
       </Text>
     );
@@ -173,7 +176,7 @@ export function SettingsView({
     }
     if (claudeTokenError) {
       contentLines.push(
-        <Text key="claude-err" color="red" wrap="truncate">{"     "}{claudeTokenError}</Text>
+        <Text key="claude-err" color={ERROR_COLOR} wrap="truncate">{"     "}{claudeTokenError}</Text>
       );
     }
   } else {
@@ -203,7 +206,7 @@ export function SettingsView({
   contentLines.push(
     <Text key="skip-val" color={skipSelected ? ACCENT_COLOR : "white"}>
       {skipSelected ? "> " : "  "}
-      {skipCheck} <Text color={skipPermissions ? "red" : "white"}>Dangerously skip permissions</Text>
+      {skipCheck} <Text color={skipPermissions ? ERROR_COLOR : "white"}>Dangerously skip permissions</Text>
     </Text>
   );
 

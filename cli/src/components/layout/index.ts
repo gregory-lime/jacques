@@ -5,7 +5,12 @@ export type { VerticalLayoutProps } from "./VerticalLayout.js";
 export {
   BORDER_COLOR,
   ACCENT_COLOR,
+  SECONDARY_COLOR,
   MUTED_TEXT,
+  SUCCESS_COLOR,
+  WARNING_COLOR,
+  ERROR_COLOR,
+  INVERTED_TEXT,
   MASCOT_WIDTH,
   MIN_CONTENT_WIDTH,
   CONTENT_PADDING,

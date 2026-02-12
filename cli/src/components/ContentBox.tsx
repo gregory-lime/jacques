@@ -1,12 +1,13 @@
 /**
  * ContentBox Component
  *
- * Bordered box container with orange (#FF6600) borders
+ * Bordered box container with themed borders
  * Wraps content in side borders automatically
  */
 
 import React from "react";
 import { Box, Text } from "ink";
+import { BORDER_COLOR } from "./layout/theme.js";
 
 interface ContentBoxProps {
   children: React.ReactNode;
@@ -23,7 +24,7 @@ function BorderedLine({
   children: React.ReactNode;
   width: number;
 }): React.ReactElement {
-  const borderColor = "#FF6600";
+  const borderColor = BORDER_COLOR;
 
   return (
     <Box>
@@ -40,7 +41,7 @@ export function ContentBox({
   children,
   width = 48,
 }: ContentBoxProps): React.ReactElement {
-  const borderColor = "#FF6600";
+  const borderColor = BORDER_COLOR;
 
   // Convert children to array for mapping
   const childArray = React.Children.toArray(children);

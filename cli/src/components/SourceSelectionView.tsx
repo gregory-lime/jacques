@@ -8,9 +8,7 @@
 import React from "react";
 import { Box, Text } from "ink";
 import { MASCOT_ANSI } from "../assets/mascot-ansi.js";
-import { ACCENT_COLOR, MUTED_TEXT, BORDER_COLOR } from "./layout/index.js";
-
-const SUCCESS_COLOR = "#4ADE80";
+import { ACCENT_COLOR, MUTED_TEXT, BORDER_COLOR, SUCCESS_COLOR } from "./layout/index.js";
 const MASCOT_WIDTH = 14;
 const MIN_CONTENT_WIDTH = 42;
 const CONTENT_PADDING = 2;

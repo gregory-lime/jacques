@@ -7,6 +7,7 @@
 
 import React from "react";
 import { Box, Text } from "ink";
+import { MUTED_TEXT, ERROR_COLOR, WARNING_COLOR, SUCCESS_COLOR } from "./layout/theme.js";
 import type { Session } from "@jacques/core";
 
 interface ContextProgressProps {
@@ -19,7 +20,7 @@ export function ContextProgress({
   if (!session) {
     return (
       <Box flexDirection="column" paddingY={1}>
-        <Text color="gray"> No active session</Text>
+        <Text color={MUTED_TEXT}> No active session</Text>
       </Box>
     );
   }
@@ -29,7 +30,7 @@ export function ContextProgress({
   if (!metrics) {
     return (
       <Box flexDirection="column" paddingY={1}>
-        <Text color="gray"> Context: Waiting for data...</Text>
+        <Text color={MUTED_TEXT}> Context: Waiting for data...</Text>
       </Box>
     );
   }
@@ -44,9 +45,9 @@ export function ContextProgress({
 
   // Determine color based on usage
   const getColor = (pct: number): string => {
-    if (pct >= 70) return "red";
-    if (pct >= 50) return "yellow";
-    return "green";
+    if (pct >= 70) return ERROR_COLOR;
+    if (pct >= 50) return WARNING_COLOR;
+    return SUCCESS_COLOR;
   };
 
   const color = getColor(percentage);
@@ -64,7 +65,7 @@ export function ContextProgress({
       <Text>
         {"          "}
         <Text color={color}>Context: {percentage.toFixed(1)}%</Text>
-        <Text color="gray">
+        <Text color={MUTED_TEXT}>
           {" "}
           ({formatNumber(usedTokens)} / {formatNumber(windowSize)} tokens)
           {isEstimate ? " ~" : ""}
@@ -75,7 +76,7 @@ export function ContextProgress({
       <Text>
         {"          "}
         <Text color={color}>{filledBar}</Text>
-        <Text color="gray">{emptyBar}</Text>
+        <Text color={MUTED_TEXT}>{emptyBar}</Text>
       </Text>
     </Box>
   );

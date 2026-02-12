@@ -8,6 +8,7 @@ import React from "react";
 import { Text, Box } from "ink";
 import { Mascot } from "./Mascot.js";
 import { ProgressBar } from "./ProgressBar.js";
+import { ACCENT_COLOR, WARNING_COLOR, ERROR_COLOR, SUCCESS_COLOR } from "./layout/theme.js";
 import type { Session } from "@jacques/core";
 
 interface CompactHeaderProps {
@@ -44,11 +45,11 @@ function ProgressLine({ session }: { session: Session | null }): React.ReactElem
   // Color based on percentage (matching plan: green < 50%, yellow 50-70%, red >= 70%)
   let color: string;
   if (percentage >= 70) {
-    color = "red";
+    color = ERROR_COLOR;
   } else if (percentage >= 50) {
-    color = "yellow";
+    color = WARNING_COLOR;
   } else {
-    color = "green";
+    color = SUCCESS_COLOR;
   }
 
   return (
@@ -110,7 +111,7 @@ export function CompactHeader({ version, session, connected }: CompactHeaderProp
     <Box flexDirection="row">
       <Mascot variant="inline" />
       <Box flexDirection="column" marginLeft={3}>
-        <Text bold color="#FF6600">
+        <Text bold color={ACCENT_COLOR}>
           JACQUES Context Manager{" "}
           <Text color="gray">v{version}</Text>
         </Text>

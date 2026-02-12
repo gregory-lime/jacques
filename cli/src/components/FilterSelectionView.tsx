@@ -11,6 +11,7 @@ import {
   FILTER_CONFIGS,
   FilterType,
 } from "@jacques/core";
+import { ACCENT_COLOR } from "./layout/theme.js";
 import type { FilterTokenEstimates } from "@jacques/core";
 
 interface FilterSelectionViewProps {
@@ -36,7 +37,7 @@ export function FilterSelectionView({
     <Box flexDirection="column" gap={0}>
       {/* Title */}
       <Box marginBottom={1}>
-        <Text bold color="#E67E52">
+        <Text bold color={ACCENT_COLOR}>
           Select save format
         </Text>
       </Box>
@@ -62,7 +63,7 @@ export function FilterSelectionView({
         return (
           <Box key={filterType} flexDirection="column" marginBottom={1}>
             <Box>
-              <Text color={isSelected ? "#E67E52" : "white"}>
+              <Text color={isSelected ? ACCENT_COLOR : "white"}>
                 {isSelected ? "> " : "  "}
                 <Text bold={isSelected}>{config.label}</Text>
               </Text>

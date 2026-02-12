@@ -12,6 +12,8 @@ import {
   VerticalLayout,
   ACCENT_COLOR,
   MUTED_TEXT,
+  ERROR_COLOR,
+  SUCCESS_COLOR,
   HORIZONTAL_LAYOUT_MIN_WIDTH,
   FIXED_CONTENT_HEIGHT,
 } from "./layout/index.js";
@@ -56,7 +58,7 @@ export function ArchiveInitProgressView({
       </Text>
     );
     contentLines.push(
-      <Text key="archived" color="green">
+      <Text key="archived" color={SUCCESS_COLOR}>
         Successfully archived: {result.archived}
       </Text>
     );
@@ -69,14 +71,14 @@ export function ArchiveInitProgressView({
     }
     if (result.errors > 0) {
       contentLines.push(
-        <Text key="errors" color="#EF4444">
+        <Text key="errors" color={ERROR_COLOR}>
           Errors: {result.errors}
         </Text>
       );
     }
     contentLines.push(<Text key="spacer2"> </Text>);
     contentLines.push(
-      <Text key="done" color="green" bold>
+      <Text key="done" color={SUCCESS_COLOR} bold>
         Done!
       </Text>
     );
@@ -132,7 +134,7 @@ export function ArchiveInitProgressView({
       }
       if (progress.errors > 0) {
         contentLines.push(
-          <Text key="errors" color="#EF4444">
+          <Text key="errors" color={ERROR_COLOR}>
             Errors: {progress.errors}
           </Text>
         );

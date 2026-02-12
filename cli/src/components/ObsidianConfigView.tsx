@@ -13,12 +13,11 @@ import {
   VerticalLayout,
   ACCENT_COLOR,
   MUTED_TEXT,
+  SUCCESS_COLOR,
+  ERROR_COLOR,
   HORIZONTAL_LAYOUT_MIN_WIDTH,
   FIXED_CONTENT_HEIGHT,
 } from "./layout/index.js";
-
-const SUCCESS_COLOR = "#4ADE80";
-const ERROR_COLOR = "#EF4444";
 
 interface ObsidianConfigViewProps {
   vaults: ObsidianVault[];

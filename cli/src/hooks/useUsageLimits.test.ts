@@ -5,6 +5,7 @@
  */
 
 import { describe, it, expect } from "@jest/globals";
+import { SUCCESS_COLOR, WARNING_COLOR, ERROR_COLOR } from "../components/layout/theme.js";
 import type { UsagePeriod, UsageLimits } from "./useUsageLimits.js";
 
 function makeUsagePeriod(overrides: Partial<UsagePeriod> = {}): UsagePeriod {
@@ -82,7 +83,7 @@ describe("usage dot visualization logic", () => {
   function renderUsageDots(percentage: number): { filled: number; empty: number; color: string } {
     const filled = Math.round((percentage / 100) * TOTAL_DOTS);
     const empty = TOTAL_DOTS - filled;
-    const color = percentage >= 80 ? "red" : percentage >= 50 ? "yellow" : "green";
+    const color = percentage >= 80 ? ERROR_COLOR : percentage >= 50 ? WARNING_COLOR : SUCCESS_COLOR;
     return { filled, empty, color };
   }
 
@@ -90,43 +91,43 @@ describe("usage dot visualization logic", () => {
     const result = renderUsageDots(0);
     expect(result.filled).toBe(0);
     expect(result.empty).toBe(10);
-    expect(result.color).toBe("green");
+    expect(result.color).toBe(SUCCESS_COLOR);
   });
 
   it("renders 50% as 5 filled, 5 empty, yellow", () => {
     const result = renderUsageDots(50);
     expect(result.filled).toBe(5);
     expect(result.empty).toBe(5);
-    expect(result.color).toBe("yellow");
+    expect(result.color).toBe(WARNING_COLOR);
   });
 
   it("renders 80% as 8 filled, 2 empty, red", () => {
     const result = renderUsageDots(80);
     expect(result.filled).toBe(8);
     expect(result.empty).toBe(2);
-    expect(result.color).toBe("red");
+    expect(result.color).toBe(ERROR_COLOR);
   });
 
   it("renders 100% as all filled dots, red", () => {
     const result = renderUsageDots(100);
     expect(result.filled).toBe(10);
     expect(result.empty).toBe(0);
-    expect(result.color).toBe("red");
+    expect(result.color).toBe(ERROR_COLOR);
   });
 
   it("renders 25% as green", () => {
     const result = renderUsageDots(25);
-    expect(result.color).toBe("green");
+    expect(result.color).toBe(SUCCESS_COLOR);
   });
 
   it("renders 49% as green", () => {
     const result = renderUsageDots(49);
-    expect(result.color).toBe("green");
+    expect(result.color).toBe(SUCCESS_COLOR);
   });
 
   it("renders 79% as yellow", () => {
     const result = renderUsageDots(79);
-    expect(result.color).toBe("yellow");
+    expect(result.color).toBe(WARNING_COLOR);
   });
 
   it("rounds dot count correctly for 33%", () => {

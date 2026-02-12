@@ -13,6 +13,7 @@ import {
   VerticalLayout,
   ACCENT_COLOR,
   MUTED_TEXT,
+  ERROR_COLOR,
   HORIZONTAL_LAYOUT_MIN_WIDTH,
   FIXED_CONTENT_HEIGHT,
 } from "./layout/index.js";
@@ -148,7 +149,7 @@ export function ArchiveBrowserView({
   // Error state
   else if (error) {
     contentLines.push(
-      <Text key="error" color="#EF4444">
+      <Text key="error" color={ERROR_COLOR}>
         ✗ {error}
       </Text>
     );

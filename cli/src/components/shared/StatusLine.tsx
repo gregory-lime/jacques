@@ -7,17 +7,17 @@
 
 import React from "react";
 import { Text } from "ink";
-import { ACCENT_COLOR, MUTED_TEXT } from "../layout/theme.js";
+import { ACCENT_COLOR, MUTED_TEXT, SUCCESS_COLOR, ERROR_COLOR } from "../layout/theme.js";
 import { getCliActivity } from "../../utils/activity.js";
 import type { Session } from "@jacques/core";
 
 const MODE_COLORS: Record<string, string> = {
-  plan: "green",
-  planning: "green",
+  plan: SUCCESS_COLOR,
+  planning: SUCCESS_COLOR,
   acceptEdits: ACCENT_COLOR,
   execution: ACCENT_COLOR,
   default: MUTED_TEXT,
-  bypass: "red",
+  bypass: ERROR_COLOR,
 };
 
 export function getSessionStatus(session: Session): string {

@@ -13,6 +13,7 @@
 
 import React from "react";
 import { Text, Box } from "ink";
+import { ACCENT_COLOR } from "./layout/theme.js";
 
 interface MascotProps {
   variant?: "vertical" | "inline";
@@ -43,10 +44,10 @@ function InlineMascot(): React.ReactElement {
     <Box flexDirection="column" width={12}>
       <Text color="white"> ░▒▓▓▓▒░   </Text>
       <Text>
-        <Text color="#FF6600">▐▛ º º ▜▌</Text>
+        <Text color={ACCENT_COLOR}>▐▛ º º ▜▌</Text>
         <Text color="gray">▖ </Text>
       </Text>
-      <Text color="#FF6600">  ─‿─     </Text>
+      <Text color={ACCENT_COLOR}>  ─‿─     </Text>
     </Box>
   );
 }
@@ -57,10 +58,10 @@ function LargeMascot(): React.ReactElement {
     <Box flexDirection="column">
       <Text color="white"> ░▒▓▓▓▒░</Text>
       <Text>
-        <Text color="#FF6600">▐▛ º º ▜▌</Text>
+        <Text color={ACCENT_COLOR}>▐▛ º º ▜▌</Text>
         <Text color="gray">▖</Text>
       </Text>
-      <Text color="#FF6600"> ─‿─</Text>
+      <Text color={ACCENT_COLOR}> ─‿─</Text>
     </Box>
   );
 }
@@ -70,7 +71,7 @@ function SmallMascot(): React.ReactElement {
     <Box flexDirection="column">
       <Text color="white">░▒▓▒░</Text>
       <Text>
-        <Text color="#FF6600">▛ºº▜</Text>
+        <Text color={ACCENT_COLOR}>▛ºº▜</Text>
         <Text color="gray">▖</Text>
       </Text>
     </Box>

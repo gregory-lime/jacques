@@ -12,6 +12,7 @@
 
 import React from "react";
 import { Box, Text } from "ink";
+import { ACCENT_COLOR, MUTED_TEXT, ERROR_COLOR, WARNING_COLOR, SUCCESS_COLOR } from "./layout/theme.js";
 import type { Session } from "@jacques/core";
 
 interface CompactPanelProps {
@@ -53,7 +54,7 @@ export function CompactPanel({
   // Determine panel state and styling
   const isDanger = contextUsed >= effectiveDangerThreshold - 5;
   const isHighWarning = contextUsed >= WARNING_THRESHOLD;
-  const borderColor = isDanger ? "red" : isHighWarning ? "yellow" : "gray";
+  const borderColor = isDanger ? ERROR_COLOR : isHighWarning ? WARNING_COLOR : MUTED_TEXT;
 
   return (
     <Box
@@ -65,7 +66,7 @@ export function CompactPanel({
     >
       {/* Panel Title */}
       <Box>
-        <Text bold color={isDanger ? "red" : "yellow"}>
+        <Text bold color={isDanger ? ERROR_COLOR : WARNING_COLOR}>
           {isDanger ? "⚠️ CONTEXT CRITICAL" : "📋 COMPACT WORKFLOW"}
         </Text>
       </Box>
@@ -73,15 +74,15 @@ export function CompactPanel({
       {/* Warning Message */}
       {isDanger ? (
         <Box marginTop={1} flexDirection="column">
-          <Text color="red" bold>
+          <Text color={ERROR_COLOR} bold>
             Context at {contextUsed.toFixed(0)}% - DANGER! Auto-compact may
             trigger at ~{effectiveDangerThreshold}%!
           </Text>
-          <Text color="red">Create handoff NOW before context is lost.</Text>
+          <Text color={ERROR_COLOR}>Create handoff NOW before context is lost.</Text>
         </Box>
       ) : (
         <Box marginTop={1}>
-          <Text color="yellow">
+          <Text color={WARNING_COLOR}>
             Context at {contextUsed.toFixed(0)}% - Create handoff before ~78%
             bug triggers.
           </Text>
@@ -92,22 +93,22 @@ export function CompactPanel({
       <Box marginTop={1} flexDirection="column">
         {handoffReady ? (
           <>
-            <Text color="green" bold>
+            <Text color={SUCCESS_COLOR} bold>
               ✓ Handoff file ready: .jacques-handoff.md
             </Text>
             <Text>Press [h] to copy, then:</Text>
-            <Text color="cyan">
+            <Text color={ACCENT_COLOR}>
               1. Close this Claude Code session (type /exit or Ctrl+C)
             </Text>
-            <Text color="cyan">2. Start a NEW Claude Code session</Text>
-            <Text color="cyan">3. Paste the handoff content to continue</Text>
+            <Text color={ACCENT_COLOR}>2. Start a NEW Claude Code session</Text>
+            <Text color={ACCENT_COLOR}>3. Paste the handoff content to continue</Text>
           </>
         ) : (
           <>
             <Text>1. Press [c] to copy the compact prompt</Text>
             <Text>2. Paste it into the Claude Code chat</Text>
             <Text>3. Claude will create .jacques-handoff.md</Text>
-            <Text color="cyan" bold>
+            <Text color={ACCENT_COLOR} bold>
               4. Close Claude Code and start a NEW session
             </Text>
             <Text>5. Paste the handoff to continue your work</Text>
@@ -117,7 +118,7 @@ export function CompactPanel({
 
       {/* Keyboard shortcuts */}
       <Box marginTop={1}>
-        <Text color="gray">
+        <Text color={MUTED_TEXT}>
           {handoffReady
             ? "[h] Copy handoff  [c] Copy prompt  [a] Toggle auto-compact"
             : "[c] Copy prompt  [a] Toggle auto-compact"}

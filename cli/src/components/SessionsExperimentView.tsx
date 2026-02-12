@@ -16,6 +16,10 @@ import {
   BORDER_COLOR,
   ACCENT_COLOR,
   MUTED_TEXT,
+  SUCCESS_COLOR,
+  WARNING_COLOR,
+  ERROR_COLOR,
+  INVERTED_TEXT,
   MASCOT_WIDTH,
   CONTENT_PADDING,
   FIXED_CONTENT_HEIGHT,
@@ -27,12 +31,12 @@ import { getCliActivity } from "../utils/activity.js";
 import { buildBottomControls } from "../utils/bottom-controls.js";
 
 const MODE_COLORS: Record<string, string> = {
-  plan: "green",
-  planning: "green",
+  plan: SUCCESS_COLOR,
+  planning: SUCCESS_COLOR,
   acceptEdits: ACCENT_COLOR,
   execution: ACCENT_COLOR,
   default: MUTED_TEXT,
-  bypass: "red",
+  bypass: ERROR_COLOR,
 };
 
 interface SessionsExperimentViewProps {
@@ -166,7 +170,7 @@ export function SessionsExperimentView({
         const isLastInGroup = !nextItem || (nextItem.kind !== "session" && nextItem.kind !== "new-session-button");
         const treeCh = isLastInGroup ? "\u2514" : "\u251C";
         const cursor = isSelected ? "\u25B6" : " ";
-        const fg = isMultiSelected ? "#1a1a1a" : undefined;
+        const fg = isMultiSelected ? INVERTED_TEXT : undefined;
 
         const activity = getCliActivity(session.status, session.last_tool_name);
 
@@ -209,7 +213,7 @@ export function SessionsExperimentView({
             key={`s-${idx}`}
             wrap="truncate-end"
             backgroundColor={isMultiSelected ? ACCENT_COLOR : undefined}
-            color={isMultiSelected ? "#1a1a1a" : undefined}
+            color={isMultiSelected ? INVERTED_TEXT : undefined}
           >
             <Text color={fg || MUTED_TEXT}>{treeCh} </Text>
             <Text color={fg || (isSelected ? ACCENT_COLOR : "white")}>{cursor} </Text>
@@ -248,8 +252,8 @@ export function SessionsExperimentView({
         contentLines.push(
           <Text key={`rwb-${idx}`} wrap="truncate-end">
             <Text color={MUTED_TEXT}>{"\u2514"} </Text>
-            <Text color={isSelected ? "red" : MUTED_TEXT}>{isSelected ? "\u25B6" : " "} </Text>
-            <Text color={isSelected ? "red" : MUTED_TEXT}>{"\u2717"} Remove worktree</Text>
+            <Text color={isSelected ? ERROR_COLOR : MUTED_TEXT}>{isSelected ? "\u25B6" : " "} </Text>
+            <Text color={isSelected ? ERROR_COLOR : MUTED_TEXT}>{"\u2717"} Remove worktree</Text>
           </Text>
         );
         break;
@@ -259,19 +263,19 @@ export function SessionsExperimentView({
         // Line 1: Confirmation header
         contentLines.push(
           <Text key={`rwc-title-${idx}`} wrap="truncate-end">
-            <Text color="red" bold>{"\u25B6"} Remove &quot;{item.worktreeName}&quot;?</Text>
+            <Text color={ERROR_COLOR} bold>{"\u25B6"} Remove &quot;{item.worktreeName}&quot;?</Text>
           </Text>
         );
 
         // Line 2: Status badges
         const badges: React.ReactNode[] = [];
         if (item.hasUncommittedChanges) {
-          badges.push(<Text key="uc" color="yellow">{"\u26A0"} uncommitted changes</Text>);
+          badges.push(<Text key="uc" color={WARNING_COLOR}>{"\u26A0"} uncommitted changes</Text>);
         }
         if (item.isMergedToMain) {
-          badges.push(<Text key="mg" color="green">{"\u2713"} merged</Text>);
+          badges.push(<Text key="mg" color={SUCCESS_COLOR}>{"\u2713"} merged</Text>);
         } else {
-          badges.push(<Text key="um" color="red">{"\u2717"} unmerged</Text>);
+          badges.push(<Text key="um" color={ERROR_COLOR}>{"\u2717"} unmerged</Text>);
         }
         if (item.sessionCount > 0) {
           badges.push(
@@ -305,7 +309,7 @@ export function SessionsExperimentView({
               <>
                 <Text color={MUTED_TEXT}>{"  "}</Text>
                 <Text color={ACCENT_COLOR}>[f]</Text>
-                <Text color={removeForce ? "red" : MUTED_TEXT}>
+                <Text color={removeForce ? ERROR_COLOR : MUTED_TEXT}>
                   {removeForce ? " \u2611" : " \u2610"} force
                 </Text>
               </>
@@ -357,7 +361,7 @@ export function SessionsExperimentView({
         }
         if (worktreeCreateError) {
           contentLines.push(
-            <Text key={`nwi-err-${idx}`} color="red">
+            <Text key={`nwi-err-${idx}`} color={ERROR_COLOR}>
               {"  "}{worktreeCreateError}
             </Text>
           );
@@ -517,7 +521,7 @@ export function SessionsExperimentView({
             {"\u2570"}{"\u2500".repeat(bottomLeftBorder)}
           </Text>
           {bottomIsNotification ? (
-            <Text color={bottomIsError ? "red" : "green"}>{bottomNotificationText}</Text>
+            <Text color={bottomIsError ? ERROR_COLOR : SUCCESS_COLOR}>{bottomNotificationText}</Text>
           ) : (
             bottomControlsElement
           )}
@@ -602,7 +606,7 @@ export function SessionsExperimentView({
   narrowLines.push(
     <Box key="n-ctrl">
       {bottomIsNotification ? (
-        <Text color={bottomIsError ? "red" : "green"}>{bottomNotificationText}</Text>
+        <Text color={bottomIsError ? ERROR_COLOR : SUCCESS_COLOR}>{bottomNotificationText}</Text>
       ) : (
         bottomControlsElement
       )}

@@ -5,7 +5,7 @@
  * CLI equivalent of gui/src/utils/activityLabel.ts — same data source, compact labels.
  */
 
-import { ACCENT_COLOR, MUTED_TEXT } from "../components/layout/theme.js";
+import { ACCENT_COLOR, MUTED_TEXT, WARNING_COLOR, SUCCESS_COLOR } from "../components/layout/theme.js";
 
 export interface CliActivityInfo {
   icon: string;
@@ -18,8 +18,8 @@ const COLORS = {
   working:  ACCENT_COLOR,  // coral — active work
   idle:     MUTED_TEXT,    // gray — calm ready state
   active:   "white",       // white — starting
-  awaiting: "#FBBF24",    // amber — needs attention
-  plan:     "#34D399",    // green — plan review
+  awaiting: WARNING_COLOR, // amber — needs attention
+  plan:     SUCCESS_COLOR, // green — plan review
 } as const;
 
 // Short tool labels for working state (≤9 chars for padEnd)

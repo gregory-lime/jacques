@@ -12,9 +12,7 @@ import React from "react";
 import { Box, Text } from "ink";
 import type { PlanEntry, PlanProgress, PlanItemStatus } from "@jacques/core";
 import { dotLine, sectionLine, progressBar } from "./ascii-art/index.js";
-import { ACCENT_COLOR, MUTED_TEXT } from "./layout/index.js";
-
-const GREEN = "#22C55E";
+import { ACCENT_COLOR, MUTED_TEXT, SUCCESS_COLOR } from "./layout/index.js";
 
 // Number of content lines visible (excluding header/footer)
 export const PLAN_VIEWER_VISIBLE_LINES = 15;
@@ -174,7 +172,7 @@ function renderLineWithStatus(
     const padding = " ".repeat(statusWidth - 2);
     switch (status) {
       case "completed":
-        statusElement = <Text color={GREEN}>{padding}{STATUS_COMPLETED}</Text>;
+        statusElement = <Text color={SUCCESS_COLOR}>{padding}{STATUS_COMPLETED}</Text>;
         break;
       case "in_progress":
         statusElement = <Text color={ACCENT_COLOR}>{padding}{STATUS_IN_PROGRESS}</Text>;
@@ -273,7 +271,7 @@ export function PlanViewerView({
         {hasProgress && !progressLoading && (
           <Box flexDirection="row">
             <Text color={MUTED_TEXT}>Progress: </Text>
-            <Text color={progress.summary.percentage === 100 ? GREEN : ACCENT_COLOR}>
+            <Text color={progress.summary.percentage === 100 ? SUCCESS_COLOR : ACCENT_COLOR}>
               {progressBar(progress.summary.percentage, 10)}
             </Text>
             <Text color={MUTED_TEXT}>
