@@ -45,7 +45,8 @@ import { TileStateManager } from './window-manager/tile-state.js';
 import { ChatService } from './services/chat-service.js';
 import { WebSocket } from 'ws';
 import { ClaudeOperationLogger } from '@jacques/core';
-import { PROCESS_VERIFY_INTERVAL_MS } from './connection/constants.js';
+import { PROCESS_VERIFY_INTERVAL_MS, BRANCH_DIVERGENCE_INTERVAL_MS } from './connection/constants.js';
+import { BranchDivergenceService } from './services/branch-divergence-service.js';
 
 export interface EmbeddedServerOptions {
   /** Suppress console output */
@@ -118,6 +119,13 @@ export async function startEmbeddedServer(
   });
   let focusWatcher: { stop: () => void } | null = null;
   let httpServer: HttpApiServer | null = null;
+
+  // Create branch divergence service
+  const branchDivergenceService = new BranchDivergenceService({
+    getAllSessions: () => registry.getAllSessions(),
+    broadcastSessionUpdate: (session) => broadcastService.broadcastSessionWithFocus(session),
+    logger,
+  });
 
   // Create WebSocket server
   const wsServer = new JacquesWebSocketServer({
@@ -402,6 +410,9 @@ export async function startEmbeddedServer(
     } catch (err) {
       logger.warn(`Session scan failed: ${err}`);
     }
+
+    // Start branch divergence monitoring (after session discovery so data is available immediately)
+    branchDivergenceService.start(BRANCH_DIVERGENCE_INTERVAL_MS);
   } catch (err) {
     const nodeErr = err as NodeJS.ErrnoException;
     if (nodeErr.code === 'EADDRINUSE') {
@@ -428,6 +439,7 @@ export async function startEmbeddedServer(
         }
 
         registry.stopCleanup();
+        branchDivergenceService.stop();
         handoffWatcher.stopAll();
         chatService.killAll();
 

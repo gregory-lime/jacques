@@ -14,6 +14,7 @@ export type {
   ExploreAgentRef,
   WebSearchRef,
   GitInfo,
+  BranchDivergence,
 } from "./types.js";
 
 export {
@@ -36,7 +37,7 @@ export {
 export { detectModeAndPlans } from "./mode-detector.js";
 
 // Git utilities
-export { detectGitInfo, readGitBranchFromJsonl, readWorktreeRepoRoot } from "./git-utils.js";
+export { detectGitInfo, readGitBranchFromJsonl, readWorktreeRepoRoot, computeBranchDivergence, checkDirtyStatus } from "./git-utils.js";
 
 // Metadata extraction & index building
 export {

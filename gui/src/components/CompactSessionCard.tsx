@@ -254,6 +254,13 @@ export function CompactSessionCard({
             <div style={S.gitRow}>
               <GitBranch size={11} color={colors.textMuted} strokeWidth={2} />
               <span style={S.gitBranch}>{session.git_branch}</span>
+              {(session.git_ahead != null && session.git_ahead > 0 || session.git_behind != null && session.git_behind > 0) && (
+                <span style={S.gitDivergence}>
+                  {session.git_ahead != null && session.git_ahead > 0 ? `\u2191${session.git_ahead}` : ''}
+                  {session.git_behind != null && session.git_behind > 0 ? ` \u2193${session.git_behind}` : ''}
+                </span>
+              )}
+              {session.git_dirty && <span style={S.gitDirty}>{'\u2022'}</span>}
             </div>
           )}
         </div>
@@ -494,6 +501,17 @@ const S: Record<string, React.CSSProperties> = {
     fontFamily: "'JetBrains Mono', monospace",
     letterSpacing: '-0.01em',
   },
+  gitDivergence: {
+    fontSize: '10px',
+    color: colors.textMuted,
+    fontFamily: "'JetBrains Mono', monospace",
+    opacity: 0.7,
+  } as React.CSSProperties,
+  gitDirty: {
+    fontSize: '11px',
+    color: '#F59E0B',
+    marginLeft: '2px',
+  } as React.CSSProperties,
 
   // ─── Footer ───
   footer: {

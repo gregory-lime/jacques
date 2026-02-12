@@ -9,7 +9,7 @@ import { promises as fs } from "fs";
 import * as path from "path";
 import { exec as execCb } from "child_process";
 import { promisify } from "util";
-import type { GitInfo } from "./types.js";
+import type { GitInfo, BranchDivergence } from "./types.js";
 import { isNotFoundError, getErrorMessage } from "../logging/error-utils.js";
 import { createLogger, type Logger } from "../logging/logger.js";
 
@@ -131,5 +131,45 @@ export async function readWorktreeRepoRoot(dirPath: string): Promise<string | nu
     return null;
   } catch {
     return null;
+  }
+}
+
+/**
+ * Compute how many commits a branch is ahead/behind the default branch.
+ * Uses `git rev-list --left-right --count` which is fast even on large repos.
+ */
+export async function computeBranchDivergence(
+  repoRoot: string,
+  branch: string,
+  defaultBranch: string,
+): Promise<BranchDivergence> {
+  try {
+    const escaped = repoRoot.replace(/'/g, "'\\''");
+    const { stdout } = await execAsync(
+      `git -C '${escaped}' rev-list --left-right --count '${defaultBranch}...${branch}'`,
+      { timeout: 5000 },
+    );
+    const parts = stdout.trim().split(/\s+/);
+    const behind = parseInt(parts[0], 10) || 0;
+    const ahead = parseInt(parts[1], 10) || 0;
+    return { ahead, behind };
+  } catch {
+    return { ahead: 0, behind: 0 };
+  }
+}
+
+/**
+ * Check whether a worktree/directory has uncommitted changes (staged or unstaged).
+ */
+export async function checkDirtyStatus(worktreePath: string): Promise<boolean> {
+  try {
+    const escaped = worktreePath.replace(/'/g, "'\\''");
+    const { stdout } = await execAsync(
+      `git -C '${escaped}' status --porcelain`,
+      { timeout: 5000 },
+    );
+    return stdout.trim().length > 0;
+  } catch {
+    return false;
   }
 }

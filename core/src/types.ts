@@ -84,6 +84,12 @@ export interface Session {
   git_worktree?: string | null;
   /** Canonical git repo root path (main worktree root, shared across all worktrees) */
   git_repo_root?: string | null;
+  /** Commits ahead of default branch */
+  git_ahead?: number | null;
+  /** Commits behind default branch */
+  git_behind?: number | null;
+  /** Whether worktree has uncommitted changes */
+  git_dirty?: boolean | null;
   /** Last tool used (from PostToolUse hook) */
   last_tool_name?: string | null;
   /** Whether the session was launched with --dangerously-skip-permissions */

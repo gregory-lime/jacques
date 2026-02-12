@@ -49,6 +49,9 @@ export const IDLE_TIMEOUT_MS = 4 * 60 * 60 * 1000; // 4 hours
 /** Interval between process liveness verification checks */
 export const PROCESS_VERIFY_INTERVAL_MS = 30_000; // 30 seconds
 
+/** Interval between branch divergence checks */
+export const BRANCH_DIVERGENCE_INTERVAL_MS = 60_000; // 60 seconds
+
 /** Interval between stale session cleanup runs */
 export const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 

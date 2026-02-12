@@ -133,6 +133,17 @@ export function buildSessionItems(params: BuildSessionItemsParams): BuildSession
 
 // ---- Internal helpers ----
 
+/** Extract divergence data from the first session in a group (all share the same branch). */
+function getDivergence(sessions: Session[]): { ahead?: number; behind?: number; dirty?: boolean } {
+  const first = sessions[0];
+  if (!first) return {};
+  return {
+    ahead: first.git_ahead ?? undefined,
+    behind: first.git_behind ?? undefined,
+    dirty: first.git_dirty ?? undefined,
+  };
+}
+
 /**
  * Build worktree-grouped items for the current project (has full WorktreeItem data).
  */
@@ -219,6 +230,9 @@ function buildCurrentProjectItems(
       branch: wt.branch,
       isMain: wt.isMain,
       sessionCount: wtSessions.length,
+      ...getDivergence(wtSessions),
+      dirty: wt.status.hasUncommittedChanges,
+      merged: wt.status.isMergedToMain,
     });
 
     for (const session of wtSessions) {
@@ -272,6 +286,7 @@ function buildCurrentProjectItems(
         branch: branchName,
         isMain: false,
         sessionCount: groupSessions.length,
+        ...getDivergence(groupSessions),
       });
       for (const session of groupSessions) {
         selectable.push(result.length);
@@ -376,6 +391,9 @@ function buildOtherProjectItems(
         branch: wt.branch,
         isMain: wt.isMain,
         sessionCount: wtSessions.length,
+        ...getDivergence(wtSessions),
+        dirty: wt.status.hasUncommittedChanges,
+        merged: wt.status.isMergedToMain,
       });
 
       for (const session of wtSessions) {
@@ -403,6 +421,7 @@ function buildOtherProjectItems(
           branch: branchName,
           isMain: false,
           sessionCount: groupSessions.length,
+          ...getDivergence(groupSessions),
         });
         for (const session of groupSessions) {
           selectable.push(result.length);
@@ -455,6 +474,7 @@ function buildOtherProjectItems(
       branch: key,
       isMain,
       sessionCount: wtSessions.length,
+      ...getDivergence(wtSessions),
     });
 
     for (const session of wtSessions) {

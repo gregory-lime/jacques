@@ -152,10 +152,19 @@ export function SessionsExperimentView({
       case "worktree-header": {
         const dot = item.isMain ? "\u25CF " : "";
         const branchName = item.branch || item.name;
+        const { ahead, behind, dirty, merged } = item;
+        // Build muted branch status suffix
+        const statusParts: string[] = [];
+        if (!item.isMain && ahead != null && ahead > 0) statusParts.push(`\u2191${ahead}`);
+        if (!item.isMain && behind != null && behind > 0) statusParts.push(`\u2193${behind}`);
+        if (dirty) statusParts.push("*");
+        else if (!item.isMain && merged) statusParts.push("\u2713");
+        const statusSuffix = statusParts.length > 0 ? ` ${statusParts.join(" ")}` : "";
         contentLines.push(
           <Text key={`wh-${idx}`} wrap="truncate-end">
             <Text color={ACCENT_COLOR}>{dot}</Text>
             <Text bold color="white">{branchName}</Text>
+            {statusSuffix && <Text color={MUTED_TEXT}>{statusSuffix}</Text>}
           </Text>
         );
         break;
