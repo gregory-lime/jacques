@@ -63,58 +63,51 @@ All three channels run from a single server process. The CLI TUI includes an emb
 - **Node.js 18+** — `node --version`
 - **Python 3.8+** — macOS/Linux: `python3 --version` | Windows: `python --version`
 - **Git**
-- Windows only: PowerShell 5.1+ (pre-installed on Windows 10/11)
 
-### Step 1: Clone & Setup
+### Quick Start
 
-```bash
+```
 git clone <repo-url> jacques
 cd jacques
 npm run setup
+npx jacques setup
 ```
 
-This checks prerequisites, installs dependencies (core, server, CLI, GUI), builds all packages, and symlinks hooks to `~/.jacques/hooks/`.
+`npm run setup` installs all dependencies and builds the project. Then `npx jacques setup` launches an interactive setup wizard that walks you through the entire configuration. Works on macOS, Linux, and Windows — the wizard auto-detects your platform.
 
-> **Windows**: Uses junction points instead of symlinks (no admin required). Hooks go to `C:\Users\<name>\.jacques\hooks\`.
+### What the Setup Wizard Does
 
-### Step 2: Configure Claude Code Hooks
+The wizard has 7 steps:
 
-```bash
-npm run configure
+1. **Welcome** — Overview of what Jacques will configure on your system.
+
+2. **Prerequisites** — Checks that Python 3 is installed and Claude Code has been run at least once. Blocks if Python is missing; warns if it can't find Claude Code data yet.
+
+3. **Options** — Choose which optional features to enable. Hooks (5 lifecycle hooks for Claude Code) are always installed. You can toggle StatusLine integration (shows `ctx:42%` inside Claude Code) and Skills (`/jacques-handoff` and `/jacques-continue` slash commands).
+
+4. **Install** — Creates the Jacques data directory, links hook scripts, backs up your existing Claude Code `settings.json`, merges hooks into the config, and installs skills if selected. Each substep shows live progress.
+
+5. **Verify** — Confirms that hooks are correctly registered, the hook scripts are accessible, and skills are in place.
+
+6. **Sync** — Optionally indexes your existing Claude Code session history so you can search and browse past conversations. **If you have a large archive (hundreds of sessions), this can take several minutes.** You can skip this and sync later from the web GUI (Settings > Re-sync All).
+
+7. **Done** — Summary of everything installed and what to do next.
+
+### After Setup
+
+Start Jacques:
+
 ```
-
-This backs up your existing `~/.claude/settings.json` and merges Jacques hooks: `SessionStart`, `PreToolUse`, `PostToolUse`, `Stop`, `SessionEnd`, and `statusLine`.
-
-> **Windows**: Automatically uses `python` instead of `python3` in hook commands. Settings at `C:\Users\<name>\.claude\settings.json`.
-
-### Step 3: Install Skills
-
-**macOS / Linux:**
-```bash
-mkdir -p ~/.claude/skills/jacques-handoff ~/.claude/skills/jacques-continue
-cp skills/jacques-handoff/SKILL.md ~/.claude/skills/jacques-handoff/
-cp skills/jacques-continue/SKILL.md ~/.claude/skills/jacques-continue/
-```
-
-**Windows (PowerShell):**
-```powershell
-New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.claude\skills\jacques-handoff"
-New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.claude\skills\jacques-continue"
-Copy-Item skills\jacques-handoff\SKILL.md "$env:USERPROFILE\.claude\skills\jacques-handoff\"
-Copy-Item skills\jacques-continue\SKILL.md "$env:USERPROFILE\.claude\skills\jacques-continue\"
-```
-
-This installs two slash commands: `/jacques-handoff` (save session progress) and `/jacques-continue` (resume in a new session). See the [Skills](#skills) section below.
-
-### Step 4: Run Jacques
-
-```bash
 npx jacques
 ```
 
-Starts the embedded server + CLI dashboard. Web GUI available at http://localhost:4243.
+This starts the embedded server + CLI dashboard. The web GUI is available at http://localhost:4243.
 
-> **Tip**: `npm start` does the same thing. To make `jacques` available globally (type `jacques` from anywhere), run `cd cli && npm link`.
+Then start or restart a Claude Code session — it auto-registers via hooks. You'll see context percentage in Claude Code's status line (e.g., `[Opus] ctx:42%`) and the session appears in the Jacques dashboard in real-time.
+
+**Important**: Restart any running Claude Code sessions after installation to pick up the new hooks.
+
+> **Tip**: To make `jacques` available globally, run `cd cli && npm link`. On Windows this requires an admin terminal — or just use `npx jacques`.
 
 **Other run modes:**
 
@@ -122,30 +115,6 @@ Starts the embedded server + CLI dashboard. Web GUI available at http://localhos
 |------|---------|
 | Server + Web GUI only | `npm run start:server` then open http://localhost:4243 |
 | Development (hot reload) | `npm run start:server` + `npm run dev:gui` (two terminals) |
-
-### Step 5: Initial Sync
-
-On first run, open the web GUI at http://localhost:4243 and go to **Settings > Re-sync All**. This scans `~/.claude/projects/` and indexes all session transcripts.
-
-Or via the command line:
-```bash
-curl -X POST http://localhost:4243/api/sync?force=true
-```
-```powershell
-# Windows (PowerShell):
-Invoke-WebRequest -Method POST -Uri "http://localhost:4243/api/sync?force=true"
-```
-
-Projects are automatically discovered and grouped by git repo root — worktrees of the same repo appear as one project. Use the **x** button next to any project in the sidebar to hide unwanted entries (e.g., `/tmp` sessions).
-
-### Step 6: Start Claude Code
-
-Start or restart a Claude Code session. It auto-registers via hooks. You'll see:
-
-- Context percentage in Claude Code's status line: `[Opus] ctx:42%`
-- The session appears in the Jacques CLI/GUI in real-time
-
-**Important**: Restart any running Claude Code sessions after installation to pick up the new hooks.
 
 ---
 
@@ -181,8 +150,8 @@ Load the latest handoff when starting a new session:
 | Command | Description |
 |---------|-------------|
 | `jacques` | Start CLI + embedded server (single command) |
-| `npm run setup` | Install, build, symlink hooks |
-| `npm run configure` | Configure Claude Code hooks in settings.json |
+| `jacques setup` | Interactive setup wizard (hooks, skills, sync) |
+| `npm run setup` | Install dependencies and build all packages |
 | `npm run start:server` | Start server only (API + WebSocket + GUI) |
 | `npm run start:cli` | Start terminal TUI only |
 | `npm run build:all` | Rebuild everything (core → server → CLI → GUI) |
@@ -248,7 +217,7 @@ netstat -an | findstr "4242 4243"            # Check port conflicts
 - Verify hooks are installed:
   - macOS/Linux: `cat ~/.claude/settings.json | grep jacques`
   - Windows: `type %USERPROFILE%\.claude\settings.json | findstr jacques`
-- Re-run: `npm run configure`
+- Re-run: `npx jacques setup`
 
 ### CLI shows "Disconnected"
 
@@ -259,7 +228,7 @@ netstat -an | findstr "4242 4243"            # Check port conflicts
 - Verify skill files exist:
   - macOS/Linux: `ls ~/.claude/skills/jacques-handoff/SKILL.md`
   - Windows: `dir %USERPROFILE%\.claude\skills\jacques-handoff\SKILL.md`
-- Re-copy from repo if missing (see [Installation Step 3](#step-3-install-skills))
+- Re-run `npx jacques setup` to reinstall skills
 
 ### Windows-specific
 
