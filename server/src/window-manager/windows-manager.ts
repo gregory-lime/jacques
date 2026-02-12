@@ -4,7 +4,7 @@
  * Implements window positioning and tiling using PowerShell and Win32 API.
  */
 
-import { exec as execCb } from 'child_process';
+import { execFile as execFileCb } from 'child_process';
 import { promisify } from 'util';
 import type {
   WindowManager,
@@ -16,16 +16,20 @@ import type {
 } from './types.js';
 import { calculateAllSlots } from './smart-layouts.js';
 
-const execAsync = promisify(execCb);
+const execFileAsync = promisify(execFileCb);
 
 /**
- * Execute a PowerShell script and return the result
+ * Execute a PowerShell script and return the result.
+ *
+ * Uses -EncodedCommand (Base64-encoded UTF-16LE) to avoid all quoting and
+ * escaping issues. Previous approach used exec() with inline double-quote
+ * escaping which broke PowerShell here-strings (@"..."@) and embedded quotes.
  */
 async function runPowerShell(script: string): Promise<string> {
-  // Escape for PowerShell command line
-  const escapedScript = script.replace(/"/g, '\\"');
-  const { stdout } = await execAsync(
-    `powershell -NoProfile -NonInteractive -Command "${escapedScript}"`,
+  const encoded = Buffer.from(script, 'utf16le').toString('base64');
+  const { stdout } = await execFileAsync(
+    'powershell',
+    ['-NoProfile', '-NonInteractive', '-EncodedCommand', encoded],
     { timeout: 10000 }
   );
   return stdout.trim();
@@ -35,6 +39,10 @@ async function runPowerShell(script: string): Promise<string> {
  * Windows Window Manager using PowerShell and Win32 API
  */
 export class WindowsWindowManager implements WindowManager {
+  /** Cache display info to avoid repeated slow .NET assembly loads */
+  private displayCache: { displays: Display[]; timestamp: number } | null = null;
+  private static DISPLAY_CACHE_TTL = 30000; // 30 seconds
+
   getPlatform(): string {
     return 'win32';
   }
@@ -44,9 +52,14 @@ export class WindowsWindowManager implements WindowManager {
   }
 
   /**
-   * Get all displays using .NET System.Windows.Forms.Screen
+   * Get all displays using .NET System.Windows.Forms.Screen.
+   * Results are cached for 30s to avoid repeated slow PowerShell/.NET loads.
    */
   async getDisplays(): Promise<Display[]> {
+    if (this.displayCache && Date.now() - this.displayCache.timestamp < WindowsWindowManager.DISPLAY_CACHE_TTL) {
+      return this.displayCache.displays;
+    }
+
     const script = `
       Add-Type -AssemblyName System.Windows.Forms
       $screens = [System.Windows.Forms.Screen]::AllScreens
@@ -76,7 +89,7 @@ export class WindowsWindowManager implements WindowManager {
       // Handle single display (not an array)
       const screenArray = Array.isArray(screens) ? screens : [screens];
 
-      return screenArray.map((screen: {
+      const displays = screenArray.map((screen: {
         name: string;
         primary: boolean;
         x: number;
@@ -103,6 +116,9 @@ export class WindowsWindowManager implements WindowManager {
         },
         isPrimary: screen.primary,
       }));
+
+      this.displayCache = { displays, timestamp: Date.now() };
+      return displays;
     } catch {
       // Fallback to reasonable defaults
       return [
