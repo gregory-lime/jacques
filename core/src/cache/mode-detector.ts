@@ -10,6 +10,17 @@ import { PLAN_TRIGGER_PATTERNS, extractPlanTitle } from "../archive/plan-extract
 import type { PlanRef } from "./types.js";
 
 /**
+ * Represents a completed plan mode cycle (EnterPlanMode -> ExitPlanMode).
+ * Used by notification service to fire exactly one notification per plan completion.
+ */
+export interface PlanModeCompletion {
+  /** Index of the ExitPlanMode entry in the entries array */
+  exitIndex: number;
+  /** Best title found from planRefs within this plan mode interval */
+  title: string;
+}
+
+/**
  * Detect session mode (planning vs execution) and extract plan references.
  *
  * - Planning mode: EnterPlanMode tool was called during session
@@ -18,12 +29,16 @@ import type { PlanRef } from "./types.js";
 export function detectModeAndPlans(entries: ParsedEntry[]): {
   mode: 'planning' | 'execution' | null;
   planRefs: PlanRef[];
+  planModeCompletions: PlanModeCompletion[];
 } {
   let mode: 'planning' | 'execution' | null = null;
   const planRefs: PlanRef[] = [];
 
   // Track if currently in plan mode (enter/exit pairs)
   let inPlanMode = false;
+  // Track plan mode intervals for notification grouping
+  let currentEnterIndex = -1;
+  const planModeIntervals: Array<{ enterIndex: number; exitIndex: number }> = [];
   // Track first real user message for execution mode detection
   let firstUserMessageChecked = false;
 
@@ -31,9 +46,14 @@ export function detectModeAndPlans(entries: ParsedEntry[]): {
     // Check for EnterPlanMode / ExitPlanMode tool calls
     if (entry.type === 'tool_call' && entry.content.toolName === 'EnterPlanMode') {
       inPlanMode = true;
+      currentEnterIndex = index;
     }
     if (entry.type === 'tool_call' && entry.content.toolName === 'ExitPlanMode') {
       inPlanMode = false;
+      if (currentEnterIndex >= 0) {
+        planModeIntervals.push({ enterIndex: currentEnterIndex, exitIndex: index });
+        currentEnterIndex = -1;
+      }
     }
 
     // Check first user message for execution mode
@@ -186,5 +206,27 @@ export function detectModeAndPlans(entries: ParsedEntry[]): {
     mode = 'planning';
   }
 
-  return { mode, planRefs };
+  // Build planModeCompletions from completed intervals
+  const planModeCompletions: PlanModeCompletion[] = planModeIntervals.map(interval => {
+    // Find planRefs within this interval
+    const refsInInterval = planRefs.filter(
+      ref => ref.messageIndex >= interval.enterIndex && ref.messageIndex <= interval.exitIndex
+    );
+
+    // Pick best title: write > agent (non-default) > first ref > fallback
+    let title = 'Plan Ready';
+    const writeRef = refsInInterval.find(r => r.source === 'write');
+    const agentRef = refsInInterval.find(r => r.source === 'agent');
+    if (writeRef?.title) {
+      title = writeRef.title;
+    } else if (agentRef?.title && agentRef.title !== 'Agent-Generated Plan') {
+      title = agentRef.title;
+    } else if (refsInInterval.length > 0 && refsInInterval[0].title) {
+      title = refsInInterval[0].title;
+    }
+
+    return { exitIndex: interval.exitIndex, title };
+  });
+
+  return { mode, planRefs, planModeCompletions };
 }

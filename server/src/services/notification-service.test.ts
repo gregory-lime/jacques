@@ -39,7 +39,7 @@ jest.unstable_mockModule('fs/promises', () => ({
 
 // Mock @jacques-ai/core for plan detection
 const mockParseJSONL = jest.fn<() => Promise<unknown[]>>();
-const mockDetectModeAndPlans = jest.fn<() => { mode: string | null; planRefs: Array<{ title: string; source: string; messageIndex: number }> }>();
+const mockDetectModeAndPlans = jest.fn<() => { mode: string | null; planRefs: Array<{ title: string; source: string; messageIndex: number }>; planModeCompletions: Array<{ exitIndex: number; title: string }> }>();
 
 jest.unstable_mockModule('@jacques-ai/core', () => ({
   parseJSONL: mockParseJSONL,
@@ -559,10 +559,12 @@ describe('NotificationService', () => {
       service.onPlanReady('test-session-1', 'Plan A');
       expect(broadcastCalls).toHaveLength(1);
 
-      // Same session within cooldown window — key includes Date.now() so
-      // if called within the same ms tick, the key is identical and cooldown blocks it.
-      // Different sessions should work:
-      service.onPlanReady('test-session-2', 'Plan B');
+      // Same session within 30s cooldown — stable key blocks it
+      service.onPlanReady('test-session-1', 'Plan B');
+      expect(broadcastCalls).toHaveLength(1);
+
+      // Different session should work:
+      service.onPlanReady('test-session-2', 'Plan C');
       expect(broadcastCalls).toHaveLength(2);
     });
   });
@@ -960,12 +962,15 @@ describe('NotificationService', () => {
   });
 
   describe('plan detection (checkForNewPlans)', () => {
-    it('should fire for newly discovered plans', async () => {
+    it('should fire for plan mode completion (ExitPlanMode)', async () => {
       mockParseJSONL.mockResolvedValue([]);
       mockDetectModeAndPlans.mockReturnValue({
-        mode: 'planning',
+        mode: null,
         planRefs: [
-          { title: 'Refactor auth', source: 'embedded', messageIndex: 0 },
+          { title: 'Auth Refactor', source: 'write', messageIndex: 5 },
+        ],
+        planModeCompletions: [
+          { exitIndex: 10, title: 'Auth Refactor' },
         ],
       });
 
@@ -973,15 +978,48 @@ describe('NotificationService', () => {
 
       expect(broadcastCalls).toHaveLength(1);
       expect(broadcastCalls[0].notification.category).toBe('plan');
-      expect(broadcastCalls[0].notification.title).toContain('Refactor auth');
+      expect(broadcastCalls[0].notification.title).toContain('Auth Refactor');
     });
 
-    it('should not re-notify for duplicate plan titles', async () => {
+    it('should fire for embedded plans (user-provided)', async () => {
+      mockParseJSONL.mockResolvedValue([]);
+      mockDetectModeAndPlans.mockReturnValue({
+        mode: 'execution',
+        planRefs: [
+          { title: 'Migration Plan', source: 'embedded', messageIndex: 0 },
+        ],
+        planModeCompletions: [],
+      });
+
+      await service.checkForNewPlans('sess-1', '/fake/transcript.jsonl');
+
+      expect(broadcastCalls).toHaveLength(1);
+      expect(broadcastCalls[0].notification.title).toContain('Migration Plan');
+    });
+
+    it('should NOT fire for write/agent planRefs (intermediate plan-mode artifacts)', async () => {
       mockParseJSONL.mockResolvedValue([]);
       mockDetectModeAndPlans.mockReturnValue({
         mode: 'planning',
         planRefs: [
-          { title: 'Refactor auth', source: 'embedded', messageIndex: 0 },
+          { title: 'Agent Plan', source: 'agent', messageIndex: 2 },
+          { title: 'Written Plan', source: 'write', messageIndex: 5 },
+        ],
+        planModeCompletions: [], // No ExitPlanMode yet → still in plan mode
+      });
+
+      await service.checkForNewPlans('sess-1', '/fake/transcript.jsonl');
+
+      expect(broadcastCalls).toHaveLength(0);
+    });
+
+    it('should not re-notify for same ExitPlanMode index', async () => {
+      mockParseJSONL.mockResolvedValue([]);
+      mockDetectModeAndPlans.mockReturnValue({
+        mode: null,
+        planRefs: [],
+        planModeCompletions: [
+          { exitIndex: 10, title: 'My Plan' },
         ],
       });
 
@@ -993,9 +1031,43 @@ describe('NotificationService', () => {
       Date.now = () => originalNow() + 31_000;
       try {
         await service.checkForNewPlans('sess-1', '/fake/transcript.jsonl');
-        // Same plan title → should not fire again
-        // (cooldown on plan key also applies, but the knownPlanTitles check prevents the call)
+        // Same exitIndex → should not fire again
         expect(broadcastCalls).toHaveLength(1);
+      } finally {
+        Date.now = originalNow;
+      }
+    });
+
+    it('should fire for second plan mode cycle (plan revision)', async () => {
+      mockParseJSONL.mockResolvedValue([]);
+      mockDetectModeAndPlans
+        .mockReturnValueOnce({
+          mode: null,
+          planRefs: [],
+          planModeCompletions: [
+            { exitIndex: 10, title: 'Plan v1' },
+          ],
+        })
+        .mockReturnValueOnce({
+          mode: null,
+          planRefs: [],
+          planModeCompletions: [
+            { exitIndex: 10, title: 'Plan v1' },
+            { exitIndex: 25, title: 'Plan v2 (revised)' },
+          ],
+        });
+
+      await service.checkForNewPlans('sess-1', '/fake/transcript.jsonl');
+      expect(broadcastCalls).toHaveLength(1);
+      expect(broadcastCalls[0].notification.title).toContain('Plan v1');
+
+      // Advance past debounce + cooldown
+      const originalNow = Date.now;
+      Date.now = () => originalNow() + 31_000;
+      try {
+        await service.checkForNewPlans('sess-1', '/fake/transcript.jsonl');
+        expect(broadcastCalls).toHaveLength(2);
+        expect(broadcastCalls[1].notification.title).toContain('Plan v2 (revised)');
       } finally {
         Date.now = originalNow;
       }
@@ -1006,6 +1078,7 @@ describe('NotificationService', () => {
       mockDetectModeAndPlans.mockReturnValue({
         mode: null,
         planRefs: [],
+        planModeCompletions: [],
       });
 
       await service.checkForNewPlans('sess-1', '/fake/transcript.jsonl');
@@ -1016,27 +1089,18 @@ describe('NotificationService', () => {
       expect(mockParseJSONL).toHaveBeenCalledTimes(1);
     });
 
-    it('should fire for each new plan in a session', async () => {
+    it('should handle abandoned plan mode (no exit) with no notification', async () => {
       mockParseJSONL.mockResolvedValue([]);
       mockDetectModeAndPlans.mockReturnValue({
         mode: 'planning',
         planRefs: [
-          { title: 'Plan A', source: 'embedded', messageIndex: 0 },
-          { title: 'Plan B', source: 'write', messageIndex: 5 },
+          { title: 'Incomplete Plan', source: 'agent', messageIndex: 3 },
         ],
+        planModeCompletions: [],
       });
 
-      // Each plan uses a unique Date.now()-based key, but within the same tick
-      // they may share a timestamp. Use different sessions to avoid cooldown.
-      // Actually, onPlanReady uses `${sessionId}-plan-${Date.now()}` which
-      // can collide in the same ms. Let's verify both are discovered even
-      // if cooldown blocks the second fire (the knownPlanTitles tracks both).
       await service.checkForNewPlans('sess-1', '/fake/transcript.jsonl');
-
-      // At minimum Plan A fires; Plan B may be cooldown-blocked (same ms key).
-      // Verify at least one plan fired and both titles are tracked.
-      expect(broadcastCalls.length).toBeGreaterThanOrEqual(1);
-      expect(broadcastCalls[0].notification.title).toContain('Plan A');
+      expect(broadcastCalls).toHaveLength(0);
     });
   });
 
@@ -1067,8 +1131,11 @@ describe('NotificationService', () => {
       // Set up some plan tracking state
       mockParseJSONL.mockResolvedValue([]);
       mockDetectModeAndPlans.mockReturnValue({
-        mode: 'planning',
-        planRefs: [{ title: 'My Plan', source: 'embedded', messageIndex: 0 }],
+        mode: null,
+        planRefs: [],
+        planModeCompletions: [
+          { exitIndex: 5, title: 'My Plan' },
+        ],
       });
 
       await service.checkForNewPlans('sess-cleanup', '/fake/path.jsonl');

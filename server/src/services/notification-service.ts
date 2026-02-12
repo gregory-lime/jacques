@@ -85,8 +85,10 @@ export class NotificationService {
   private history: NotificationItem[] = [];
   /** Cached settings */
   private settings: NotificationSettings;
-  /** Plan detection: known plan titles per session */
-  private knownPlanTitles = new Map<string, Set<string>>();
+  /** Plan detection: known ExitPlanMode indices per session (for plan-mode plans) */
+  private knownPlanExitIndices = new Map<string, Set<number>>();
+  /** Plan detection: known embedded plan titles per session (for non-plan-mode plans) */
+  private knownEmbeddedPlanTitles = new Map<string, Set<string>>();
   /** Plan detection: last check timestamp per session (30s debounce) */
   private planCheckTimestamp = new Map<string, number>();
   /** Error scanning: last byte offset per session */
@@ -220,7 +222,7 @@ export class NotificationService {
   onPlanReady(sessionId: string, planTitle: string): void {
     this.fire(
       'plan',
-      `${sessionId}-plan-${Date.now()}`,
+      `${sessionId}-plan`,
       `Plan: ${planTitle}`,
       'New plan detected',
       'medium',
@@ -240,17 +242,32 @@ export class NotificationService {
       this.planCheckTimestamp.set(sessionId, Date.now());
 
       const entries = await parseJSONL(transcriptPath);
-      const { planRefs } = detectModeAndPlans(entries);
+      const { planRefs, planModeCompletions } = detectModeAndPlans(entries);
 
-      if (!this.knownPlanTitles.has(sessionId)) {
-        this.knownPlanTitles.set(sessionId, new Set());
+      // Plan-mode plans: notify once per completed cycle (ExitPlanMode)
+      if (!this.knownPlanExitIndices.has(sessionId)) {
+        this.knownPlanExitIndices.set(sessionId, new Set());
       }
-      const known = this.knownPlanTitles.get(sessionId)!;
+      const knownExits = this.knownPlanExitIndices.get(sessionId)!;
+
+      for (const completion of planModeCompletions) {
+        if (!knownExits.has(completion.exitIndex)) {
+          knownExits.add(completion.exitIndex);
+          this.onPlanReady(sessionId, completion.title);
+        }
+      }
+
+      // Embedded plans (outside plan mode): notify once per title
+      if (!this.knownEmbeddedPlanTitles.has(sessionId)) {
+        this.knownEmbeddedPlanTitles.set(sessionId, new Set());
+      }
+      const knownEmbedded = this.knownEmbeddedPlanTitles.get(sessionId)!;
 
       for (const ref of planRefs) {
+        if (ref.source !== 'embedded') continue;
         const title = ref.title ?? 'Untitled Plan';
-        if (!known.has(title)) {
-          known.add(title);
+        if (!knownEmbedded.has(title)) {
+          knownEmbedded.add(title);
           this.onPlanReady(sessionId, title);
         }
       }
@@ -331,7 +348,8 @@ export class NotificationService {
   onSessionRemoved(sessionId: string): void {
     this.firedThresholds.delete(sessionId);
     this.prevContextPct.delete(sessionId);
-    this.knownPlanTitles.delete(sessionId);
+    this.knownPlanExitIndices.delete(sessionId);
+    this.knownEmbeddedPlanTitles.delete(sessionId);
     this.planCheckTimestamp.delete(sessionId);
     this.errorScanOffset.delete(sessionId);
     this.errorCountSinceAlert.delete(sessionId);
