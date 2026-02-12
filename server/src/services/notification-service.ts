@@ -203,7 +203,7 @@ export class NotificationService {
    * Called when a handoff file is ready.
    */
   onHandoffReady(sessionId: string, path: string): void {
-    const filename = path.split('/').pop() ?? 'handoff';
+    const filename = path.split(/[/\\]/).pop() ?? 'handoff';
     this.fire(
       'handoff',
       `${sessionId}-handoff`,

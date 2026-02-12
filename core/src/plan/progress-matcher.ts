@@ -274,7 +274,7 @@ function tryFilePathMatch(
   }
 
   // Extract the file basename
-  const basename = signal.filePath.split("/").pop() || "";
+  const basename = signal.filePath.split(/[/\\]/).pop() || "";
   if (!basename) {
     return null;
   }

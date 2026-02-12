@@ -502,7 +502,7 @@ function extractFileHeuristics(
       seenFiles.add(filePath);
 
       // Extract filename for the signal text
-      const filename = filePath.split("/").pop() || filePath;
+      const filename = filePath.split(/[/\\]/).pop() || filePath;
 
       signals.push({
         source: "file_heuristic",
