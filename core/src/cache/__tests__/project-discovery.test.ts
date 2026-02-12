@@ -9,6 +9,7 @@ import type { SessionEntry, SessionIndex } from '../types.js';
 // Mock dependencies (ESM-compatible)
 const mockGetSessionIndex = jest.fn<() => Promise<SessionIndex>>();
 const mockDetectGitInfo = jest.fn<() => import('../types.js').GitInfo>();
+const mockReadWorktreeRepoRoot = jest.fn<(dirPath: string) => Promise<string | null>>();
 const mockGetHiddenProjects = jest.fn<() => Promise<Set<string>>>();
 const mockListAllProjects = jest.fn<() => Promise<Array<{ encodedPath: string; projectPath: string; projectSlug: string }>>>();
 
@@ -18,6 +19,7 @@ jest.unstable_mockModule('../persistence.js', () => ({
 
 jest.unstable_mockModule('../git-utils.js', () => ({
   detectGitInfo: mockDetectGitInfo,
+  readWorktreeRepoRoot: mockReadWorktreeRepoRoot,
 }));
 
 jest.unstable_mockModule('../hidden-projects.js', () => ({
@@ -63,6 +65,7 @@ describe('project-discovery', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
     mockGetHiddenProjects.mockResolvedValue(new Set());
+    mockReadWorktreeRepoRoot.mockResolvedValue(null);
     const mod = await import('../project-discovery.js');
     getSessionEntry = mod.getSessionEntry;
     getSessionsByProject = mod.getSessionsByProject;
@@ -318,6 +321,244 @@ describe('project-discovery', () => {
       const projects = await discoverProjects();
       expect(projects[0].name).toBe('project-active');
       expect(projects[1].name).toBe('project-inactive');
+    });
+
+    it('should group worktrees in first pass when both sessions have gitRepoRoot', async () => {
+      // Both sessions have gitRepoRoot — first pass groups them directly.
+      // (Second pass is not involved since both are classified as isGitProject.)
+      const sessionMain = makeSession({
+        id: 's1',
+        jsonlPath: '/home/user/.claude/projects/-Users-user-my-repo/s1.jsonl',
+        gitRepoRoot: '/Users/user/my-repo',
+        endedAt: '2025-01-01T00:00:00.000Z',
+      });
+      const sessionWorktree = makeSession({
+        id: 's2',
+        jsonlPath: '/home/user/.claude/projects/-Users-user-my-repo-feature/s2.jsonl',
+        gitRepoRoot: '/Users/user/my-repo',
+        gitBranch: 'feature-branch',
+        endedAt: '2025-01-02T00:00:00.000Z',
+      });
+
+      mockListAllProjects.mockResolvedValue([
+        {
+          encodedPath: '/home/user/.claude/projects/-Users-user-my-repo',
+          projectPath: '/Users/user/my-repo',
+          projectSlug: 'my-repo',
+        },
+        {
+          encodedPath: '/home/user/.claude/projects/-Users-user-my-repo-feature',
+          projectPath: '/Users/user/my-repo-feature',
+          projectSlug: 'my-repo-feature',
+        },
+      ]);
+      mockGetSessionIndex.mockResolvedValue(makeIndex([sessionMain, sessionWorktree]));
+      // detectGitInfo not called for these projects (gitRepoRoot found from sessions)
+      mockDetectGitInfo.mockReturnValue({});
+
+      const projects = await discoverProjects();
+      expect(projects.length).toBe(1);
+      expect(projects[0].name).toBe('my-repo');
+      expect(projects[0].sessionCount).toBe(2);
+      expect(projects[0].projectPaths).toContain('/Users/user/my-repo');
+      expect(projects[0].projectPaths).toContain('/Users/user/my-repo-feature');
+    });
+
+    it('should merge deleted worktree via name-prefix heuristic when no gitRepoRoot in session', async () => {
+      // Main repo — gitRepoRoot in session index (first pass finds it)
+      const sessionMain = makeSession({
+        id: 's1',
+        jsonlPath: '/home/user/.claude/projects/-Users-user-repos-my-repo/s1.jsonl',
+        gitRepoRoot: '/Users/user/repos/my-repo',
+        endedAt: '2025-01-01T00:00:00.000Z',
+      });
+      // Deleted worktree — no gitRepoRoot (lost after index rebuild) but has gitBranch
+      // Second pass: name "my-repo-feature" starts with "my-repo" → merged via name-prefix
+      const sessionWorktree = makeSession({
+        id: 's2',
+        jsonlPath: '/home/user/.claude/projects/-Users-user-repos-my-repo-feature/s2.jsonl',
+        gitBranch: 'feature-branch',
+        endedAt: '2025-01-02T00:00:00.000Z',
+      });
+
+      mockListAllProjects.mockResolvedValue([
+        {
+          encodedPath: '/home/user/.claude/projects/-Users-user-repos-my-repo',
+          projectPath: '/Users/user/repos/my-repo',
+          projectSlug: 'my-repo',
+        },
+        {
+          encodedPath: '/home/user/.claude/projects/-Users-user-repos-my-repo-feature',
+          projectPath: '/Users/user/repos/my-repo-feature',
+          projectSlug: 'my-repo-feature',
+        },
+      ]);
+      mockGetSessionIndex.mockResolvedValue(makeIndex([sessionMain, sessionWorktree]));
+      // detectGitInfo only called for worktree (main found from session index)
+      mockDetectGitInfo.mockReturnValue({});
+
+      const projects = await discoverProjects();
+      expect(projects.length).toBe(1);
+      expect(projects[0].name).toBe('my-repo');
+      expect(projects[0].sessionCount).toBe(2);
+    });
+
+    it('should merge zombie worktree via .git file reading', async () => {
+      const sessionMain = makeSession({
+        id: 's1',
+        jsonlPath: '/home/user/.claude/projects/-Users-user-repos-my-repo/s1.jsonl',
+        gitRepoRoot: '/Users/user/repos/my-repo',
+        endedAt: '2025-01-01T00:00:00.000Z',
+      });
+      // Zombie worktree: dir exists with .git file, but git metadata cleaned up
+      const sessionZombie = makeSession({
+        id: 's2',
+        jsonlPath: '/home/user/.claude/projects/-Users-user-repos-my-repo-fix/s2.jsonl',
+        gitBranch: 'fix-branch',
+        endedAt: '2025-01-02T00:00:00.000Z',
+      });
+
+      mockListAllProjects.mockResolvedValue([
+        {
+          encodedPath: '/home/user/.claude/projects/-Users-user-repos-my-repo',
+          projectPath: '/Users/user/repos/my-repo',
+          projectSlug: 'my-repo',
+        },
+        {
+          encodedPath: '/home/user/.claude/projects/-Users-user-repos-my-repo-fix',
+          projectPath: '/Users/user/repos/my-repo-fix',
+          projectSlug: 'my-repo-fix',
+        },
+      ]);
+      mockGetSessionIndex.mockResolvedValue(makeIndex([sessionMain, sessionZombie]));
+      mockDetectGitInfo.mockReturnValue({});
+      // Zombie worktree: .git file points back to main repo
+      mockReadWorktreeRepoRoot.mockImplementation(async (dirPath: string) => {
+        if (dirPath === '/Users/user/repos/my-repo-fix') {
+          return '/Users/user/repos/my-repo';
+        }
+        return null;
+      });
+
+      const projects = await discoverProjects();
+      expect(projects.length).toBe(1);
+      expect(projects[0].name).toBe('my-repo');
+      expect(projects[0].sessionCount).toBe(2);
+      expect(projects[0].projectPaths).toContain('/Users/user/repos/my-repo-fix');
+    });
+
+    it('should NOT merge non-git project into wrong project sharing same parent dir', async () => {
+      // Two git repos under /Users/user/Desktop
+      const sessionAlpha = makeSession({
+        id: 's1',
+        jsonlPath: '/home/user/.claude/projects/-Users-user-Desktop-project-alpha/s1.jsonl',
+        gitRepoRoot: '/Users/user/Desktop/project-alpha',
+      });
+      const sessionBeta = makeSession({
+        id: 's2',
+        jsonlPath: '/home/user/.claude/projects/-Users-user-Desktop-project-beta/s2.jsonl',
+        gitRepoRoot: '/Users/user/Desktop/project-beta',
+      });
+      // Non-git project with gitBranch but name doesn't match either repo
+      const sessionOrphan = makeSession({
+        id: 's3',
+        jsonlPath: '/home/user/.claude/projects/-Users-user-Desktop-unrelated-thing/s3.jsonl',
+        gitBranch: 'some-branch',
+      });
+
+      mockListAllProjects.mockResolvedValue([
+        {
+          encodedPath: '/home/user/.claude/projects/-Users-user-Desktop-project-alpha',
+          projectPath: '/Users/user/Desktop/project-alpha',
+          projectSlug: 'project-alpha',
+        },
+        {
+          encodedPath: '/home/user/.claude/projects/-Users-user-Desktop-project-beta',
+          projectPath: '/Users/user/Desktop/project-beta',
+          projectSlug: 'project-beta',
+        },
+        {
+          encodedPath: '/home/user/.claude/projects/-Users-user-Desktop-unrelated-thing',
+          projectPath: '/Users/user/Desktop/unrelated-thing',
+          projectSlug: 'unrelated-thing',
+        },
+      ]);
+      mockGetSessionIndex.mockResolvedValue(makeIndex([sessionAlpha, sessionBeta, sessionOrphan]));
+      mockDetectGitInfo.mockReturnValue({});
+
+      const projects = await discoverProjects();
+      expect(projects.length).toBe(3);
+      const names = projects.map(p => p.name).sort();
+      expect(names).toEqual(['project-alpha', 'project-beta', 'unrelated-thing']);
+    });
+
+    it('should prefer longest prefix match in name heuristic', async () => {
+      // Two repos: "app" and "app-core"
+      const sessionApp = makeSession({
+        id: 's1',
+        jsonlPath: '/home/user/.claude/projects/-Users-user-app/s1.jsonl',
+        gitRepoRoot: '/Users/user/app',
+      });
+      const sessionAppCore = makeSession({
+        id: 's2',
+        jsonlPath: '/home/user/.claude/projects/-Users-user-app-core/s2.jsonl',
+        gitRepoRoot: '/Users/user/app-core',
+      });
+      // Deleted worktree: "app-core-feature" should match "app-core", not "app"
+      const sessionFeature = makeSession({
+        id: 's3',
+        jsonlPath: '/home/user/.claude/projects/-Users-user-app-core-feature/s3.jsonl',
+        gitBranch: 'feature-x',
+      });
+
+      mockListAllProjects.mockResolvedValue([
+        { encodedPath: '/home/user/.claude/projects/-Users-user-app', projectPath: '/Users/user/app', projectSlug: 'app' },
+        { encodedPath: '/home/user/.claude/projects/-Users-user-app-core', projectPath: '/Users/user/app-core', projectSlug: 'app-core' },
+        { encodedPath: '/home/user/.claude/projects/-Users-user-app-core-feature', projectPath: '/Users/user/app-core-feature', projectSlug: 'app-core-feature' },
+      ]);
+      mockGetSessionIndex.mockResolvedValue(makeIndex([sessionApp, sessionAppCore, sessionFeature]));
+      mockDetectGitInfo.mockReturnValue({});
+
+      const projects = await discoverProjects();
+      expect(projects.length).toBe(2);
+      const appCoreProject = projects.find(p => p.name === 'app-core');
+      expect(appCoreProject).toBeDefined();
+      expect(appCoreProject!.projectPaths).toContain('/Users/user/app-core-feature');
+      expect(appCoreProject!.sessionCount).toBe(2);
+    });
+
+    it('should NOT merge non-git project without gitBranch into nearby git project', async () => {
+      const sessionGit = makeSession({
+        id: 's1',
+        jsonlPath: '/home/user/.claude/projects/-Users-user-my-repo/s1.jsonl',
+        gitRepoRoot: '/Users/user/my-repo',
+      });
+      // True non-git project — no gitBranch, no gitRepoRoot
+      const sessionNonGit = makeSession({
+        id: 's2',
+        jsonlPath: '/home/user/.claude/projects/-Users-user-scripts/s2.jsonl',
+      });
+
+      mockListAllProjects.mockResolvedValue([
+        {
+          encodedPath: '/home/user/.claude/projects/-Users-user-my-repo',
+          projectPath: '/Users/user/my-repo',
+          projectSlug: 'my-repo',
+        },
+        {
+          encodedPath: '/home/user/.claude/projects/-Users-user-scripts',
+          projectPath: '/Users/user/scripts',
+          projectSlug: 'scripts',
+        },
+      ]);
+      mockGetSessionIndex.mockResolvedValue(makeIndex([sessionGit, sessionNonGit]));
+      // detectGitInfo only called for scripts (my-repo found from session index)
+      mockDetectGitInfo.mockReturnValue({});
+
+      const projects = await discoverProjects();
+      expect(projects.length).toBe(2);
+      const names = projects.map(p => p.name).sort();
+      expect(names).toEqual(['my-repo', 'scripts']);
     });
   });
 });

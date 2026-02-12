@@ -178,7 +178,7 @@ Split into 7 focused submodules (previously a single 1,390-line `session-index.t
 | `metadata-extractor.ts` | JSONL → `SessionEntry` conversion, `buildSessionIndex()`, `listAllProjects()`, catalog-first loading |
 | `mode-detector.ts` | `detectModeAndPlans()` — planning vs execution mode, plan reference extraction |
 | `project-discovery.ts` | `discoverProjects()`, `getSessionEntry()`, `getSessionsByProject()`, `getIndexStats()` |
-| `git-utils.ts` | `detectGitInfo()` (filesystem), `readGitBranchFromJsonl()` (JSONL fallback) |
+| `git-utils.ts` | `detectGitInfo()` (filesystem), `readGitBranchFromJsonl()` (JSONL fallback), `readWorktreeRepoRoot()` (zombie worktree `.git` file) |
 | `hidden-projects.ts` | `getHiddenProjects()`, `hideProject()`, `unhideProject()` |
 | `index.ts` | Barrel re-export — all public API flows through this |
 
@@ -187,7 +187,7 @@ Split into 7 focused submodules (previously a single 1,390-line `session-index.t
 - `buildSessionIndex()` — Rebuild index from all projects
 - `getSessionEntry(id)` — Single session lookup by ID
 - `getSessionsByProject()` — Group sessions by git repo root
-- `discoverProjects()` — Discover all projects from `~/.claude/projects/`, grouped by git repo root. Merges git worktrees into single project entries. Recovers `gitBranch` from JSONL for deleted worktrees and merges them into matching git projects. Filters hidden projects (`~/.jacques/hidden-projects.json`). Returns `DiscoveredProject[]` with name, gitRepoRoot, projectPaths, sessionCount, lastActivity.
+- `discoverProjects()` — Discover all projects from `~/.claude/projects/`, grouped by git repo root. First pass groups by `gitRepoRoot` (from session index or `detectGitInfo()`). Second pass merges orphaned non-git projects with git evidence (`gitBranch`) into matching git projects via: (1) `readWorktreeRepoRoot()` — reads `.git` file in zombie worktrees to find exact repo root, (2) name-prefix heuristic — matches worktree dirname prefix to repo basename (longest match wins, skips if no match). Filters hidden projects (`~/.jacques/hidden-projects.json`). Returns `DiscoveredProject[]` with name, gitRepoRoot, projectPaths, sessionCount, lastActivity.
 - `hideProject(name)` / `unhideProject(name)` — Manage the hidden projects list.
 - `detectModeAndPlans(entries)` — Detect planning vs execution mode
 

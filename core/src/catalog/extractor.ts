@@ -24,6 +24,7 @@ import { detectModeAndPlans } from "../cache/index.js";
 import { catalogPlan } from "../archive/plan-cataloger.js";
 import { PLAN_TRIGGER_PATTERNS, extractPlanTitle } from "../archive/plan-extractor.js";
 import { slugify } from "../archive/filename-utils.js";
+import { detectGitInfo, readGitBranchFromJsonl } from "../cache/git-utils.js";
 import {
   readProjectIndex,
   addSubagentToIndex,
@@ -232,6 +233,12 @@ export async function createSessionManifest(
   const totalOutput = stats.totalOutputTokensEstimated;
   const hasTokens = totalInput > 0 || totalOutput > 0;
 
+  // Detect git info for persistence (survives index rebuilds after worktree deletion)
+  const gitInfo = await detectGitInfo(projectPath);
+  if (!gitInfo.branch) {
+    gitInfo.branch = await readGitBranchFromJsonl(jsonlPath) || undefined;
+  }
+
   // Check for subagents
   const subagentFiles = await listSubagentFiles(jsonlPath);
   const userVisibleSubagents = subagentFiles.filter(
@@ -248,6 +255,9 @@ export async function createSessionManifest(
     title: manifest.title,
     projectPath: manifest.projectPath,
     projectSlug: manifest.projectSlug,
+    gitRepoRoot: gitInfo.repoRoot || undefined,
+    gitBranch: gitInfo.branch || undefined,
+    gitWorktree: gitInfo.worktree || undefined,
     startedAt: manifest.startedAt,
     endedAt: manifest.endedAt,
     durationMinutes: manifest.durationMinutes,
@@ -293,6 +303,15 @@ export async function extractSessionCatalog(
   options: ExtractSessionOptions = {}
 ): Promise<ExtractSessionResult> {
   const sessionId = basename(jsonlPath, ".jsonl");
+
+  // Skip extraction if projectPath no longer exists (deleted worktree)
+  // This prevents fs.mkdir from recreating deleted directories as ghost dirs
+  try {
+    await fs.access(projectPath);
+  } catch {
+    return { sessionId, skipped: true, subagentsExtracted: 0, plansExtracted: 0 };
+  }
+
   const sessionsDir = join(projectPath, JACQUES_DIR, SESSIONS_DIR);
   const subagentsDir = join(projectPath, JACQUES_DIR, SUBAGENTS_DIR);
   const manifestPath = join(sessionsDir, `${sessionId}.json`);

@@ -798,3 +798,48 @@ describe("Index Integration", () => {
     expect(index.sessions[0].messageCount).toBeGreaterThanOrEqual(2);
   });
 });
+
+// ============================================================
+// Suite 6: Ghost Directory Guard
+// ============================================================
+
+describe("Ghost Directory Guard", () => {
+  it("skips extraction when project path does not exist (deleted worktree)", async () => {
+    const nonExistentPath = join(testDir, "deleted-worktree-" + Date.now());
+    const jsonlPath = join(testDir, "ghost-session.jsonl");
+
+    // Create a valid JSONL file (the session transcript still exists)
+    const content = [
+      JSON.stringify({
+        type: "user",
+        uuid: "u1",
+        timestamp: "2026-01-01T00:00:00Z",
+        sessionId: "ghost-session",
+        message: { role: "user", content: "Hello" },
+      }),
+      JSON.stringify({
+        type: "assistant",
+        uuid: "a1",
+        timestamp: "2026-01-01T00:01:00Z",
+        sessionId: "ghost-session",
+        message: {
+          id: "msg1",
+          type: "message",
+          role: "assistant",
+          content: [{ type: "text", text: "Hi there!" }],
+          usage: { input_tokens: 100, output_tokens: 20 },
+        },
+      }),
+    ].join("\n");
+    await fs.writeFile(jsonlPath, content, "utf-8");
+
+    const result = await extractSessionCatalog(jsonlPath, nonExistentPath);
+
+    expect(result.skipped).toBe(true);
+    expect(result.subagentsExtracted).toBe(0);
+    expect(result.plansExtracted).toBe(0);
+
+    // Verify that the ghost directory was NOT created
+    await expect(fs.access(nonExistentPath)).rejects.toThrow();
+  });
+});

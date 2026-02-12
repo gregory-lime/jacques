@@ -8,7 +8,7 @@
 import * as path from "path";
 import type { SessionEntry, SessionIndex, DiscoveredProject } from "./types.js";
 import { getSessionIndex } from "./persistence.js";
-import { detectGitInfo } from "./git-utils.js";
+import { detectGitInfo, readWorktreeRepoRoot } from "./git-utils.js";
 import { getHiddenProjects } from "./hidden-projects.js";
 import { listAllProjects } from "./metadata-extractor.js";
 
@@ -165,9 +165,9 @@ export async function discoverProjects(): Promise<DiscoveredProject[]> {
     }
   }
 
-  // Second pass: merge non-git projects that have gitBranch into matching git projects.
+  // Second pass: merge non-git projects that have git evidence into matching git projects.
   // This handles deleted worktrees whose directories no longer exist on disk —
-  // detectGitInfo fails but the JSONL sessions still have gitBranch set.
+  // detectGitInfo fails but the JSONL sessions still have gitBranch/gitRepoRoot set.
   const nonGitKeys = Array.from(projectMap.entries())
     .filter(([, p]) => !p.isGitProject)
     .map(([key]) => key);
@@ -177,16 +177,41 @@ export async function discoverProjects(): Promise<DiscoveredProject[]> {
     const project = projectMap.get(key);
     if (!project) continue;
 
-    // Check if any session in this project had a git branch
     const allSessions = project.encodedPaths.flatMap((ep) => sessionsByEncodedDir.get(path.basename(ep)) || []);
     const hasGitBranch = allSessions.some((s) => s.gitBranch);
     if (!hasGitBranch) continue;
 
-    // Find a git project in the same parent directory
-    const projectParent = path.dirname(project.projectPaths[0]);
-    const matchingGit = gitProjects.find(
-      (gp) => gp.gitRepoRoot && path.dirname(gp.gitRepoRoot) === projectParent
-    );
+    let matchingGit: DiscoveredProject | undefined;
+
+    // Strategy 1: Read .git file in zombie worktree (dir exists, .git file present).
+    // Zombie worktrees have a .git file pointing to the main repo's worktrees dir.
+    const projectDir = project.projectPaths[0];
+    const repoRoot = await readWorktreeRepoRoot(projectDir);
+    if (repoRoot) {
+      matchingGit = gitProjects.find(
+        (gp) => gp.gitRepoRoot === repoRoot
+      );
+    }
+
+    // Strategy 2: Name-prefix heuristic for truly deleted worktrees (dir gone).
+    // Worktree dirs are typically named <repo>-<branch>, so the repo basename
+    // is a prefix of the worktree dirname. Only merge when unambiguous.
+    if (!matchingGit) {
+      const worktreeDirname = path.basename(projectDir);
+      const candidates = gitProjects.filter(
+        (gp) => gp.gitRepoRoot && worktreeDirname.startsWith(path.basename(gp.gitRepoRoot))
+      );
+      if (candidates.length === 1) {
+        matchingGit = candidates[0];
+      } else if (candidates.length > 1) {
+        // Prefer longest prefix match (most specific repo name)
+        candidates.sort((a, b) =>
+          path.basename(b.gitRepoRoot!).length - path.basename(a.gitRepoRoot!).length
+        );
+        matchingGit = candidates[0];
+      }
+    }
+
     if (!matchingGit) continue;
 
     // Merge into the git project

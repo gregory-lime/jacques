@@ -200,6 +200,43 @@ async function resolveSession(sessionId: string): Promise<{ entry: CacheSessionE
   return { entry: null, jsonlPath: sessionFile.filePath };
 }
 
+/**
+ * Overlay deduplicated planRefs from catalog manifest onto a session entry.
+ * Tries projectPath first, falls back to gitRepoRoot for deleted worktrees.
+ */
+async function overlayCatalogPlanRefs(
+  sessionEntry: CacheSessionEntry,
+  sessionId: string
+): Promise<CacheSessionEntry> {
+  let overlayed = false;
+  try {
+    const catalogManifestPath = join(sessionEntry.projectPath, '.jacques', 'sessions', `${sessionId}.json`);
+    const catalogContent = await fsPromises.readFile(catalogManifestPath, 'utf-8');
+    const catalogManifest = JSON.parse(catalogContent);
+    if (catalogManifest.planRefs) {
+      sessionEntry = { ...sessionEntry, planRefs: catalogManifest.planRefs };
+      overlayed = true;
+    }
+  } catch {
+    // No catalog manifest at worktree path
+  }
+
+  if (!overlayed && sessionEntry.gitRepoRoot && sessionEntry.gitRepoRoot !== sessionEntry.projectPath) {
+    try {
+      const fallbackPath = join(sessionEntry.gitRepoRoot, '.jacques', 'sessions', `${sessionId}.json`);
+      const catalogContent = await fsPromises.readFile(fallbackPath, 'utf-8');
+      const catalogManifest = JSON.parse(catalogContent);
+      if (catalogManifest.planRefs) {
+        sessionEntry = { ...sessionEntry, planRefs: catalogManifest.planRefs };
+      }
+    } catch {
+      // No catalog manifest at repo root either
+    }
+  }
+
+  return sessionEntry;
+}
+
 async function handleGetSession(ctx: RouteContext, id: string): Promise<boolean> {
   const { res } = ctx;
 
@@ -274,17 +311,7 @@ async function handleGetSession(ctx: RouteContext, id: string): Promise<boolean>
       );
     }
 
-    // Overlay deduplicated planRefs from catalog manifest if available
-    try {
-      const catalogManifestPath = join(sessionEntry.projectPath, '.jacques', 'sessions', `${id}.json`);
-      const catalogContent = await fsPromises.readFile(catalogManifestPath, 'utf-8');
-      const catalogManifest = JSON.parse(catalogContent);
-      if (catalogManifest.planRefs) {
-        sessionEntry = { ...sessionEntry, planRefs: catalogManifest.planRefs };
-      }
-    } catch {
-      // No catalog manifest available
-    }
+    sessionEntry = await overlayCatalogPlanRefs(sessionEntry, id);
 
     sendJson(res, 200, {
       metadata: sessionEntry,
@@ -572,17 +599,7 @@ async function handlePlanByMessageIndex(ctx: RouteContext, sessionId: string, me
       return true;
     }
 
-    // Overlay deduplicated planRefs from catalog manifest if available
-    try {
-      const catalogManifestPath = join(sessionEntry.projectPath, '.jacques', 'sessions', `${sessionId}.json`);
-      const catalogContent = await fsPromises.readFile(catalogManifestPath, 'utf-8');
-      const catalogManifest = JSON.parse(catalogContent);
-      if (catalogManifest.planRefs) {
-        sessionEntry = { ...sessionEntry, planRefs: catalogManifest.planRefs };
-      }
-    } catch {
-      // No catalog manifest
-    }
+    sessionEntry = await overlayCatalogPlanRefs(sessionEntry, sessionId);
 
     if (!sessionEntry.planRefs || sessionEntry.planRefs.length === 0) {
       sendJson(res, 404, { error: 'No plans found in session' });

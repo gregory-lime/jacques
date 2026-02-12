@@ -54,7 +54,7 @@ Path decoding uses a three-tier resolution:
 2. `cwd` field from the first JSONL session entry — reliable fallback for projects without `sessions-index.json`
 3. Naive decode (replace `-` with `/`) — last resort, ambiguous for paths containing hyphens
 
-**Project Discovery**: The `discoverProjects()` function scans all encoded directories and groups them by git repo root. Git worktrees of the same repo are merged into a single project. For deleted worktrees (directory exists but `.git` is gone), `gitBranch` is recovered from JSONL entries and matched to a sibling git project. Hidden projects (via `DELETE /api/projects/:name`) are filtered out. Non-git projects remain standalone. See `core/src/cache/project-discovery.ts`.
+**Project Discovery**: The `discoverProjects()` function scans all encoded directories and groups them by git repo root. Git worktrees of the same repo are merged into a single project. For orphaned worktrees (no `gitRepoRoot` in session index, `detectGitInfo()` fails), a second pass merges them into matching git projects using: (1) `readWorktreeRepoRoot()` reads the `.git` text file in zombie worktrees — worktree `.git` files contain `gitdir: /path/to/main-repo/.git/worktrees/<name>`, which gives the exact repo root; (2) name-prefix heuristic matches dirname prefix to repo basename for truly deleted directories (longest match wins). Hidden projects (via `DELETE /api/projects/:name`) are filtered out. Non-git projects remain standalone. See `core/src/cache/project-discovery.ts`.
 
 ### Jacques Configuration
 

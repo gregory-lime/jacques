@@ -478,6 +478,25 @@ async function buildFromCatalog(
       ) || undefined;
     }
 
+    // If detectGitInfo failed (e.g., deleted worktree), try recovering
+    // gitRepoRoot from a previously-extracted session manifest.
+    if (!projectGitInfo.repoRoot) {
+      for (const result of statResults) {
+        if (!result) continue;
+        const manifest = await readSessionManifest(project.projectPath, result.sessionId);
+        if (manifest?.gitRepoRoot) {
+          projectGitInfo.repoRoot = manifest.gitRepoRoot;
+          if (!projectGitInfo.branch && manifest.gitBranch) {
+            projectGitInfo.branch = manifest.gitBranch;
+          }
+          if (!projectGitInfo.worktree && manifest.gitWorktree) {
+            projectGitInfo.worktree = manifest.gitWorktree;
+          }
+          break;
+        }
+      }
+    }
+
     for (const result of statResults) {
       if (!result) continue;
       const { sessionId, jsonlPath, stats } = result;
