@@ -53,6 +53,8 @@ export function MainMenuView({
 
   const contentLines: React.ReactNode[] = [];
 
+  contentLines.push(<Text key="spacer-top"> </Text>);
+
   if (focusedSession) {
     const sessionTitle = focusedSession.session_title || "Untitled session";
     const maxTitleLen = Math.max(10, terminalWidth - 4); // 2 for "$ " + some margin

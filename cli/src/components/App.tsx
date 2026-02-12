@@ -217,12 +217,7 @@ export function App(): React.ReactElement {
         break;
       }
 
-      case "2": // Settings
-        settings.open();
-        claudeToken.loadStatus();
-        break;
-
-      case "3": { // Web GUI
+      case "2": { // Web GUI
         const guiUrl = "http://localhost:4243";
         const openCmd = process.platform === "darwin" ? "open" :
                         process.platform === "win32" ? "start" : "xdg-open";
@@ -235,6 +230,11 @@ export function App(): React.ReactElement {
         });
         break;
       }
+
+      case "3": // Settings
+        settings.open();
+        claudeToken.loadStatus();
+        break;
     }
   }, [getRepoRoot, worktreesHook.open, settings.open, claudeToken.loadStatus, showNotification]);
 
