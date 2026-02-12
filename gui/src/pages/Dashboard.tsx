@@ -9,11 +9,10 @@ import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { useJacquesClient } from '../hooks/useJacquesClient';
 import { useProjectScope } from '../hooks/useProjectScope.js';
 import { useSessionBadges } from '../hooks/useSessionBadges';
-import { useOpenSessions } from '../hooks/useOpenSessions';
 import { listSessionsByProject, type SessionEntry } from '../api';
+import { useNavigate, useParams } from 'react-router-dom';
 import { colors } from '../styles/theme';
 import { SectionHeader } from '../components/ui';
-import { ActiveSessionViewer } from '../components/ActiveSessionViewer';
 import { WorktreeSessionsView } from '../components/WorktreeSessionsView';
 import { SessionAssetModal } from '../components/SessionAssetModal';
 import { RemoveWorktreeModal } from '../components/RemoveWorktreeModal';
@@ -195,7 +194,8 @@ const LOAD_INCREMENT = 10;
 export function Dashboard() {
   const { sessions: allLiveSessions, focusedSessionId, connected, focusTerminal, tileWindows, maximizeWindow, positionBrowserLayout, smartTileAdd, createWorktree, onCreateWorktreeResult, listWorktrees, removeWorktree, onListWorktreesResult, onRemoveWorktreeResult } = useJacquesClient();
   const { selectedProject, filterSessions } = useProjectScope();
-  const { state, openSession } = useOpenSessions();
+  const navigate = useNavigate();
+  const { projectSlug } = useParams<{ projectSlug: string }>();
   const [savedSessionsByProject, setSavedSessionsByProject] = useState<Record<string, SessionEntry[]>>({});
   const [historyLoading, setHistoryLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -269,12 +269,8 @@ export function Dashboard() {
   // ── Handlers ──
 
   const handleActiveSessionClick = (session: Session) => {
-    openSession({
-      id: session.session_id,
-      type: 'active',
-      title: session.session_title || session.project || 'Untitled',
-      project: session.project,
-    });
+    const slug = session.project || projectSlug;
+    if (slug) navigate(`/${slug}/sessions/${session.session_id}`);
   };
 
   const handleFocusSession = useCallback((sessionId: string) => {
@@ -341,12 +337,8 @@ export function Dashboard() {
   }, []);
 
   const handleHistorySessionClick = (item: SessionListItem) => {
-    openSession({
-      id: item.id,
-      type: item.source === 'live' ? 'active' : 'archived',
-      title: item.displayTitle,
-      project: item.project,
-    });
+    const slug = item.project || projectSlug;
+    if (slug) navigate(`/${slug}/sessions/${item.id}`);
   };
 
   const toggleHistoryCollapsed = useCallback(() => {
@@ -515,7 +507,7 @@ export function Dashboard() {
     handleToolbarTile, handleBrowserLayout,
     handleLaunchSession, handleManageWorktreesClick, toggleHistoryCollapsed,
     getTargetSessionId, setSelectedSessionIds, handleActiveSessionClick,
-    handleHistorySessionClick, openSession,
+    handleHistorySessionClick,
   ]);
 
   const handleBackgroundClick = useCallback((e: React.MouseEvent) => {
@@ -525,19 +517,6 @@ export function Dashboard() {
     if (target.closest('button') || target.closest('input')) return;
     setSelectedSessionIds(new Set());
   }, [selectedSessionIds, setSelectedSessionIds]);
-
-  // If viewing an open session, render the viewer
-  const activeOpen = state.activeViewId
-    ? state.sessions.find(s => s.id === state.activeViewId)
-    : null;
-
-  if (activeOpen) {
-    return (
-      <ActiveSessionViewer
-        sessionId={activeOpen.id}
-      />
-    );
-  }
 
   const hasSelection = selectedSessionIds.size > 0 || !!keyboardFocusedId || !!focusedSessionId;
   const visibleHistory = historyList.slice(0, visibleCount);

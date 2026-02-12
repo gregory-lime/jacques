@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, forwardRef, useImperativeHandle, type ReactNode } from 'react';
-import { Search, FileText, Bot, Terminal, Loader, AlertTriangle, ChevronDown, ChevronRight, ChevronUp } from 'lucide-react';
+import { Search, FileText, Bot, Terminal, Loader, AlertTriangle, ChevronDown, ChevronRight } from 'lucide-react';
 import type { AgentProgressContent } from '../../types';
 import { colors } from '../../styles/theme';
 import { CollapsibleBlock, type CollapsibleBlockRef } from './CollapsibleBlock';
@@ -123,9 +123,7 @@ export const AgentProgressBlock = forwardRef<AgentProgressBlockRef, AgentProgres
 
   // Extract final response from subagent data
   const finalResponse = subagentData ? extractFinalResponse(subagentData.entries) : null;
-  // Calculate if response needs collapsing (more than ~7-8 lines, roughly 400 chars)
   const lineCount = finalResponse ? finalResponse.split('\n').length : 0;
-  const isLongResponse = finalResponse && (lineCount > 8 || finalResponse.length > 600);
 
   // Get detailed token stats from subagent data
   // totalInput = freshInput + cacheRead (cumulative across all turns)
@@ -207,33 +205,38 @@ export const AgentProgressBlock = forwardRef<AgentProgressBlockRef, AgentProgres
                 <AlertTriangle size={14} /> {responseError}
               </div>
             ) : finalResponse ? (
-              // Check if this is a Plan agent - render response as Markdown
-              content.agentType?.toLowerCase() === 'plan' ? (
-                <div style={styles.planResponseContainer}>
-                  <MarkdownRenderer content={finalResponse} />
-                </div>
-              ) : (
-                <div style={styles.responseContainer}>
-                  <pre style={{
-                    ...styles.responseContent,
-                    ...(isLongResponse && !responseExpanded ? styles.responseCollapsed : {}),
+              <div style={{
+                ...styles.responseBlock,
+                ...(content.agentType?.toLowerCase() === 'plan' ? styles.responseBlockPlan : {}),
+              }}>
+                <button
+                  type="button"
+                  style={{
+                    ...styles.responseHeader,
+                    ...(content.agentType?.toLowerCase() === 'plan' ? styles.responseHeaderPlan : {}),
+                  }}
+                  onClick={() => setResponseExpanded(!responseExpanded)}
+                >
+                  <span style={{
+                    ...styles.expandIcon,
+                    transform: responseExpanded ? 'rotate(90deg)' : 'none',
+                    transition: 'transform 150ms ease',
                   }}>
-                    {finalResponse}
-                  </pre>
-                  {isLongResponse && (
-                    <button
-                      type="button"
-                      style={styles.expandResponseButton}
-                      onClick={() => setResponseExpanded(!responseExpanded)}
-                    >
-                      <span style={styles.expandIcon}>
-                        {responseExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                      </span>
-                      {responseExpanded ? 'Show less' : 'Show full response'}
-                    </button>
+                    <ChevronRight size={12} />
+                  </span>
+                  <span style={styles.responseHeaderTitle}>Response</span>
+                  {!responseExpanded && (
+                    <span style={styles.responseHeaderHint}>
+                      {lineCount} lines
+                    </span>
                   )}
-                </div>
-              )
+                </button>
+                {responseExpanded && (
+                  <div style={styles.responseContent}>
+                    <MarkdownRenderer content={finalResponse} />
+                  </div>
+                )}
+              </div>
             ) : (
               <div style={styles.noResponse}>
                 Click to load agent response
@@ -409,50 +412,45 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: '4px',
     fontStyle: 'italic' as const,
   },
-  responseContainer: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: '8px',
-  },
-  planResponseContainer: {
-    padding: '12px 16px',
-    backgroundColor: 'rgba(52, 211, 153, 0.08)',
+  responseBlock: {
     borderRadius: '6px',
+    border: `1px solid ${colors.borderSubtle}`,
+    overflow: 'hidden',
+  },
+  responseBlockPlan: {
     borderLeft: '3px solid #34D399',
-    fontSize: '14px',
-    lineHeight: 1.6,
+  },
+  responseHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    width: '100%',
+    padding: '8px 12px',
+    backgroundColor: colors.bgElevated,
+    border: 'none',
+    cursor: 'pointer',
+    textAlign: 'left' as const,
+    color: colors.textSecondary,
+    fontSize: '12px',
+    transition: 'background-color 150ms ease',
+  },
+  responseHeaderPlan: {
+    backgroundColor: 'rgba(52, 211, 153, 0.1)',
+  },
+  responseHeaderTitle: {
+    fontWeight: 500,
+  },
+  responseHeaderHint: {
+    marginLeft: 'auto',
+    fontSize: '11px',
+    color: colors.textMuted,
   },
   responseContent: {
-    margin: 0,
-    padding: '12px',
-    backgroundColor: colors.bgPrimary,
-    borderRadius: '4px',
-    fontSize: '13px',
-    color: colors.textPrimary,
-    whiteSpace: 'pre-wrap' as const,
-    lineHeight: 1.5,
+    padding: '12px 16px',
+    backgroundColor: colors.bgInput,
+    borderTop: `1px solid ${colors.borderSubtle}`,
+    maxHeight: '60vh',
     overflow: 'auto',
-    border: `1px solid ${colors.borderSubtle}`,
-  },
-  responseCollapsed: {
-    // Show ~7-8 lines by default (14px * 1.5 line-height * 8 lines ≈ 168px)
-    maxHeight: '168px',
-    overflow: 'hidden',
-    position: 'relative' as const,
-  },
-  expandResponseButton: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '4px',
-    padding: '4px 8px',
-    backgroundColor: 'transparent',
-    border: `1px solid ${colors.borderSubtle}`,
-    borderRadius: '4px',
-    color: colors.textMuted,
-    fontSize: '11px',
-    cursor: 'pointer',
-    alignSelf: 'flex-start',
-    transition: 'all 150ms ease',
   },
   expandIcon: {
     display: 'inline-flex',
