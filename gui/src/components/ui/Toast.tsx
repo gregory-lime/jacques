@@ -185,7 +185,7 @@ export function Toast({ toast, onDismiss, onClick, duration = 6000, index = 0 }:
       {/* Content */}
       <div style={styles.content}>
         <img
-          src="/jacsub.png"
+          src="/jacsub.svg"
           alt=""
           style={styles.mascot}
           draggable={false}

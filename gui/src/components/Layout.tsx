@@ -172,7 +172,7 @@ export function Layout() {
                 onClick={() => navProjectSlug && navigate(`/${navProjectSlug}/sessions`)}
                 title="Go to sessions"
               >
-                <img src="/jacsub.png" alt="Jacques" style={styles.mascot} />
+                <img src="/jacsub.svg" alt="Jacques" style={styles.mascot} />
               </button>
             </>
           ) : (
@@ -182,7 +182,7 @@ export function Layout() {
                 onClick={() => navProjectSlug && navigate(`/${navProjectSlug}/sessions`)}
                 title="Go to sessions"
               >
-                <img src="/jacsub.png" alt="Jacques" style={styles.mascot} />
+                <img src="/jacsub.svg" alt="Jacques" style={styles.mascot} />
                 <span style={styles.logoText}>Jacques</span>
               </button>
               <button
