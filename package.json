@@ -11,11 +11,7 @@
     "gui"
   ],
   "scripts": {
-    "install:all": "npm run install:core && npm run install:server && npm run install:cli && npm run install:gui",
-    "install:core": "cd core && npm install",
-    "install:server": "cd server && npm install",
-    "install:cli": "cd cli && npm install",
-    "install:gui": "cd gui && npm install",
+    "install:all": "npm install",
     "build:all": "npm run build:core && npm run build:server && npm run build:cli && npm run build:gui",
     "build:core": "cd core && npm run build",
     "build:server": "cd server && npm run build",
@@ -26,7 +22,7 @@
     "restart:server": "npm run stop:server && npm run start:server",
     "start:cli": "cd cli && node dist/cli.js",
     "start:gui": "cd gui && npm run dev",
-    "start": "npm run start:server",
+    "start": "npx jacques",
     "cli": "cd cli && node dist/cli.js",
     "dev:core": "cd core && npm run dev",
     "dev:server": "cd server && npm run dev",

@@ -106,37 +106,24 @@ Copy-Item skills\jacques-continue\SKILL.md "$env:USERPROFILE\.claude\skills\jacq
 
 This installs two slash commands: `/jacques-handoff` (save session progress) and `/jacques-continue` (resume in a new session). See the [Skills](#skills) section below.
 
-### Step 4: Make `jacques` Available as a Command
+### Step 4: Run Jacques
 
 ```bash
-cd cli && npm link && cd ..
+npx jacques
 ```
 
-This creates a global `jacques` command. After this you can type `jacques` from anywhere.
-
-> **Windows**: May require an admin terminal. Alternative: run `npx jacques` from the project directory.
-
-### Step 5: Run Jacques
-
-**Option A — Single command (recommended):**
-```bash
-jacques
-```
 Starts the embedded server + CLI dashboard. Web GUI available at http://localhost:4243.
 
-**Option B — Server + Web GUI only:**
-```bash
-npm run start:server
-# Open http://localhost:4243 in your browser
-```
+> **Tip**: `npm start` does the same thing. To make `jacques` available globally (type `jacques` from anywhere), run `cd cli && npm link`.
 
-**Option C — Development mode (hot reload):**
-```bash
-npm run start:server   # Terminal 1: API server
-npm run dev:gui        # Terminal 2: GUI dev server at http://localhost:5173
-```
+**Other run modes:**
 
-### Step 6: Initial Sync
+| Mode | Command |
+|------|---------|
+| Server + Web GUI only | `npm run start:server` then open http://localhost:4243 |
+| Development (hot reload) | `npm run start:server` + `npm run dev:gui` (two terminals) |
+
+### Step 5: Initial Sync
 
 On first run, open the web GUI at http://localhost:4243 and go to **Settings > Re-sync All**. This scans `~/.claude/projects/` and indexes all session transcripts.
 
@@ -151,7 +138,7 @@ Invoke-WebRequest -Method POST -Uri "http://localhost:4243/api/sync?force=true"
 
 Projects are automatically discovered and grouped by git repo root — worktrees of the same repo appear as one project. Use the **x** button next to any project in the sidebar to hide unwanted entries (e.g., `/tmp` sessions).
 
-### Step 7: Start Claude Code
+### Step 6: Start Claude Code
 
 Start or restart a Claude Code session. It auto-registers via hooks. You'll see:
 

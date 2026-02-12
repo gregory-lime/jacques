@@ -107,33 +107,13 @@ function installDependencies() {
 
   const projectRoot = resolve(import.meta.dirname, '..');
 
-  log('Installing core dependencies...');
-  if (!run('npm install', { cwd: join(projectRoot, 'core') })) {
-    error('Failed to install core dependencies');
+  // Single root install — npm workspaces links all packages and creates bin symlinks
+  log('Installing all workspace dependencies...');
+  if (!run('npm install', { cwd: projectRoot })) {
+    error('Failed to install dependencies');
     return false;
   }
-  success('Core dependencies installed');
-
-  log('Installing server dependencies...');
-  if (!run('npm install', { cwd: join(projectRoot, 'server') })) {
-    error('Failed to install server dependencies');
-    return false;
-  }
-  success('Server dependencies installed');
-
-  log('Installing CLI dependencies...');
-  if (!run('npm install', { cwd: join(projectRoot, 'cli') })) {
-    error('Failed to install CLI dependencies');
-    return false;
-  }
-  success('CLI dependencies installed');
-
-  log('Installing GUI dependencies...');
-  if (!run('npm install', { cwd: join(projectRoot, 'gui') })) {
-    error('Failed to install GUI dependencies');
-    return false;
-  }
-  success('GUI dependencies installed');
+  success('All dependencies installed (workspaces linked)');
 
   return true;
 }
@@ -225,22 +205,22 @@ function setupHooksSymlink() {
 
 function printNextSteps() {
   header('Setup complete!');
-  
+
   console.log(`
 ${COLORS.bold}Next steps:${COLORS.reset}
 
 ${COLORS.cyan}1.${COLORS.reset} Configure Claude Code hooks:
    ${COLORS.dim}npm run configure${COLORS.reset}
 
-${COLORS.cyan}2.${COLORS.reset} Start the server (in one terminal):
-   ${COLORS.dim}npm run start:server${COLORS.reset}
+${COLORS.cyan}2.${COLORS.reset} Start Jacques:
+   ${COLORS.dim}npx jacques${COLORS.reset}
+   Starts the server + CLI dashboard. Web GUI at http://localhost:4243
 
-${COLORS.cyan}3.${COLORS.reset} Start the CLI (in another terminal):
-   ${COLORS.dim}npm run start:cli${COLORS.reset}
-
-${COLORS.cyan}4.${COLORS.reset} Begin a Claude Code session and watch the context tracking!
+${COLORS.cyan}3.${COLORS.reset} Begin a Claude Code session and watch the context tracking!
 
 ${COLORS.bold}Useful commands:${COLORS.reset}
+  npx jacques          - Start Jacques (server + CLI dashboard)
+  npm run start:server - Start server only (for web GUI)
   npm run status       - Quick status check
   npm run configure    - Configure Claude Code hooks
   npm test             - Run tests
