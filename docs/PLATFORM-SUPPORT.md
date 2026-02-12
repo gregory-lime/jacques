@@ -194,7 +194,7 @@ Jacques can launch new Claude Code sessions in terminal windows.
 ### Window Positioning Technology
 
 - **macOS**: AppleScript + JXA (JavaScript for Automation). Uses `NSScreen` for multi-display, per-terminal AppleScript for positioning.
-- **Windows**: PowerShell with Win32 API (`SetWindowPos`, `SetForegroundWindow`, `ShowWindow`). Display detection via `System.Windows.Forms.Screen`.
+- **Windows**: PowerShell with Win32 API via `-EncodedCommand` (Base64-encoded UTF-16LE). Uses `EnumWindows` + `GetWindowThreadProcessId` to find windows by PID, with parent-PID traversal up the process tree (max 5 levels). This is necessary because console apps like `node.exe` don't own their window — the terminal host (`wt.exe`, `conhost.exe`) does. Display detection via `System.Windows.Forms.Screen` with 30s cache.
 - **Linux**: `wmctrl` for X11 window positioning, `xrandr` for display detection. Wayland has no standard window positioning API.
 
 **Implementation**: `server/src/window-manager/`

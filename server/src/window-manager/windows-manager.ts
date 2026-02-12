@@ -160,7 +160,14 @@ export class WindowsWindowManager implements WindowManager {
   }
 
   /**
-   * Position a window by process ID using Win32 API
+   * Position a window by process ID using Win32 EnumWindows + parent PID traversal.
+   *
+   * Console apps like node.exe (Claude Code) don't own their window — the visible
+   * terminal window belongs to a parent host process (wt.exe, conhost.exe, or
+   * powershell.exe). We use EnumWindows to find visible windows by PID, and if
+   * none are found, walk up the process tree until we find the window-owning parent.
+   *
+   * This is the same approach used by production tiling WMs (Komorebi, GlazeWM, FancyWM).
    */
   private async positionByPid(pid: string, geometry: WindowGeometry): Promise<PositionResult> {
     const { x, y, width, height } = geometry;
@@ -168,7 +175,9 @@ export class WindowsWindowManager implements WindowManager {
     const script = `
       Add-Type @"
         using System;
+        using System.Collections.Generic;
         using System.Runtime.InteropServices;
+
         public class Win32Window {
           [DllImport("user32.dll")]
           public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
@@ -178,15 +187,60 @@ export class WindowsWindowManager implements WindowManager {
 
           [DllImport("user32.dll")]
           public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+          public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+          [DllImport("user32.dll")]
+          public static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+
+          [DllImport("user32.dll")]
+          public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+          [DllImport("user32.dll")]
+          public static extern bool IsWindowVisible(IntPtr hWnd);
+
+          [DllImport("user32.dll")]
+          public static extern int GetWindowTextLength(IntPtr hWnd);
+
+          public static List<IntPtr> FindWindowsByPid(uint targetPid) {
+            var result = new List<IntPtr>();
+            EnumWindows(delegate(IntPtr hWnd, IntPtr lParam) {
+              uint pid;
+              GetWindowThreadProcessId(hWnd, out pid);
+              if (pid == targetPid && IsWindowVisible(hWnd) && GetWindowTextLength(hWnd) > 0) {
+                result.Add(hWnd);
+              }
+              return true;
+            }, IntPtr.Zero);
+            return result;
+          }
         }
 "@
       try {
-        $process = Get-Process -Id ${pid} -ErrorAction Stop
-        $hwnd = $process.MainWindowHandle
+        $targetPid = [uint32]${pid}
+        $hwnd = [IntPtr]::Zero
+        $maxDepth = 5
+
+        # Walk up the process tree to find the window-owning process
+        for ($depth = 0; $depth -lt $maxDepth; $depth++) {
+          $windows = [Win32Window]::FindWindowsByPid($targetPid)
+          if ($windows.Count -gt 0) {
+            $hwnd = $windows[0]
+            break
+          }
+          # Get parent PID via CIM (modern replacement for WMI)
+          $proc = Get-CimInstance Win32_Process -Filter "ProcessId=$targetPid" -ErrorAction Stop
+          if (-not $proc -or -not $proc.ParentProcessId -or $proc.ParentProcessId -eq 0) {
+            break
+          }
+          $targetPid = [uint32]$proc.ParentProcessId
+        }
+
         if ($hwnd -eq [IntPtr]::Zero) {
           Write-Output "no_window"
           exit
         }
+
         # SW_RESTORE = 9 (restore if minimized)
         [Win32Window]::ShowWindow($hwnd, 9) | Out-Null
         # SWP_NOZORDER = 0x0004, SWP_SHOWWINDOW = 0x0040
