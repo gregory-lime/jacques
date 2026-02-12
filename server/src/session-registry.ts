@@ -179,14 +179,12 @@ export class SessionRegistry {
    * @returns The created/updated session
    */
   registerSession(event: SessionStartEvent): Session {
-    // Clean up any existing sessions with the same terminal_key (different session_id)
-    // This handles the case where a new session starts in the same terminal tab
-    if (event.terminal_key) {
-      for (const [id, session] of this.sessions) {
-        if (id !== event.session_id && session.terminal_key === event.terminal_key) {
-          this.log(`[Registry] Removing stale session ${id} (same terminal_key as new session ${event.session_id})`);
-          this.unregisterSession(id);
-        }
+    // Clean up any existing sessions in the same terminal (different session_id)
+    // This handles /clear, autocompact, and same-terminal reuse
+    for (const [id, session] of this.sessions) {
+      if (id !== event.session_id && this.isStaleSessionForNewRegistration(session, event)) {
+        this.log(`[Registry] Removing stale session ${id} (same terminal as new session ${event.session_id})`);
+        this.unregisterSession(id);
       }
     }
 
@@ -318,6 +316,29 @@ export class SessionRegistry {
 
       this.sessions.set(event.session_id, session);
       isNewSession = true;
+
+      // Clean up stale sessions from the same terminal (e.g., after /clear or autocompact).
+      // Uses PID and terminal_key matching since context_update carries both.
+      const newPid = event.terminal_pid ?? null;
+      if (newPid && newPid > 0) {
+        for (const [id, existing] of this.sessions) {
+          if (id !== event.session_id) {
+            const existingPid = this.processMonitor.getSessionPid(existing);
+            if (existingPid === newPid) {
+              this.log(`[Registry] Removing stale session ${id} (same PID ${newPid} as auto-registered session ${event.session_id})`);
+              this.unregisterSession(id);
+            }
+          }
+        }
+      }
+      if (event.terminal_key && event.terminal_key !== '') {
+        for (const [id, existing] of this.sessions) {
+          if (id !== event.session_id && matchTerminalKeys(existing.terminal_key, event.terminal_key)) {
+            this.log(`[Registry] Removing stale session ${id} (same terminal as auto-registered session ${event.session_id})`);
+            this.unregisterSession(id);
+          }
+        }
+      }
     }
 
     // Update source if provided and not already set (or was auto-detected)
@@ -389,9 +410,9 @@ export class SessionRegistry {
     if (event.terminal_key && event.terminal_key !== '' && canUpgradeKey) {
       this.log(`[Registry] Updating terminal_key from context_update: ${session.terminal_key} -> ${event.terminal_key}`);
 
-      // Clean up any existing sessions with the same terminal_key (same logic as registerSession)
+      // Clean up any existing sessions with matching terminal_key (same logic as registerSession)
       for (const [id, existingSession] of this.sessions) {
-        if (id !== event.session_id && existingSession.terminal_key === event.terminal_key) {
+        if (id !== event.session_id && matchTerminalKeys(existingSession.terminal_key, event.terminal_key)) {
           this.log(`[Registry] Removing stale session ${id} (same terminal_key as updated session ${event.session_id})`);
           this.unregisterSession(id);
         }
@@ -583,6 +604,33 @@ export class SessionRegistry {
    */
   markPendingBypass(cwd: string): void {
     this.processMonitor.markPendingBypass(cwd);
+  }
+
+  /**
+   * Check if an existing session should be considered stale when a new session registers.
+   *
+   * Matches by:
+   * 1. Terminal key (smart matching handles DISCOVERED/iTerm/TTY normalization)
+   * 2. PID (same Claude Code process after /clear or autocompact)
+   */
+  private isStaleSessionForNewRegistration(existing: Session, event: SessionStartEvent): boolean {
+    // Strategy 1: Smart terminal key matching
+    if (existing.terminal_key && event.terminal_key) {
+      if (matchTerminalKeys(existing.terminal_key, event.terminal_key)) {
+        return true;
+      }
+    }
+
+    // Strategy 2: PID matching (handles AUTO: keys where terminal keys can't match)
+    const newPid = event.terminal?.terminal_pid ?? null;
+    if (newPid && newPid > 0) {
+      const existingPid = this.processMonitor.getSessionPid(existing);
+      if (existingPid === newPid) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   /**

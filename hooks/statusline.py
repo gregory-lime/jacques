@@ -319,6 +319,19 @@ def build_terminal_key() -> str:
         return f'WT:{wt}'
     if term_session:
         return f'TERM:{term_session}'
+
+    # Fallback: TTY or PID (matches Python adapter's build_terminal_key priority)
+    if platform.system() != 'Windows':
+        try:
+            if sys.stdin.isatty():
+                tty = os.ttyname(sys.stdin.fileno())
+                if tty:
+                    return f'TTY:{tty}'
+        except Exception:
+            pass
+    ppid = os.getppid()
+    if ppid and ppid > 0:
+        return f'PID:{ppid}'
     return ''
 
 

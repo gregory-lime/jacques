@@ -15,6 +15,7 @@
 
 import React from "react";
 import { Box, Text } from "ink";
+import { formatSessionTitle } from "@jacques-ai/core";
 import type { ProjectStatistics, ProjectSessionItem, PlanEntry, PlanProgressListItem } from "@jacques-ai/core";
 import {
   SCENE_FULL,
@@ -378,7 +379,7 @@ function SessionsList({
             )}
             {"  "}
             <Text color={isSelected ? "white" : undefined}>
-              {truncate(session.title, titleWidth)}
+              {formatSessionTitle(session.title, titleWidth).displayTitle}
             </Text>
             {"  "}
             <Text>{pad(suffix, 5, "right")}</Text>

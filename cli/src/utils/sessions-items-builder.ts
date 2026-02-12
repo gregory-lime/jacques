@@ -17,6 +17,7 @@ export interface BuildSessionItemsParams {
   selectedProject: string | null;
   showAllWorktrees: boolean;
   isCreatingWorktree: boolean;
+  creatingForRepoRoot: string | null;
   removingWorktreePath: string | null;
   repoRoot: string | null;
   worktreesByRepo: Map<string, WorktreeWithStatus[]>;
@@ -33,7 +34,7 @@ export interface BuildSessionItemsResult {
 export function buildSessionItems(params: BuildSessionItemsParams): BuildSessionItemsResult {
   const {
     sortedSessions, allProjects, worktrees, selectedProject,
-    showAllWorktrees, isCreatingWorktree, removingWorktreePath,
+    showAllWorktrees, isCreatingWorktree, creatingForRepoRoot, removingWorktreePath,
     repoRoot, worktreesByRepo,
   } = params;
 
@@ -69,7 +70,7 @@ export function buildSessionItems(params: BuildSessionItemsParams): BuildSession
 
     buildCurrentProjectItems(
       currentSessions, result, selectable,
-      worktrees, repoRoot, isCreatingWorktree, showAllWorktrees, removingWorktreePath,
+      worktrees, repoRoot, isCreatingWorktree, creatingForRepoRoot, showAllWorktrees, removingWorktreePath,
       worktreesByRepo,
     );
   }
@@ -100,7 +101,7 @@ export function buildSessionItems(params: BuildSessionItemsParams): BuildSession
       projectData?.gitRepoRoot || null,
       projectData?.projectPaths?.[0] || null,
       result, selectable,
-      showAllWorktrees, worktreesByRepo,
+      showAllWorktrees, isCreatingWorktree, creatingForRepoRoot, worktreesByRepo,
     );
   }
 
@@ -123,7 +124,7 @@ export function buildSessionItems(params: BuildSessionItemsParams): BuildSession
       buildOtherProjectItems(
         [], project.gitRepoRoot, project.projectPaths?.[0] || null,
         result, selectable,
-        showAllWorktrees, worktreesByRepo,
+        showAllWorktrees, isCreatingWorktree, creatingForRepoRoot, worktreesByRepo,
       );
     }
   }
@@ -154,21 +155,26 @@ function buildCurrentProjectItems(
   worktrees: WorktreeItem[],
   repoRoot: string | null,
   isCreatingWorktree: boolean,
+  creatingForRepoRoot: string | null,
   showAllWorktrees: boolean,
   removingWorktreePath: string | null,
   worktreesByRepo: Map<string, WorktreeWithStatus[]>,
 ): void {
+  // Whether the creation input targets this project
+  const isCreatingHere = isCreatingWorktree && (!creatingForRepoRoot || creatingForRepoRoot === repoRoot);
+
   // If worktrees haven't loaded yet, use session-derived grouping
   if (worktrees.length === 0) {
+    // Pass showAllWorktrees=false to prevent buildOtherProjectItems from adding its own button
     buildOtherProjectItems(
       projectSessions, repoRoot, repoRoot, result, selectable,
-      showAllWorktrees, worktreesByRepo,
+      false, false, null, worktreesByRepo,
     );
     // Still show new worktree button if we have repo root
     if (repoRoot) {
       result.push({ kind: "spacer" });
       selectable.push(result.length);
-      if (isCreatingWorktree) {
+      if (isCreatingHere) {
         result.push({ kind: "new-worktree-input" });
       } else {
         result.push({ kind: "new-worktree-button" });
@@ -299,7 +305,7 @@ function buildCurrentProjectItems(
   if (repoRoot) {
     result.push({ kind: "spacer" });
     selectable.push(result.length);
-    if (isCreatingWorktree) {
+    if (isCreatingHere) {
       result.push({ kind: "new-worktree-input" });
     } else {
       result.push({ kind: "new-worktree-button" });
@@ -317,8 +323,12 @@ function buildOtherProjectItems(
   result: ContentItem[],
   selectable: number[],
   showAllWorktrees: boolean,
+  isCreatingWorktree: boolean,
+  creatingForRepoRoot: string | null,
   worktreesByRepo: Map<string, WorktreeWithStatus[]>,
 ): void {
+  // Whether the creation input targets this project
+  const isCreatingHere = isCreatingWorktree && creatingForRepoRoot === projectGitRoot;
   // Non-git project: just show sessions and a New Session button
   if (!projectGitRoot) {
     for (const session of projectSessions) {
@@ -430,11 +440,15 @@ function buildOtherProjectItems(
       }
     }
 
-    // New Worktree button
+    // New Worktree button (or input if creating for this project)
     if (projectGitRoot) {
       result.push({ kind: "spacer" });
       selectable.push(result.length);
-      result.push({ kind: "new-worktree-button", targetRepoRoot: projectGitRoot });
+      if (isCreatingHere) {
+        result.push({ kind: "new-worktree-input" });
+      } else {
+        result.push({ kind: "new-worktree-button", targetRepoRoot: projectGitRoot });
+      }
     }
     return;
   }
@@ -490,10 +504,14 @@ function buildOtherProjectItems(
     }
   }
 
-  // New Worktree button (details mode only)
+  // New Worktree button (details mode only, or input if creating for this project)
   if (showAllWorktrees && projectGitRoot) {
     result.push({ kind: "spacer" });
     selectable.push(result.length);
-    result.push({ kind: "new-worktree-button", targetRepoRoot: projectGitRoot });
+    if (isCreatingHere) {
+      result.push({ kind: "new-worktree-input" });
+    } else {
+      result.push({ kind: "new-worktree-button", targetRepoRoot: projectGitRoot });
+    }
   }
 }

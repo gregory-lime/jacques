@@ -10,6 +10,7 @@ import { Box, Text } from "ink";
 import { ProgressBar } from "./ProgressBar.js";
 import { formatTokens } from "../utils/format.js";
 import { ACCENT_COLOR, WARNING_COLOR, ERROR_COLOR, SUCCESS_COLOR } from "./layout/theme.js";
+import { formatSessionTitle } from "@jacques-ai/core";
 import type { Session, AutoCompactStatus } from "@jacques-ai/core";
 
 interface SessionDetailsProps {
@@ -27,7 +28,7 @@ export function SessionDetails({
     );
   }
 
-  const title = session.session_title || "Untitled Session";
+  const { displayTitle: title } = formatSessionTitle(session.session_title);
   const model = session.model?.display_name || session.model?.id || "Unknown";
   const statusIcon = getStatusIcon(session.status);
 

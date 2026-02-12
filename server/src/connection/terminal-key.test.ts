@@ -75,10 +75,14 @@ describe('terminal-key', () => {
       expect(result.pid).toBe(54321);
     });
 
-    it('should parse DISCOVERED:iTerm2 key', () => {
+    it('should parse DISCOVERED:iTerm2 key with ITERM prefix normalization', () => {
       const result = parseTerminalKey('DISCOVERED:iTerm2:ABC123-DEF456');
       expect(result.prefix).toBe(TerminalKeyPrefix.DISCOVERED);
       expect(result.isDiscovered).toBe(true);
+      // iTerm2 should normalize to ITERM prefix (not UNKNOWN)
+      expect(result.innerKey?.prefix).toBe(TerminalKeyPrefix.ITERM);
+      expect(result.innerKey?.uuid).toBe('ABC123-DEF456');
+      expect(result.uuid).toBe('ABC123-DEF456');
     });
 
     it('should handle empty string', () => {
@@ -240,6 +244,31 @@ describe('terminal-key', () => {
       expect(matchTerminalKeys(
         'DISCOVERED:TTY:ttys001:12345',
         'TTY:ttys001'
+      )).toBe(true);
+    });
+
+    it('should match DISCOVERED TTY (short) with hook TTY (/dev/ prefix)', () => {
+      expect(matchTerminalKeys(
+        'DISCOVERED:TTY:ttys001:12345',
+        'TTY:/dev/ttys001'
+      )).toBe(true);
+    });
+
+    it('should match TTY with /dev/ prefix vs without', () => {
+      expect(matchTerminalKeys('TTY:ttys001', 'TTY:/dev/ttys001')).toBe(true);
+    });
+
+    it('should match DISCOVERED:iTerm2 with ITERM key (prefix normalization)', () => {
+      expect(matchTerminalKeys(
+        'DISCOVERED:iTerm2:ABC123-DEF456',
+        'ITERM:w0t0p0:ABC123-DEF456'
+      )).toBe(true);
+    });
+
+    it('should match DISCOVERED:iTerm2 with ITERM UUID-only key', () => {
+      expect(matchTerminalKeys(
+        'DISCOVERED:iTerm2:ABC123-DEF456',
+        'ITERM:ABC123-DEF456'
       )).toBe(true);
     });
 

@@ -6,6 +6,7 @@
 import React from "react";
 import { Text } from "ink";
 import { MUTED_TEXT } from "../layout/theme.js";
+import { formatSessionTitle } from "@jacques-ai/core";
 import type { Session } from "@jacques-ai/core";
 
 export function ProjectLine({
@@ -18,18 +19,13 @@ export function ProjectLine({
   }
 
   const project = session.project || "unknown";
-  const title = session.session_title || "Untitled";
+  const { displayTitle: truncatedTitle } = formatSessionTitle(session.session_title, 35);
 
   const maxLength = 35;
   const truncatedProject =
     project.length > maxLength
       ? project.substring(0, maxLength - 3) + "..."
       : project;
-
-  const truncatedTitle =
-    title.length > maxLength
-      ? title.substring(0, maxLength - 3) + "..."
-      : title;
 
   return (
     <Text>

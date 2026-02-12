@@ -584,6 +584,156 @@ describe('SessionRegistry', () => {
     });
   });
 
+  describe('stale session cleanup on /clear', () => {
+    it('should remove DISCOVERED:TTY session when hook session starts with /dev/ TTY', () => {
+      // Simulate a session discovered at startup (short TTY from ps)
+      const discovered = registry.registerDiscoveredSession({
+        sessionId: 'old-discovered',
+        cwd: '/test',
+        transcriptPath: '/path/to/transcript.jsonl',
+        gitBranch: null,
+        gitWorktree: null,
+        gitRepoRoot: null,
+        contextMetrics: null,
+        lastActivity: Date.now(),
+        title: 'Old Session',
+        pid: 12345,
+        tty: 'ttys001',
+        project: 'test',
+      });
+      expect(discovered.terminal_key).toBe('DISCOVERED:TTY:ttys001:12345');
+      expect(registry.hasSession('old-discovered')).toBe(true);
+
+      // New session starts with /dev/ TTY (from hook after /clear)
+      const event: SessionStartEvent = {
+        event: 'session_start',
+        timestamp: Date.now() + 1000,
+        session_id: 'new-session',
+        session_title: 'After Clear',
+        transcript_path: null,
+        cwd: '/test',
+        project: 'test',
+        terminal: { tty: '/dev/ttys001', terminal_pid: 12345, term_program: null, iterm_session_id: null, term_session_id: null, kitty_window_id: null, wezterm_pane: null, vscode_injection: null, windowid: null, term: null },
+        terminal_key: 'TTY:/dev/ttys001',
+      };
+      registry.registerSession(event);
+
+      expect(registry.hasSession('old-discovered')).toBe(false);
+      expect(registry.hasSession('new-session')).toBe(true);
+      expect(registry.getSessionCount()).toBe(1);
+    });
+
+    it('should remove AUTO session when hook session starts with same PID', () => {
+      // Auto-register via context_update (gets AUTO: key)
+      registry.updateContext({
+        event: 'context_update',
+        timestamp: Date.now(),
+        session_id: 'auto-session',
+        used_percentage: 50,
+        remaining_percentage: 50,
+        context_window_size: 200000,
+        model: 'claude-opus-4-1',
+        cwd: '/test',
+        terminal_pid: 12345,
+      });
+      expect(registry.hasSession('auto-session')).toBe(true);
+      expect(registry.getSession('auto-session')!.terminal_key).toMatch(/^AUTO:/);
+
+      // New session starts with same PID (after /clear, same process)
+      const event: SessionStartEvent = {
+        event: 'session_start',
+        timestamp: Date.now() + 1000,
+        session_id: 'new-session',
+        session_title: 'After Clear',
+        transcript_path: null,
+        cwd: '/test',
+        project: 'test',
+        terminal: { tty: '/dev/ttys001', terminal_pid: 12345, term_program: null, iterm_session_id: null, term_session_id: null, kitty_window_id: null, wezterm_pane: null, vscode_injection: null, windowid: null, term: null },
+        terminal_key: 'TTY:/dev/ttys001',
+      };
+      registry.registerSession(event);
+
+      expect(registry.hasSession('auto-session')).toBe(false);
+      expect(registry.hasSession('new-session')).toBe(true);
+      expect(registry.getSessionCount()).toBe(1);
+    });
+
+    it('should remove DISCOVERED:iTerm2 session when ITERM hook session starts', () => {
+      // Simulate discovered iTerm2 session
+      const discovered = registry.registerDiscoveredSession({
+        sessionId: 'old-iterm',
+        cwd: '/test',
+        transcriptPath: '/path/to/transcript.jsonl',
+        gitBranch: null,
+        gitWorktree: null,
+        gitRepoRoot: null,
+        contextMetrics: null,
+        lastActivity: Date.now(),
+        title: 'Old iTerm Session',
+        pid: 12345,
+        tty: '?',
+        project: 'test',
+        terminalType: 'iTerm2',
+        terminalSessionId: 'ABC123-DEF456',
+      });
+      expect(discovered.terminal_key).toBe('DISCOVERED:iTerm2:ABC123-DEF456');
+      expect(registry.hasSession('old-iterm')).toBe(true);
+
+      // New session starts with ITERM key (from hook)
+      const event: SessionStartEvent = {
+        event: 'session_start',
+        timestamp: Date.now() + 1000,
+        session_id: 'new-iterm',
+        session_title: 'After Clear',
+        transcript_path: null,
+        cwd: '/test',
+        project: 'test',
+        terminal: { tty: null, terminal_pid: 12345, term_program: 'iTerm2', iterm_session_id: 'w0t0p0:ABC123-DEF456', term_session_id: null, kitty_window_id: null, wezterm_pane: null, vscode_injection: null, windowid: null, term: null },
+        terminal_key: 'ITERM:w0t0p0:ABC123-DEF456',
+      };
+      registry.registerSession(event);
+
+      expect(registry.hasSession('old-iterm')).toBe(false);
+      expect(registry.hasSession('new-iterm')).toBe(true);
+      expect(registry.getSessionCount()).toBe(1);
+    });
+
+    it('should not remove sessions from different terminals', () => {
+      // Register session in terminal 1
+      const event1: SessionStartEvent = {
+        event: 'session_start',
+        timestamp: Date.now(),
+        session_id: 'session-terminal-1',
+        session_title: 'Terminal 1',
+        transcript_path: null,
+        cwd: '/test',
+        project: 'test',
+        terminal: { tty: '/dev/ttys001', terminal_pid: 11111, term_program: null, iterm_session_id: null, term_session_id: null, kitty_window_id: null, wezterm_pane: null, vscode_injection: null, windowid: null, term: null },
+        terminal_key: 'TTY:/dev/ttys001',
+      };
+      registry.registerSession(event1);
+
+      // New session in terminal 2 (different TTY & PID)
+      const event2: SessionStartEvent = {
+        event: 'session_start',
+        timestamp: Date.now() + 1000,
+        session_id: 'session-terminal-2',
+        session_title: 'Terminal 2',
+        transcript_path: null,
+        cwd: '/test',
+        project: 'test',
+        terminal: { tty: '/dev/ttys002', terminal_pid: 22222, term_program: null, iterm_session_id: null, term_session_id: null, kitty_window_id: null, wezterm_pane: null, vscode_injection: null, windowid: null, term: null },
+        terminal_key: 'TTY:/dev/ttys002',
+      };
+      registry.registerSession(event2);
+
+      // Both sessions should coexist
+      expect(registry.hasSession('session-terminal-1')).toBe(true);
+      expect(registry.hasSession('session-terminal-2')).toBe(true);
+      expect(registry.getSessionCount()).toBe(2);
+    });
+  });
+
   describe('mode detection from permission_mode', () => {
     it('should set mode to plan from plan permission', () => {
       const event: SessionStartEvent = {

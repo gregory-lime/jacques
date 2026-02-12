@@ -104,8 +104,14 @@ function parseInnerKey(key: string): ParsedTerminalKey {
     };
   }
 
-  const prefix = key.substring(0, colonIndex).toUpperCase();
+  let prefix = key.substring(0, colonIndex).toUpperCase();
   const value = key.substring(colonIndex + 1);
+
+  // Normalize known terminal type names to enum values.
+  // session-factory creates DISCOVERED:iTerm2:UUID where "iTerm2" uppercases to "ITERM2",
+  // but the enum has "ITERM". Similarly "Windows Terminal" → "WINDOWSTERMINAL" vs enum "WT".
+  if (prefix === 'ITERM2') prefix = TerminalKeyPrefix.ITERM;
+  if (prefix === 'WINDOWSTERMINAL') prefix = TerminalKeyPrefix.WT;
 
   const result: ParsedTerminalKey = {
     prefix: (prefix in TerminalKeyPrefix ? prefix : TerminalKeyPrefix.UNKNOWN) as TerminalKeyPrefix,
@@ -290,9 +296,10 @@ export function matchTerminalKeys(keyA: string, keyB: string): boolean {
   }
 
   // TTY: match by path (ignore PID suffix if present)
+  // Normalize /dev/ prefix: process scanner gives "ttys001", hooks give "/dev/ttys001"
   if (effectiveA.prefix === TerminalKeyPrefix.TTY) {
-    const ttyA = effectiveA.tty || effectiveA.value.split(':')[0];
-    const ttyB = effectiveB.tty || effectiveB.value.split(':')[0];
+    const ttyA = (effectiveA.tty || effectiveA.value.split(':')[0]).replace(/^\/dev\//, '');
+    const ttyB = (effectiveB.tty || effectiveB.value.split(':')[0]).replace(/^\/dev\//, '');
     return ttyA === ttyB;
   }
 

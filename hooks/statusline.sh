@@ -177,7 +177,15 @@ elif [ -n "$kitty_window_id" ]; then
 elif [ -n "$term_session_id" ]; then
   terminal_key="TERM:$term_session_id"
 else
-  terminal_key=""
+  # Fallback: TTY or PID (matches Python adapter's priority)
+  tty_path=$(tty 2>/dev/null)
+  if [ -n "$tty_path" ] && [ "$tty_path" != "not a tty" ]; then
+    terminal_key="TTY:$tty_path"
+  elif [ -n "$terminal_pid" ] && [ "$terminal_pid" -gt 0 ] 2>/dev/null; then
+    terminal_key="PID:$terminal_pid"
+  else
+    terminal_key=""
+  fi
 fi
 
 # Send to Jacques server (if socket exists and server is running)

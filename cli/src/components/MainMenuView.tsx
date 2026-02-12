@@ -17,7 +17,7 @@ import {
   HORIZONTAL_LAYOUT_MIN_WIDTH,
 } from "./layout/index.js";
 import { MENU_ITEMS } from "../utils/constants.js";
-import { getProjectGroupKey } from "@jacques-ai/core";
+import { getProjectGroupKey, formatSessionTitle } from "@jacques-ai/core";
 import type { Session } from "@jacques-ai/core";
 import { ScanningIndicator } from "./shared/ScanningIndicator.js";
 
@@ -56,11 +56,8 @@ export function MainMenuView({
   contentLines.push(<Text key="spacer-top"> </Text>);
 
   if (focusedSession) {
-    const sessionTitle = focusedSession.session_title || "Untitled session";
     const maxTitleLen = Math.max(10, terminalWidth - 4); // 2 for "$ " + some margin
-    const truncatedTitle = sessionTitle.length > maxTitleLen
-      ? sessionTitle.substring(0, maxTitleLen - 1) + "\u2026"
-      : sessionTitle;
+    const { displayTitle: truncatedTitle } = formatSessionTitle(focusedSession.session_title, maxTitleLen);
     contentLines.push(
       <Text key="project-line">
         <Text color={MUTED_TEXT}>&gt; </Text>

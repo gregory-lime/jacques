@@ -144,10 +144,10 @@ export function useSessionsExperiment({
   const { items, selectableIndices } = useMemo(() => {
     return buildSessionItems({
       sortedSessions, allProjects, worktrees, selectedProject,
-      showAllWorktrees, isCreatingWorktree, removingWorktreePath,
+      showAllWorktrees, isCreatingWorktree, creatingForRepoRoot, removingWorktreePath,
       repoRoot, worktreesByRepo,
     });
-  }, [sortedSessions, worktrees, showAllWorktrees, repoRoot, isCreatingWorktree, removingWorktreePath, selectedProject, allProjects, worktreesByRepo]);
+  }, [sortedSessions, worktrees, showAllWorktrees, repoRoot, isCreatingWorktree, creatingForRepoRoot, removingWorktreePath, selectedProject, allProjects, worktreesByRepo]);
 
   // Current selectable item's position in the items array
   const currentItemIndex = selectableIndices[selectedIndex] ?? -1;
