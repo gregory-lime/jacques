@@ -231,6 +231,8 @@ function buildCurrentProjectItems(
       isMain: wt.isMain,
       sessionCount: wtSessions.length,
       ...getDivergence(wtSessions),
+      dirty: wt.status.hasUncommittedChanges,
+      merged: wt.status.isMergedToMain,
     });
 
     for (const session of wtSessions) {
@@ -390,6 +392,8 @@ function buildOtherProjectItems(
         isMain: wt.isMain,
         sessionCount: wtSessions.length,
         ...getDivergence(wtSessions),
+        dirty: wt.status.hasUncommittedChanges,
+        merged: wt.status.isMergedToMain,
       });
 
       for (const session of wtSessions) {
