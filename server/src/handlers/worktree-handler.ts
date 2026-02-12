@@ -162,107 +162,113 @@ export class WorktreeHandler {
       if (shouldLaunch !== false && result.worktreePath) {
         try {
           // Use smart-tile-add logic to position the new terminal
+          // Skip on Windows: PowerShell-based window management is too slow
+          // (getDisplays loads System.Windows.Forms .NET assembly, positionWindow
+          // uses Win32 API via PowerShell — each call has 10s timeout and blocks
+          // the WebSocket response, making CLI appear frozen)
           let targetBounds: { x: number; y: number; width: number; height: number } | undefined;
-          try {
-            const { createWindowManager, isWindowManagementSupported } = await import('../window-manager/index.js');
-            if (isWindowManagementSupported()) {
-              const manager = createWindowManager();
-              const displays = await manager.getDisplays();
+          if (process.platform !== 'win32') {
+            try {
+              const { createWindowManager, isWindowManagementSupported } = await import('../window-manager/index.js');
+              if (isWindowManagementSupported()) {
+                const manager = createWindowManager();
+                const displays = await manager.getDisplays();
 
-              // Determine target display: tile state → majority vote → primary
-              let targetDisplay = this.tileStateManager.getAnyTileState()
-                ? displays.find(d => d.id === this.tileStateManager.getAnyTileState()!.displayId)
-                : null;
+                // Determine target display: tile state → majority vote → primary
+                let targetDisplay = this.tileStateManager.getAnyTileState()
+                  ? displays.find(d => d.id === this.tileStateManager.getAnyTileState()!.displayId)
+                  : null;
 
-              if (!targetDisplay && displays.length > 1) {
-                const terminalKeys = this.registry.getAllSessions().map(s => s.terminal_key).filter(Boolean);
-                if (terminalKeys.length > 0 && typeof (manager as any).getTargetDisplayForTerminals === 'function') {
-                  targetDisplay = await (manager as any).getTargetDisplayForTerminals(terminalKeys);
-                }
-              }
-              if (!targetDisplay) {
-                targetDisplay = displays.find(d => d.isPrimary) || displays[0];
-              }
-
-              if (targetDisplay) {
-                const workArea = targetDisplay.workArea;
-                const tileState = this.tileStateManager.getTileState(targetDisplay.id);
-
-                // Validate tile state
-                let tileStateValid = false;
-                if (tileState && tileState.slots.length > 0) {
-                  if (process.platform === 'darwin' && typeof (manager as any).getWindowBounds === 'function') {
-                    tileStateValid = await validateTileStateWithBounds(
-                      tileState,
-                      (key: string) => (manager as any).getWindowBounds(key),
-                    );
-                  } else {
-                    tileStateValid = validateTileStateBySessions(
-                      tileState,
-                      (sessionId: string) => this.registry.getSession(sessionId) !== undefined,
-                    );
+                if (!targetDisplay && displays.length > 1) {
+                  const terminalKeys = this.registry.getAllSessions().map(s => s.terminal_key).filter(Boolean);
+                  if (terminalKeys.length > 0 && typeof (manager as any).getTargetDisplayForTerminals === 'function') {
+                    targetDisplay = await (manager as any).getTargetDisplayForTerminals(terminalKeys);
                   }
                 }
+                if (!targetDisplay) {
+                  targetDisplay = displays.find(d => d.isPrimary) || displays[0];
+                }
 
-                if (tileStateValid && tileState && tileState.slots.length < 8) {
-                  // Smart tile: extend existing layout
-                  const existingSlots: ExistingSlot[] = tileState.slots.map(s => ({
-                    terminalKey: s.terminalKey,
-                    sessionId: s.sessionId,
-                    column: s.column,
-                    row: s.row,
-                    geometry: s.geometry,
-                  }));
+                if (targetDisplay) {
+                  const workArea = targetDisplay.workArea;
+                  const tileState = this.tileStateManager.getTileState(targetDisplay.id);
 
-                  const transition = planSmartTileTransition(existingSlots, workArea);
-                  if (transition) {
-                    for (const repo of transition.repositions) {
-                      await manager.positionWindow(repo.terminalKey, repo.newGeometry);
-                      await new Promise(resolve => setTimeout(resolve, 100));
-                    }
-                    targetBounds = transition.newWindowGeometry;
-
-                    const newSlots = [...tileState.slots.map(s => {
-                      const repo = transition.repositions.find(r => r.sessionId === s.sessionId);
-                      if (repo) {
-                        return { ...s, geometry: repo.newGeometry, column: repo.newColumn, row: repo.newRow };
-                      }
-                      return s;
-                    })];
-                    newSlots.push({
-                      terminalKey: 'PENDING',
-                      sessionId: 'PENDING',
-                      geometry: transition.newWindowGeometry,
-                      column: transition.newColumn,
-                      row: transition.newRow,
-                    });
-                    this.tileStateManager.setTileState(targetDisplay.id, {
-                      displayId: targetDisplay.id,
-                      workArea,
-                      columnsPerRow: transition.newGrid.columnsPerRow,
-                      slots: newSlots,
-                      tiledAt: Date.now(),
-                    });
-                  } else {
-                    targetBounds = findFreeSpace(workArea, tileState.slots.map(s => s.geometry));
-                  }
-                } else {
-                  // No valid tile state — use free space
-                  const existingBounds: { x: number; y: number; width: number; height: number }[] = [];
-                  if (process.platform === 'darwin' && typeof (manager as any).getWindowBounds === 'function') {
-                    for (const session of this.registry.getAllSessions()) {
-                      if (session.terminal_key) {
-                        const bounds = await (manager as any).getWindowBounds(session.terminal_key);
-                        if (bounds) existingBounds.push(bounds);
-                      }
+                  // Validate tile state
+                  let tileStateValid = false;
+                  if (tileState && tileState.slots.length > 0) {
+                    if (process.platform === 'darwin' && typeof (manager as any).getWindowBounds === 'function') {
+                      tileStateValid = await validateTileStateWithBounds(
+                        tileState,
+                        (key: string) => (manager as any).getWindowBounds(key),
+                      );
+                    } else {
+                      tileStateValid = validateTileStateBySessions(
+                        tileState,
+                        (sessionId: string) => this.registry.getSession(sessionId) !== undefined,
+                      );
                     }
                   }
-                  targetBounds = findFreeSpace(workArea, existingBounds);
+
+                  if (tileStateValid && tileState && tileState.slots.length < 8) {
+                    // Smart tile: extend existing layout
+                    const existingSlots: ExistingSlot[] = tileState.slots.map(s => ({
+                      terminalKey: s.terminalKey,
+                      sessionId: s.sessionId,
+                      column: s.column,
+                      row: s.row,
+                      geometry: s.geometry,
+                    }));
+
+                    const transition = planSmartTileTransition(existingSlots, workArea);
+                    if (transition) {
+                      for (const repo of transition.repositions) {
+                        await manager.positionWindow(repo.terminalKey, repo.newGeometry);
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                      }
+                      targetBounds = transition.newWindowGeometry;
+
+                      const newSlots = [...tileState.slots.map(s => {
+                        const repo = transition.repositions.find(r => r.sessionId === s.sessionId);
+                        if (repo) {
+                          return { ...s, geometry: repo.newGeometry, column: repo.newColumn, row: repo.newRow };
+                        }
+                        return s;
+                      })];
+                      newSlots.push({
+                        terminalKey: 'PENDING',
+                        sessionId: 'PENDING',
+                        geometry: transition.newWindowGeometry,
+                        column: transition.newColumn,
+                        row: transition.newRow,
+                      });
+                      this.tileStateManager.setTileState(targetDisplay.id, {
+                        displayId: targetDisplay.id,
+                        workArea,
+                        columnsPerRow: transition.newGrid.columnsPerRow,
+                        slots: newSlots,
+                        tiledAt: Date.now(),
+                      });
+                    } else {
+                      targetBounds = findFreeSpace(workArea, tileState.slots.map(s => s.geometry));
+                    }
+                  } else {
+                    // No valid tile state — use free space
+                    const existingBounds: { x: number; y: number; width: number; height: number }[] = [];
+                    if (process.platform === 'darwin' && typeof (manager as any).getWindowBounds === 'function') {
+                      for (const session of this.registry.getAllSessions()) {
+                        if (session.terminal_key) {
+                          const bounds = await (manager as any).getWindowBounds(session.terminal_key);
+                          if (bounds) existingBounds.push(bounds);
+                        }
+                      }
+                    }
+                    targetBounds = findFreeSpace(workArea, existingBounds);
+                  }
                 }
               }
+            } catch {
+              // Window management not available, launch without targeting
             }
-          } catch {
-            // Window management not available, launch without targeting
           }
 
           const launchResult = await launchTerminalSession({
