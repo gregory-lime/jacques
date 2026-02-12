@@ -78,6 +78,7 @@ interface DashboardProps {
   sessionsExpCreatingForRepoRoot: string | null;
   sessionsExpRemoveDeleteBranch: boolean;
   sessionsExpRemoveForce: boolean;
+  scanning?: boolean;
 }
 
 export function Dashboard(props: DashboardProps): React.ReactElement {
@@ -203,6 +204,7 @@ export function Dashboard(props: DashboardProps): React.ReactElement {
             projectName={props.selectedProject}
             removeDeleteBranch={props.sessionsExpRemoveDeleteBranch}
             removeForce={props.sessionsExpRemoveForce}
+            scanning={props.scanning}
           />
         </Box>
       );
@@ -234,6 +236,7 @@ export function Dashboard(props: DashboardProps): React.ReactElement {
         notification={props.notification}
         terminalWidth={tw}
         selectedProject={props.selectedProject}
+        scanning={props.scanning}
       />
     </Box>
   );

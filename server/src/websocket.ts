@@ -41,6 +41,7 @@ export interface StateProvider {
   getAllSessions: () => Session[];
   getFocusedSessionId: () => string | null;
   getFocusedSession: () => Session | null;
+  isScanning?: () => boolean;
 }
 
 /**
@@ -121,6 +122,7 @@ export class JacquesWebSocketServer {
         type: 'initial_state',
         sessions: this.stateProvider.getAllSessions(),
         focused_session_id: this.stateProvider.getFocusedSessionId(),
+        scanning: this.stateProvider.isScanning?.() ?? false,
       };
       this.sendToClient(ws, initialState);
     }

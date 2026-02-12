@@ -21,7 +21,7 @@ export interface JacquesClientOptions {
 export interface JacquesClientEvents {
   connected: () => void;
   disconnected: () => void;
-  initial_state: (sessions: Session[], focusedSessionId: string | null) => void;
+  initial_state: (sessions: Session[], focusedSessionId: string | null, scanning?: boolean) => void;
   session_update: (session: Session) => void;
   session_removed: (sessionId: string) => void;
   focus_changed: (sessionId: string | null, session: Session | null) => void;
@@ -29,6 +29,7 @@ export interface JacquesClientEvents {
   handoff_ready: (sessionId: string, path: string) => void;
   focus_terminal_result: (sessionId: string, success: boolean, method: string, error?: string) => void;
   notification_fired: (notification: { id: string; category: string; title: string; body: string; priority: string; timestamp: number; sessionId?: string }) => void;
+  server_status: (message: { status: string; session_count: number; scanning?: boolean }) => void;
   error: (error: Error) => void;
 }
 
@@ -108,7 +109,11 @@ export class JacquesClient extends EventEmitter {
 
       switch (message.type) {
         case "initial_state":
-          this.emit("initial_state", message.sessions, message.focused_session_id);
+          this.emit("initial_state", message.sessions, message.focused_session_id, message.scanning);
+          break;
+
+        case "server_status":
+          this.emit("server_status", message);
           break;
 
         case "session_update":

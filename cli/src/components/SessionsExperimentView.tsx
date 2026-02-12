@@ -28,15 +28,9 @@ import {
 import { formatSessionTitle, APP_ENDEARMENT } from "@jacques/core";
 import type { ContentItem } from "../hooks/useSessionsExperiment.js";
 import { getCliActivity } from "../utils/activity.js";
+import { getSessionModeDisplay } from "../utils/session-mode.js";
 import { buildBottomControls } from "../utils/bottom-controls.js";
-
-const MODE_COLORS: Record<string, string> = {
-  plan: SUCCESS_COLOR,
-  planning: SUCCESS_COLOR,
-  acceptEdits: ACCENT_COLOR,
-  execution: ACCENT_COLOR,
-  default: MUTED_TEXT,
-};
+import { ScanningIndicator } from "./shared/ScanningIndicator.js";
 
 interface SessionsExperimentViewProps {
   items: ContentItem[];
@@ -56,6 +50,7 @@ interface SessionsExperimentViewProps {
   projectName: string | null;
   removeDeleteBranch: boolean;
   removeForce: boolean;
+  scanning?: boolean;
 }
 
 /**
@@ -92,6 +87,7 @@ export function SessionsExperimentView({
   projectName,
   removeDeleteBranch,
   removeForce,
+  scanning,
 }: SessionsExperimentViewProps): React.ReactElement {
   const isWide = terminalWidth >= HORIZONTAL_LAYOUT_MIN_WIDTH;
   const currentItemIndex = selectableIndices[selectedIndex] ?? -1;
@@ -130,7 +126,9 @@ export function SessionsExperimentView({
 
   if (items.length === 0) {
     contentLines.push(
-      <Text key="empty" color={MUTED_TEXT}>No active sessions</Text>
+      scanning
+        ? <ScanningIndicator key="scanning" />
+        : <Text key="empty" color={MUTED_TEXT}>No active sessions</Text>
     );
   }
 
@@ -181,13 +179,7 @@ export function SessionsExperimentView({
         const fg = isMultiSelected ? INVERTED_TEXT : undefined;
 
         const activity = getCliActivity(session.status, session.last_tool_name);
-
-        const mode = session.mode || "default";
-        const isBypassPlan = session.is_bypass && (mode === "plan" || mode === "planning");
-        const modeLabel = session.is_bypass
-          ? (isBypassPlan ? "plan" : "p-less")
-          : (mode === "acceptEdits" ? "edit" : mode);
-        const modeColor = session.is_bypass ? "red" : (MODE_COLORS[mode] || MUTED_TEXT);
+        const { label: modeLabel, color: modeColor } = getSessionModeDisplay(session);
 
         // Responsive fixed columns budget
         // tree(2) + cursor(2) + icon(1) + activityLabel(10 or 1) + mode(8) + progress(varies)

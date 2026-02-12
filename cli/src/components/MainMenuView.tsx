@@ -19,6 +19,7 @@ import {
 import { MENU_ITEMS } from "../utils/constants.js";
 import { getProjectGroupKey } from "@jacques/core";
 import type { Session } from "@jacques/core";
+import { ScanningIndicator } from "./shared/ScanningIndicator.js";
 
 interface MainMenuViewProps {
   sessions: Session[];
@@ -27,6 +28,7 @@ interface MainMenuViewProps {
   notification: string | null;
   terminalWidth: number;
   selectedProject?: string | null;
+  scanning?: boolean;
 }
 
 export function MainMenuView({
@@ -36,6 +38,7 @@ export function MainMenuView({
   notification,
   terminalWidth,
   selectedProject,
+  scanning,
 }: MainMenuViewProps): React.ReactElement {
   const useHorizontalLayout = terminalWidth >= HORIZONTAL_LAYOUT_MIN_WIDTH;
   const showVersion = terminalWidth >= 70;
@@ -73,7 +76,9 @@ export function MainMenuView({
   } else {
     contentLines.push(<Text key="title" bold color={ACCENT_COLOR}>{projectName}</Text>);
     contentLines.push(
-      <Text key="no-session" color={MUTED_TEXT}>No active sessions</Text>
+      scanning
+        ? <ScanningIndicator key="scanning" />
+        : <Text key="no-session" color={MUTED_TEXT}>No active sessions</Text>
     );
   }
 

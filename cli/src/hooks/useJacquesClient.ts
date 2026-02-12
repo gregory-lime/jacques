@@ -15,6 +15,7 @@ export interface JacquesState {
   sessions: Session[];
   focusedSessionId: string | null;
   connected: boolean;
+  scanning: boolean;
   lastUpdate: number;
 }
 
@@ -86,6 +87,7 @@ export function useJacquesClient(): UseJacquesClientReturn {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [focusedSessionId, setFocusedSessionId] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
+  const [scanning, setScanning] = useState(true);
   const [lastUpdate, setLastUpdate] = useState(Date.now());
   const [client, setClient] = useState<JacquesClient | null>(null);
   const [handoffReady, setHandoffReady] = useState(false);
@@ -112,10 +114,17 @@ export function useJacquesClient(): UseJacquesClientReturn {
       setLastUpdate(Date.now());
     });
 
-    jacquesClient.on('initial_state', (initialSessions: Session[], initialFocusedId: string | null) => {
+    jacquesClient.on('initial_state', (initialSessions: Session[], initialFocusedId: string | null, isScanning?: boolean) => {
       setSessions(initialSessions);
       setFocusedSessionId(initialFocusedId);
+      setScanning(isScanning ?? false);
       setLastUpdate(Date.now());
+    });
+
+    jacquesClient.on('server_status', (msg: { status: string; session_count: number; scanning?: boolean }) => {
+      if (msg.scanning === false) {
+        setScanning(false);
+      }
     });
 
     jacquesClient.on('session_update', (session: Session) => {
@@ -322,6 +331,7 @@ export function useJacquesClient(): UseJacquesClientReturn {
     sessions,
     focusedSessionId,
     connected,
+    scanning,
     lastUpdate,
     selectSession,
     triggerAction,

@@ -334,6 +334,8 @@ export interface InitialStateMessage {
   type: 'initial_state';
   sessions: Session[];
   focused_session_id: string | null;
+  /** True while server is still discovering existing sessions at startup */
+  scanning?: boolean;
 }
 
 /**
@@ -368,6 +370,8 @@ export interface ServerStatusMessage {
   type: 'server_status';
   status: 'connected' | 'disconnected';
   session_count: number;
+  /** True while server is still discovering existing sessions at startup */
+  scanning?: boolean;
 }
 
 /**

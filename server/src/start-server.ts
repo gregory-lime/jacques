@@ -134,11 +134,15 @@ export async function startEmbeddedServer(
     silent,
   });
 
+  // Track scanning state (true until initial session discovery completes)
+  let isScanning = true;
+
   // Set state provider for WebSocket server
   wsServer.setStateProvider({
     getAllSessions: () => registry.getAllSessions(),
     getFocusedSessionId: () => registry.getFocusedSessionId(),
     getFocusedSession: () => registry.getFocusedSession(),
+    isScanning: () => isScanning,
   });
 
   // Create broadcast service
@@ -383,37 +387,17 @@ export async function startEmbeddedServer(
       logger.log('');
     }
 
-    // Scan for existing Claude sessions at startup
-    try {
-      logger.log('Scanning for running Claude Code sessions...');
-      const discovered = await scanForActiveSessions();
-      for (const session of discovered) {
-        const registered = registry.registerDiscoveredSession(session);
-        broadcastService.broadcastSessionWithFocus(registered);
-      }
-      if (discovered.length > 0) {
-        logger.log(`Found ${discovered.length} active session(s)`);
-        // Check if any discovered sessions are running with --dangerously-skip-permissions
-        const bypassIds = await registry.detectBypassSessions();
-        if (bypassIds.length > 0) {
-          logger.log(`Detected ${bypassIds.length} bypass session(s): ${bypassIds.join(', ')}`);
-          for (const id of bypassIds) {
-            // For bypass sessions, detect mode from JSONL (permission_mode is unreliable)
-            const updated = await registry.updateSessionMode(id);
-            if (updated) {
-              broadcastService.broadcastSessionWithFocus(updated);
-            }
-          }
-        }
-      } else {
-        logger.log('No active sessions found');
-      }
-    } catch (err) {
-      logger.warn(`Session scan failed: ${err}`);
-    }
-
-    // Start branch divergence monitoring (after session discovery so data is available immediately)
-    branchDivergenceService.start(BRANCH_DIVERGENCE_INTERVAL_MS);
+    // Discover existing sessions in background (non-blocking so CLI renders immediately)
+    discoverExistingSessions(registry, broadcastService, branchDivergenceService, logger)
+      .finally(() => {
+        isScanning = false;
+        wsServer.broadcast({
+          type: 'server_status',
+          status: 'connected',
+          session_count: registry.getSessionCount(),
+          scanning: false,
+        });
+      });
   } catch (err) {
     const nodeErr = err as NodeJS.ErrnoException;
     if (nodeErr.code === 'EADDRINUSE') {
@@ -484,4 +468,45 @@ export async function startEmbeddedServer(
     getRegistry: () => registry,
     getWebSocketServer: () => wsServer,
   };
+}
+
+/**
+ * Discover existing Claude sessions in background.
+ * Runs scan, registers sessions, detects bypass mode, and starts branch divergence.
+ */
+async function discoverExistingSessions(
+  registry: SessionRegistry,
+  broadcastService: BroadcastService,
+  branchDivergenceService: BranchDivergenceService,
+  logger: ReturnType<typeof createLogger>,
+): Promise<void> {
+  try {
+    logger.log('Scanning for running Claude Code sessions...');
+    const discovered = await scanForActiveSessions();
+    for (const session of discovered) {
+      const registered = registry.registerDiscoveredSession(session);
+      broadcastService.broadcastSessionWithFocus(registered);
+    }
+    if (discovered.length > 0) {
+      logger.log(`Found ${discovered.length} active session(s)`);
+      // Check if any discovered sessions are running with --dangerously-skip-permissions
+      const bypassIds = await registry.detectBypassSessions();
+      if (bypassIds.length > 0) {
+        logger.log(`Detected ${bypassIds.length} bypass session(s): ${bypassIds.join(', ')}`);
+        for (const id of bypassIds) {
+          const updated = await registry.updateSessionMode(id);
+          if (updated) {
+            broadcastService.broadcastSessionWithFocus(updated);
+          }
+        }
+      }
+    } else {
+      logger.log('No active sessions found');
+    }
+  } catch (err) {
+    logger.warn(`Session scan failed: ${err}`);
+  }
+
+  // Start branch divergence monitoring (after session discovery so data is available)
+  branchDivergenceService.start(BRANCH_DIVERGENCE_INTERVAL_MS);
 }

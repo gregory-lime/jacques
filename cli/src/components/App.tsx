@@ -28,7 +28,7 @@ export function App(): React.ReactElement {
   const jacques = useJacquesClient();
   const {
     client,
-    sessions, focusedSessionId, connected,
+    sessions, focusedSessionId, connected, scanning,
     focusTerminal, focusTerminalResult,
     tileWindows, maximizeWindow, launchSession,
     listWorktrees: listWorktreesWs,
@@ -353,6 +353,7 @@ export function App(): React.ReactElement {
         sessionsExpCreatingForRepoRoot={sessionsExpHook.creatingForRepoRoot}
         sessionsExpRemoveDeleteBranch={sessionsExpHook.removeDeleteBranch}
         sessionsExpRemoveForce={sessionsExpHook.removeForce}
+        scanning={scanning}
       />
     </Box>
   );
