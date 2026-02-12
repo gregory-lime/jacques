@@ -230,9 +230,19 @@ async function getClaudeProcessesWindows(): Promise<DetectedProcess[]> {
         try {
           $wmi = Get-WmiObject Win32_Process -Filter "ProcessId=$($proc.Id)" 2>$null
           if ($wmi) {
-            $cwd = if ($wmi.ExecutablePath) { Split-Path -Parent $wmi.ExecutablePath } else { $null }
-            $wtSession = [System.Environment]::GetEnvironmentVariable('WT_SESSION', 'Process')
+            $cwd = $null
             $cmdLine = $wmi.CommandLine
+            if ($cmdLine) {
+              $cmdClean = $cmdLine -replace '^\\"[^\\"]*\\"\\s*|^\\S+\\s*', ''
+              $cmdClean = $cmdClean.Trim().Trim('"')
+              if ($cmdClean -and (Test-Path $cmdClean -PathType Container -ErrorAction SilentlyContinue)) {
+                $cwd = $cmdClean
+              }
+            }
+            if (-not $cwd -and $wmi.ExecutablePath) {
+              $cwd = Split-Path -Parent $wmi.ExecutablePath
+            }
+            $wtSession = [System.Environment]::GetEnvironmentVariable('WT_SESSION', 'Process')
             @{
               PID = $proc.Id
               CWD = $cwd

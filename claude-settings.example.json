@@ -1,7 +1,7 @@
 {
   "statusLine": {
     "type": "command",
-    "command": "~/.jacques/hooks/statusline.sh"
+    "command": "python3 ~/.jacques/hooks/statusline.py"
   },
   "hooks": {
     "SessionStart": [
@@ -10,7 +10,18 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 ~/.jacques/hooks/jacques-register-session.py"
+            "command": "python3 ~/.jacques/hooks/claude-code/register-session.py"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.jacques/hooks/claude-code/pre-tool-use.py"
           }
         ]
       }
@@ -21,7 +32,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 ~/.jacques/hooks/jacques-report-activity.py"
+            "command": "python3 ~/.jacques/hooks/claude-code/report-activity.py"
           }
         ]
       }
@@ -32,7 +43,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 ~/.jacques/hooks/jacques-session-idle.py"
+            "command": "python3 ~/.jacques/hooks/claude-code/session-idle.py"
           }
         ]
       }
@@ -43,7 +54,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 ~/.jacques/hooks/jacques-unregister-session.py"
+            "command": "python3 ~/.jacques/hooks/claude-code/unregister-session.py"
           }
         ]
       }

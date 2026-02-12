@@ -68,7 +68,7 @@ const JACQUES_HOOKS = {
         hooks: [
           {
             type: "command",
-            command: `${PYTHON} ${HOOKS_DIR}/jacques-register-session.py`
+            command: `${PYTHON} ${HOOKS_DIR}/claude-code/register-session.py`
           }
         ]
       }
@@ -90,7 +90,7 @@ const JACQUES_HOOKS = {
         hooks: [
           {
             type: "command",
-            command: `${PYTHON} ${HOOKS_DIR}/jacques-report-activity.py`
+            command: `${PYTHON} ${HOOKS_DIR}/claude-code/report-activity.py`
           }
         ]
       }
@@ -101,7 +101,7 @@ const JACQUES_HOOKS = {
         hooks: [
           {
             type: "command",
-            command: `${PYTHON} ${HOOKS_DIR}/jacques-session-idle.py`
+            command: `${PYTHON} ${HOOKS_DIR}/claude-code/session-idle.py`
           }
         ]
       }
@@ -112,7 +112,7 @@ const JACQUES_HOOKS = {
         hooks: [
           {
             type: "command",
-            command: `${PYTHON} ${HOOKS_DIR}/jacques-unregister-session.py`
+            command: `${PYTHON} ${HOOKS_DIR}/claude-code/unregister-session.py`
           }
         ]
       }
