@@ -12,18 +12,27 @@
 
 ---
 
-<h3 align="center">Keeping all your active and past sessions together.</h3>
-<p align="center"><strong>Many CC instances, multiple local worktrees — won't ever be an issue again.</strong></p>
+<p align="center">
+Navigate through many CC instances and local worktrees.<br />
+Manage multiple sessions and repos. All from one single tool.
+</p>
 
 <br />
+
+<p align="center">
+Install it with a single command:
+</p>
 
 ```bash
 npx jacques
 ```
 
 <p align="center">
-  <sub>Single command. No global install needed. First run auto-detects missing setup and walks you through it.</sub><br />
-  <sub>macOS &nbsp;&nbsp; Linux &nbsp;&nbsp; Windows</sub>
+No global install needed. First run auto-detects missing setup and walks you through it.
+</p>
+
+<p align="center">
+Available for macOS, Windows, and Linux.
 </p>
 
 <p align="center">
