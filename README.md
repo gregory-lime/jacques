@@ -20,11 +20,11 @@
 <br />
 
 ```bash
-npx jacques setup
+npx jacques
 ```
 
 <p align="center">
-  <sub>Single command. No global install needed. Downloads everything and runs the setup wizard.</sub><br />
+  <sub>Single command. No global install needed. First run auto-detects missing setup and walks you through it.</sub><br />
   <sub>macOS &nbsp;&nbsp; Linux &nbsp;&nbsp; Windows</sub>
 </p>
 
@@ -44,10 +44,12 @@ npx jacques setup
 ## Installation
 
 ```
-npx jacques setup
+npx jacques
 ```
 
-That's it. One command downloads everything, builds the project, and walks you through an interactive setup wizard.
+That's it. First run detects missing setup and launches the interactive wizard automatically. After setup, you go straight to the dashboard.
+
+Need to reconfigure later? Run `npx jacques setup` anytime.
 
 <details>
 <summary><strong>Other ways to install</strong></summary>
@@ -55,16 +57,16 @@ That's it. One command downloads everything, builds the project, and walks you t
 ```bash
 # Global install (faster startup after first run)
 npm install -g @jacques-ai/cli
-jacques setup
+jacques
 
 # pnpm
 pnpm add -g @jacques-ai/cli
-jacques setup
+jacques
 
 # bun
-bunx jacques setup
+bunx jacques
 bun add -g @jacques-ai/cli
-jacques setup
+jacques
 ```
 
 **`npx` vs global install**: `npx` runs directly without installing — great for trying it out. A global install (`npm i -g`) means `jacques` is always available and starts faster since it skips the download step.
@@ -100,6 +102,10 @@ Never lose track of unfinished work on the 107th worktree you've created.
 **Multiple screens, dozens of agents** — working on different things across different repos. Jacques helps you keep track of all of it.
 
 **13-inch MacBook, single screen** — a single CLI window will help you get the most out of limited space.
+
+<p align="center">
+  <img src="assets/screenshots/cli-compact.png" width="400" alt="Jacques CLI compact view" />
+</p>
 
 ---
 
@@ -166,7 +172,7 @@ More features on the way.
 | Command | Description |
 |---------|-------------|
 | `jacques` | Start dashboard + embedded server |
-| `jacques setup` | Interactive setup wizard |
+| `jacques setup` | Interactive setup wizard (re-run anytime to reconfigure) |
 | `jacques status` | Show current session status |
 | `jacques list` | List active sessions as JSON |
 | `jacques search <query>` | Search archived conversations |
