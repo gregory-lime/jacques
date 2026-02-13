@@ -5,7 +5,7 @@
 <h1 align="center">Jacques</h1>
 
 <p align="center">
-  <strong>Real-time Claude Code session monitor</strong>
+  <strong>Real-time Claude Code sessions manager</strong>
 </p>
 
 <p align="center">
@@ -21,8 +21,9 @@
 </p>
 
 <p align="center">
-  <a href="#installation">Quick Start</a> &nbsp;&bull;&nbsp;
+  <a href="#installation">Install</a> &nbsp;&bull;&nbsp;
   <a href="#what-you-get">Features</a> &nbsp;&bull;&nbsp;
+  <a href="#who-is-this-for">Who Is This For</a> &nbsp;&bull;&nbsp;
   <a href="#commands">Commands</a> &nbsp;&bull;&nbsp;
   <a href="#architecture">Architecture</a> &nbsp;&bull;&nbsp;
   <a href="#development">Development</a>
@@ -30,32 +31,15 @@
 
 ---
 
-## At a Glance
+Keeping all your active and past Claude Code sessions together.
 
-| | |
-|---|---|
-| **Real-time context %** | Exact token usage across all active sessions, updated live |
-| **CLI dashboard** | Keyboard-driven TUI — focus, tile, spawn, manage worktrees |
-| **Web GUI** | Full browser dashboard with session history and archive search |
-| **StatusLine** | `[Opus] ctx:42%` right inside Claude Code — no window switching |
-| **Session handoffs** | Structured context transfer between sessions via `/jacques-handoff` |
-| **Auto-archiving** | Every session cataloged on exit, even Ctrl+C — plans, subagents, manifests |
-
----
-
-## The Problem
-
-When you run multiple Claude Code sessions, you're flying blind:
-- No way to see how much context window remains without asking Claude
-- No overview across sessions — you're alt-tabbing between terminals
-- Ctrl+C kills a session and its plans, decisions, and progress vanish
-- Starting a new session means re-explaining everything from scratch
-
-**Jacques gives you a control tower for all your Claude Code sessions.**
+Many CC instances, multiple local worktrees — won't ever be an issue again.
 
 ---
 
 ## Installation
+
+Single command:
 
 <h3 align="center">
 
@@ -65,12 +49,10 @@ npx jacques setup
 
 </h3>
 
-<p align="center">
-No global install needed. One command downloads everything and runs the interactive setup wizard.
-</p>
+Downloads everything and runs the interactive setup wizard. No global install needed.
 
 <details>
-<summary><strong>More ways to install</strong></summary>
+<summary><strong>Other ways to install</strong></summary>
 
 ```bash
 # Global install (faster startup after first run)
@@ -79,10 +61,12 @@ jacques setup
 
 # pnpm
 pnpm add -g @jacques-ai/cli
+jacques setup
 
 # bun
 bunx jacques setup
 bun add -g @jacques-ai/cli
+jacques setup
 ```
 
 **`npx` vs global install**: `npx` runs directly without installing — great for trying it out. A global install (`npm i -g`) means `jacques` is always available and starts faster since it skips the download step.
@@ -93,7 +77,33 @@ bun add -g @jacques-ai/cli
 
 ---
 
+## Known Issues With Working Without Jacques
+
+No more running blind between multiple opened terminals, tabs, worktrees and projects.
+
+Everything available from inside a single app — monitor, focus, tile.
+
+One-click to spawn new Claude Code instances and create new worktrees per task.
+
+Never lose track of unfinished work on the 107th worktree you've created.
+
+---
+
+## Who Is This For
+
+**Just starting with vibe coding** — feeling overwhelmed with multiple terminal instances, having a hard time keeping good practices with your workflow. Jacques gives you one place to see everything.
+
+**Pre-AI era coders who fully embrace the shift** — but feel the headache with these new dynamic, multi-context workflows and gitflows you have to apply now. Jacques keeps it organized.
+
+**Multiple screens, dozens of agents** — working on different things across different repos. Jacques helps you keep track of all of it.
+
+**13-inch MacBook, single screen** — a single CLI window will help you get the most out of limited space.
+
+---
+
 ## What You Get
+
+Jacques stays simple but powerful. Inside there are a few modules and some additional resources. During the setup process you decide what to install.
 
 ### CLI Dashboard
 
@@ -124,6 +134,16 @@ Every session is auto-cataloged on exit — even if you Ctrl+C. Plans, subagent 
 ---
 
 The setup wizard lets you choose what to enable. Install just the lightweight CLI, add the web GUI for history browsing, or include skills for session continuity.
+
+---
+
+## Roadmap
+
+The first release was built for a vibeathon organized by [BridgeMind](https://www.bridgemind.ai).
+
+It's early, and it needs improvements. This is a preview of what Jacques will eventually become — your next coding assistant.
+
+More features on the way.
 
 ---
 
