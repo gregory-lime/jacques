@@ -28,7 +28,7 @@ npx jacques
   <sub>macOS &nbsp;&nbsp; Linux &nbsp;&nbsp; Windows</sub>
 </p>
 
-<img src="assets/screenshots/cli-compact.png" alt="Jacques CLI compact view" />
+<img src="assets/screenshots/cli-compact.png" width="100%" alt="Jacques CLI compact view" />
 
 <p align="center">
   <a href="#what-you-get">Features</a> &nbsp;&bull;&nbsp;
