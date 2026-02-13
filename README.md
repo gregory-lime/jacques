@@ -1,9 +1,5 @@
 <p align="center">
-  <img src="assets/jacques-banner.svg" width="400" alt="Jacques — real-time Claude Code sessions manager" />
-</p>
-
-<p align="center">
-  <img src="assets/jacques-banner-mini.svg" width="400" alt="Jacques — real-time Claude Code sessions manager (alt)" />
+  <img src="assets/jacques-banner-mini.svg" width="400" alt="Jacques — real-time Claude Code sessions manager" />
 </p>
 
 <p align="center">
