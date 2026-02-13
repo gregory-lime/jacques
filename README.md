@@ -1,8 +1,14 @@
-<p align="center">
-  <img src="assets/jacsub.svg" width="100" alt="Jacques" /><br />
-  <img src="assets/jacques-title.svg" width="240" alt="Jacques" /><br />
+<table align="center" border="0" cellpadding="0" cellspacing="0">
+<tr>
+<td align="right" valign="middle"><img src="assets/jacsub.svg" width="90" alt="Jacques" /></td>
+<td width="16"></td>
+<td align="left" valign="middle">
+  <img src="assets/jacques-title.svg" width="220" alt="Jacques" /><br />
   <sub>real-time Claude Code sessions manager</sub>
-</p>
+</td>
+</tr>
+</table>
+
 <p align="center">
   <a href="https://www.npmjs.com/package/@jacques-ai/cli"><img src="https://img.shields.io/npm/v/@jacques-ai/cli?style=flat-square&logo=npm&logoColor=white" alt="npm version" /></a>&nbsp;
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="MIT License" /></a>&nbsp;
