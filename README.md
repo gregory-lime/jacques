@@ -1,248 +1,293 @@
-# Jacques — Coding Assistant
+<p align="center">
+  <img src="assets/jacsub.png" width="80" alt="Jacques mascot" />
+</p>
 
-**Real-time session monitor and multi-session manager for Claude Code**
+<h1 align="center">Jacques</h1>
 
-Jacques gives you full visibility and control over your Claude Code sessions. Monitor exact context window usage in real-time, tame the chaos of multiple concurrent sessions with smart terminal tiling and git worktrees, and search across your entire conversation history. Built for power users who run Claude Code at scale.
+<p align="center">
+  <strong>Real-time Claude Code session monitor</strong>
+</p>
 
-`v0.0.7-alpha` | macOS | Windows | Linux
+<p align="center">
+  <a href="https://www.npmjs.com/package/@jacques-ai/cli"><img src="https://img.shields.io/npm/v/@jacques-ai/cli?style=for-the-badge&logo=npm&logoColor=white" alt="npm version" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=for-the-badge" alt="MIT License" /></a>
+  <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey?style=for-the-badge" alt="Platform" />
+  <img src="https://img.shields.io/badge/node-20%2B-brightgreen?style=for-the-badge&logo=node.js&logoColor=white" alt="Node 20+" />
+</p>
+
+<p align="center">
+  <a href="https://github.com/gregory-lime/jacques/stargazers"><img src="https://img.shields.io/github/stars/gregory-lime/jacques?style=for-the-badge&logo=github" alt="GitHub stars" /></a>
+  <img src="https://img.shields.io/badge/TypeScript-100%25-blue?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
+</p>
+
+<p align="center">
+  <a href="#installation">Quick Start</a> &nbsp;&bull;&nbsp;
+  <a href="#what-you-get">Features</a> &nbsp;&bull;&nbsp;
+  <a href="#commands">Commands</a> &nbsp;&bull;&nbsp;
+  <a href="#architecture">Architecture</a> &nbsp;&bull;&nbsp;
+  <a href="#development">Development</a>
+</p>
 
 ---
 
-## What It Does
+## At a Glance
 
-### Monitor
-- **Exact context usage** — see precise token percentage across all active sessions in real-time
-- **StatusLine integration** — context % displayed directly inside Claude Code (e.g., `[Opus] ctx:42%`)
-- **Session status tracking** — working, idle, awaiting approval, plan mode
+| | |
+|---|---|
+| **Real-time context %** | Exact token usage across all active sessions, updated live |
+| **CLI dashboard** | Keyboard-driven TUI — focus, tile, spawn, manage worktrees |
+| **Web GUI** | Full browser dashboard with session history and archive search |
+| **StatusLine** | `[Opus] ctx:42%` right inside Claude Code — no window switching |
+| **Session handoffs** | Structured context transfer between sessions via `/jacques-handoff` |
+| **Auto-archiving** | Every session cataloged on exit, even Ctrl+C — plans, subagents, manifests |
 
-### Manage
-- **Launch sessions** — start new Claude Code terminals from the web GUI or API
-- **Smart window tiling** — auto-arrange 1–8 terminal windows in a responsive grid layout
-- **Git worktrees** — create, list, and remove worktrees with branch management from the GUI
+---
 
-### Archive
-- **Full-text search** — search across all past conversations and their plans
-- **Auto catalog extraction** — plans, subagents, and session manifests are saved automatically when sessions end (even Ctrl+C)
-- **Session handoffs** — capture progress and resume in a new session with `/jacques-handoff` and `/jacques-continue`
+## The Problem
+
+When you run multiple Claude Code sessions, you're flying blind:
+- No way to see how much context window remains without asking Claude
+- No overview across sessions — you're alt-tabbing between terminals
+- Ctrl+C kills a session and its plans, decisions, and progress vanish
+- Starting a new session means re-explaining everything from scratch
+
+**Jacques gives you a control tower for all your Claude Code sessions.**
+
+---
+
+## Installation
+
+<h3 align="center">
+
+```
+npx jacques setup
+```
+
+</h3>
+
+<p align="center">
+No global install needed. One command downloads everything and runs the interactive setup wizard.
+</p>
+
+<details>
+<summary><strong>More ways to install</strong></summary>
+
+```bash
+# Global install (faster startup after first run)
+npm install -g @jacques-ai/cli
+jacques setup
+
+# pnpm
+pnpm add -g @jacques-ai/cli
+
+# bun
+bunx jacques setup
+bun add -g @jacques-ai/cli
+```
+
+**`npx` vs global install**: `npx` runs directly without installing — great for trying it out. A global install (`npm i -g`) means `jacques` is always available and starts faster since it skips the download step.
+
+</details>
+
+**Requirements**: Node 20+, Python 3.8+, [Claude Code](https://docs.anthropic.com/en/docs/claude-code).
+
+---
+
+## What You Get
+
+### CLI Dashboard
+
+<!-- TODO: CLI screenshot -->
+
+A terminal TUI that shows real-time context usage %, session status, and plan progress for every active Claude Code session. Keyboard-driven — focus sessions, tile terminal windows into a grid, spawn new sessions, and manage git worktrees without ever leaving the dashboard.
+
+### Web GUI
+
+<!-- TODO: Web GUI screenshot -->
+
+Full browser dashboard at `localhost:4243`. Browse session history, view extracted plans and subagent results, manage worktrees, launch sessions. Your entire Claude Code conversation archive — searchable.
+
+### StatusLine
+
+<!-- TODO: StatusLine screenshot -->
+
+`[Opus] ctx:42%` displayed right inside Claude Code. No window switching needed — context usage is always visible.
+
+### Skills
+
+`/jacques-handoff` and `/jacques-continue` — structured session handoffs inspired by **ops shift-handoff protocols** (SRE/ITIL). Each handoff captures progress with file paths and function names, user decisions with reasoning, plan status, failed approaches and why, warnings and gotchas, and prioritized next steps — so the next session starts with full context instead of re-discovering everything from scratch.
+
+### Archive & Search
+
+Every session is auto-cataloged on exit — even if you Ctrl+C. Plans, subagent results, and session manifests are extracted and saved. Full-text search across all past conversations, filterable by project, date range, and technology.
+
+---
+
+The setup wizard lets you choose what to enable. Install just the lightweight CLI, add the web GUI for history browsing, or include skills for session continuity.
+
+---
+
+## Commands
+
+### CLI
+
+| Command | Description |
+|---------|-------------|
+| `jacques` | Start dashboard + embedded server |
+| `jacques setup` | Interactive setup wizard |
+| `jacques status` | Show current session status |
+| `jacques list` | List active sessions as JSON |
+| `jacques search <query>` | Search archived conversations |
+| `jacques archive-stats` | Show archive statistics |
+| `jacques --version` | Show version |
+| `jacques --help` | Show all commands |
+
+**Search options**: `-p/--project`, `--from/--to`, `-t/--tech`, `-l/--limit`, `--json`
+
+### npm scripts
+
+| Script | Description |
+|--------|-------------|
+| `npm run start:server` | Server + web GUI only |
+| `npm run dev:gui` | GUI dev server (hot reload) |
+| `npm run build:all` | Rebuild all packages |
+| `npm run stop:server` | Stop running server |
 
 ---
 
 ## Architecture
 
 ```
-Claude Code (Python hooks)
-    │
-    │  IPC Socket
-    │  macOS/Linux: /tmp/jacques.sock
-    │  Windows:     \\.\pipe\jacques
-    v
-┌────────────────────────────────────────┐
-│  Jacques Server  (Node.js/TypeScript)  │
-│                                        │
-│  IPC Socket    WebSocket    HTTP API   │
-│                 :4242        :4243     │
-└────────────────────────────────────────┘
-       │             │             │
-       v             v             v
-   Hook events    CLI TUI       Web GUI
-                  (Ink TUI)   (localhost:4243)
+Claude Code (hooks)
+    │  IPC Socket (/tmp/jacques.sock)
+    ▼
+┌─────────────────────────────────┐
+│  Jacques Server (Node.js/TS)    │
+│  WebSocket :4242 │ HTTP :4243   │
+└─────────────────────────────────┘
+    │              │
+    ▼              ▼
+ CLI TUI      Web GUI
+(terminal)  (localhost:4243)
 ```
 
-- **IPC Socket** — Claude Code hooks send session lifecycle events (start, tool use, idle, end, context updates)
-- **WebSocket (port 4242)** — real-time session state broadcasts to connected clients
-- **HTTP API (port 4243)** — REST endpoints for sessions, archive, projects, tiling, sync; also serves the web GUI as static files
-
-All three channels run from a single server process. The CLI TUI includes an embedded server, so running `jacques` starts everything.
-
----
-
-## Installation
-
-### Prerequisites
-
-- **Node.js 18+** — `node --version`
-- **Python 3.8+** — macOS/Linux: `python3 --version` | Windows: `python --version`
-- **Git**
-
-### Quick Start
-
-```
-git clone <repo-url> jacques
-cd jacques
-npm run setup
-npx jacques setup
-```
-
-`npm run setup` installs all dependencies and builds the project. Then `npx jacques setup` launches an interactive setup wizard that walks you through the entire configuration. Works on macOS, Linux, and Windows — the wizard auto-detects your platform.
-
-### What the Setup Wizard Does
-
-The wizard has 7 steps:
-
-1. **Welcome** — Overview of what Jacques will configure on your system.
-
-2. **Prerequisites** — Checks that Python 3 is installed and Claude Code has been run at least once. Blocks if Python is missing; warns if it can't find Claude Code data yet.
-
-3. **Options** — Choose which optional features to enable. Hooks (5 lifecycle hooks for Claude Code) are always installed. You can toggle StatusLine integration (shows `ctx:42%` inside Claude Code) and Skills (`/jacques-handoff` and `/jacques-continue` slash commands).
-
-4. **Install** — Creates the Jacques data directory, links hook scripts, backs up your existing Claude Code `settings.json`, merges hooks into the config, and installs skills if selected. Each substep shows live progress.
-
-5. **Verify** — Confirms that hooks are correctly registered, the hook scripts are accessible, and skills are in place.
-
-6. **Sync** — Optionally indexes your existing Claude Code session history so you can search and browse past conversations. **If you have a large archive (hundreds of sessions), this can take several minutes.** You can skip this and sync later from the web GUI (Settings > Re-sync All).
-
-7. **Done** — Summary of everything installed and what to do next.
-
-### After Setup
-
-Start Jacques:
-
-```
-npx jacques
-```
-
-This starts the embedded server + CLI dashboard. The web GUI is available at http://localhost:4243.
-
-Then start or restart a Claude Code session — it auto-registers via hooks. You'll see context percentage in Claude Code's status line (e.g., `[Opus] ctx:42%`) and the session appears in the Jacques dashboard in real-time.
-
-**Important**: Restart any running Claude Code sessions after installation to pick up the new hooks.
-
-> **Tip**: To make `jacques` available globally, run `cd cli && npm link`. On Windows this requires an admin terminal — or just use `npx jacques`.
-
-**Other run modes:**
-
-| Mode | Command |
-|------|---------|
-| Server + Web GUI only | `npm run start:server` then open http://localhost:4243 |
-| Development (hot reload) | `npm run start:server` + `npm run dev:gui` (two terminals) |
-
----
-
-## Skills
-
-Jacques includes two slash commands for session continuity:
-
-### `/jacques-handoff`
-
-Generate a handoff document before ending a session. Captures:
-- Current task and progress (with file paths, function names)
-- User decisions and reasoning
-- Plan status with completion markers
-- Blockers, warnings, and failed approaches
-- Prioritized next steps
-
-Saved to: `.jacques/handoffs/{timestamp}-handoff.md`
-
-### `/jacques-continue`
-
-Load the latest handoff when starting a new session:
-- Finds the most recent handoff in `.jacques/handoffs/`
-- Summarizes where you left off
-- Registers active plan for cross-session tracking
-- Proposes the immediate next step
-
-**Workflow**: End a session with `/jacques-handoff` → start a new session with `/jacques-continue`.
-
----
-
-## Commands
-
-| Command | Description |
-|---------|-------------|
-| `jacques` | Start CLI + embedded server (single command) |
-| `jacques setup` | Interactive setup wizard (hooks, skills, sync) |
-| `npm run setup` | Install dependencies and build all packages |
-| `npm run start:server` | Start server only (API + WebSocket + GUI) |
-| `npm run start:cli` | Start terminal TUI only |
-| `npm run build:all` | Rebuild everything (core → server → CLI → GUI) |
-| `npm run dev:gui` | GUI dev server with hot reload (localhost:5173) |
-| `npm run stop:server` | Stop a running server |
-
----
-
-## API & WebSocket
-
-- **HTTP API** at `http://localhost:4243/api/` — endpoints for sessions, archive, projects, tiling, sync, and configuration
-- **WebSocket** at `ws://localhost:4242` — real-time session updates
-
-Key WebSocket messages: `InitialState`, `SessionUpdate`, `SessionRemoved`, `FocusChanged`, `LaunchSession`, `CreateWorktree`, `SmartTileAdd`
-
-See [docs/SERVER.md](docs/SERVER.md) for the full endpoint reference.
+Claude Code hooks report lifecycle events (start, tool use, idle, context updates) over an IPC socket. The server aggregates state and broadcasts to connected clients. Running `jacques` starts the server, CLI, and web GUI in a single process.
 
 ---
 
 ## Configuration
 
-### File Locations
+| Item | Location |
+|------|----------|
+| Jacques data | `~/.jacques/` |
+| Hook config | `~/.claude/settings.json` |
+| Per-project catalog | `{project}/.jacques/` |
 
-| File | macOS / Linux | Windows |
-|------|---------------|---------|
-| Claude Code hooks | `~/.claude/settings.json` | `%USERPROFILE%\.claude\settings.json` |
-| Hook scripts | `~/.jacques/hooks/` | `%USERPROFILE%\.jacques\hooks\` |
-| Jacques config | `~/.jacques/config.json` | `%USERPROFILE%\.jacques\config.json` |
-| Hidden projects | `~/.jacques/hidden-projects.json` | `%USERPROFILE%\.jacques\hidden-projects.json` |
-| Skills | `~/.claude/skills/` | `%USERPROFILE%\.claude\skills\` |
-| Per-project catalog | `{project}/.jacques/` | `{project}\.jacques\` |
-
-### Environment Variables
-
-All optional — sensible defaults are used if not set.
+**Environment variables** (all optional):
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `JACQUES_WS_PORT` | `4242` | WebSocket port |
 | `JACQUES_HTTP_PORT` | `4243` | HTTP API port |
-| `JACQUES_SOCKET_PATH` | `/tmp/jacques.sock` (Unix) / `\\.\pipe\jacques` (Win) | IPC path |
-| `CLAUDE_CONFIG_DIR` | `~/.claude` | Claude data directory override |
+
+See [docs/PLATFORM-SUPPORT.md](docs/PLATFORM-SUPPORT.md) for Windows paths and cross-platform details.
 
 ---
 
 ## Troubleshooting
 
-### Server won't start
+<details>
+<summary><strong>Sessions not appearing</strong></summary>
+
+Restart Claude Code to pick up the new hooks. Verify hooks are installed:
 
 ```bash
-npm run stop:server                          # Kill zombie process
-rm /tmp/jacques.sock                         # Remove stale socket (macOS/Linux)
-lsof -i :4242 -i :4243                      # Check port conflicts (macOS/Linux)
-```
-```powershell
-# Windows:
-netstat -an | findstr "4242 4243"            # Check port conflicts
+cat ~/.claude/settings.json | grep jacques
 ```
 
-### Sessions not appearing
+If missing, re-run `npx jacques setup`.
 
-- Restart Claude Code to pick up hooks
-- Verify hooks are installed:
-  - macOS/Linux: `cat ~/.claude/settings.json | grep jacques`
-  - Windows: `type %USERPROFILE%\.claude\settings.json | findstr jacques`
-- Re-run: `npx jacques setup`
+</details>
 
-### CLI shows "Disconnected"
+<details>
+<summary><strong>Server won't start</strong></summary>
 
-- Make sure the server is running: `npm run start:server` or just `jacques`
+A zombie process may be holding the port:
 
-### Skills not working
+```bash
+npm run stop:server              # Kill zombie process
+rm /tmp/jacques.sock             # Remove stale socket (macOS/Linux)
+lsof -i :4242 -i :4243          # Check port conflicts
+```
 
-- Verify skill files exist:
-  - macOS/Linux: `ls ~/.claude/skills/jacques-handoff/SKILL.md`
-  - Windows: `dir %USERPROFILE%\.claude\skills\jacques-handoff\SKILL.md`
-- Re-run `npx jacques setup` to reinstall skills
+</details>
 
-### Windows-specific
+<details>
+<summary><strong>StatusLine not showing</strong></summary>
 
-- `npm link` needs an admin terminal — or use `npx jacques` instead
-- Named pipe `\\.\pipe\jacques` is used automatically (no socket file to clean up)
+Re-run `npx jacques setup` and make sure StatusLine is enabled in the options step. Restart Claude Code after setup.
+
+</details>
+
+<details>
+<summary><strong>CLI shows "Disconnected"</strong></summary>
+
+The server isn't running. Start it with `jacques` or `npm run start:server`.
+
+</details>
+
+For other issues, [open a GitHub issue](https://github.com/gregory-lime/jacques/issues).
+
+---
+
+## FAQ
+
+<details>
+<summary><strong>Does Jacques slow down Claude Code?</strong></summary>
+
+No. The hooks are lightweight Python scripts that send a single message over a Unix socket. Overhead is negligible.
+</details>
+
+<details>
+<summary><strong>Do I need to keep the CLI open?</strong></summary>
+
+No. The StatusLine integration works independently — context % shows inside Claude Code without any external window. The CLI and web GUI are optional views.
+</details>
+
+<details>
+<summary><strong>Does it work with multiple projects?</strong></summary>
+
+Yes. Jacques discovers all your Claude Code projects automatically and groups sessions by git repo. Switch between projects in the CLI or web GUI.
+</details>
+
+<details>
+<summary><strong>What happens when a session is killed with Ctrl+C?</strong></summary>
+
+Jacques detects the dead process within 30 seconds and extracts the session's plans, subagent results, and manifest to your project's `.jacques/` directory. Nothing is lost.
+</details>
+
+<details>
+<summary><strong>Can I use this with Cursor?</strong></summary>
+
+Partial support. Jacques can monitor Cursor sessions but hook integration is still experimental.
+</details>
 
 ---
 
 ## Development
 
 ```bash
+git clone https://github.com/gregory-lime/jacques.git
+cd jacques
+npm run setup
+```
+
+Build order: `core` → `server` → `cli` → `gui` (each depends on the previous).
+
+```bash
 npm run dev:server      # Server with tsc --watch
 npm run dev:gui         # GUI with Vite hot reload
-npm run build:all       # Full rebuild (core -> server -> cli -> gui)
+npm run build:all       # Full rebuild
 ```
 
 ### Tests
@@ -253,10 +298,28 @@ cd core && npm test         # Core tests
 cd cli && npm test          # CLI tests
 ```
 
-Build order: `core` → `server` → `cli` → `gui` (each depends on the previous).
+See [CLAUDE.md](CLAUDE.md) for the full development guide.
+
+---
+
+## Star History
+
+<a href="https://star-history.com/#gregory-lime/jacques&Date">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=gregory-lime/jacques&type=Date&theme=dark" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=gregory-lime/jacques&type=Date" />
+    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=gregory-lime/jacques&type=Date" />
+  </picture>
+</a>
 
 ---
 
 ## License
 
-MIT
+[MIT](LICENSE)
+
+---
+
+<p align="center">
+  <strong>Built for developers who run Claude Code at scale.</strong>
+</p>
