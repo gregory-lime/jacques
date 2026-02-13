@@ -1,33 +1,28 @@
 <p align="center">
-  <a href="https://www.npmjs.com/package/@jacques-ai/cli"><img src="https://img.shields.io/npm/v/@jacques-ai/cli?style=flat-square&logo=npm&logoColor=white" alt="npm version" /></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="MIT License" /></a>
+  <img src="assets/jacsub.svg" width="100" alt="Jacques" />
+</p>
+<h1 align="center">Jacques</h1>
+<p align="center">real-time Claude Code sessions manager</p>
+<p align="center">
+  <a href="https://www.npmjs.com/package/@jacques-ai/cli"><img src="https://img.shields.io/npm/v/@jacques-ai/cli?style=flat-square&logo=npm&logoColor=white" alt="npm version" /></a>&nbsp;
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="MIT License" /></a>&nbsp;
   <a href="https://github.com/gregory-lime/jacques/stargazers"><img src="https://img.shields.io/github/stars/gregory-lime/jacques?style=flat-square&logo=github" alt="GitHub stars" /></a>
 </p>
 
-<p align="center">
-  <img src="assets/jacsub.svg" width="100" alt="Jacques" />
-</p>
-
-<h1 align="center">Jacques</h1>
-
-<p align="center">real-time Claude Code sessions manager</p>
-
-<br />
+---
 
 <h3 align="center">Keeping all your active and past sessions together.</h3>
 <p align="center"><strong>Many CC instances, multiple local worktrees — won't ever be an issue again.</strong></p>
 
 <br />
 
-<div align="center">
-
-### `npx jacques setup`
-
-</div>
+```bash
+npx jacques setup
+```
 
 <p align="center">
   <sub>Single command. No global install needed. Downloads everything and runs the setup wizard.</sub><br />
-  <sub>macOS &nbsp; Linux &nbsp; Windows</sub>
+  <sub>macOS &nbsp;&nbsp; Linux &nbsp;&nbsp; Windows</sub>
 </p>
 
 <br />
