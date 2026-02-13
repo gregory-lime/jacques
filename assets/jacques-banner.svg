@@ -122,6 +122,6 @@
     <rect x="14" y="16" width="1" height="1" fill="#e7714d"/>
   </g>
   <!-- Title text, vertically centered to mascot -->
-  <text x="108" y="45" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="36" font-weight="700" fill="#e6edf3">Jacques</text>
-  <text x="108" y="68" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" fill="#9198a1">real-time Claude Code sessions manager</text>
+  <text x="108" y="50" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="36" font-weight="700" fill="#e6edf3">Jacques</text>
+  <text x="108" y="73" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" fill="#9198a1">real-time Claude Code sessions manager</text>
 </svg>
