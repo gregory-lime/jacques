@@ -1,37 +1,47 @@
 <p align="center">
-  <img src="assets/jacsub.png" width="80" alt="Jacques mascot" />
+  <br />
+  <img src="assets/jacsub.svg" width="120" alt="Jacques mascot" />
 </p>
 
 <h1 align="center">Jacques</h1>
 
 <p align="center">
-  <strong>Real-time Claude Code sessions manager</strong>
+  <strong>Real-time Claude Code sessions manager</strong><br />
+  <sub>Keeping all your active and past sessions together.</sub>
 </p>
 
 <p align="center">
   <a href="https://www.npmjs.com/package/@jacques-ai/cli"><img src="https://img.shields.io/npm/v/@jacques-ai/cli?style=for-the-badge&logo=npm&logoColor=white" alt="npm version" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=for-the-badge" alt="MIT License" /></a>
-  <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey?style=for-the-badge" alt="Platform" />
-  <img src="https://img.shields.io/badge/node-20%2B-brightgreen?style=for-the-badge&logo=node.js&logoColor=white" alt="Node 20+" />
-</p>
-
-<p align="center">
   <a href="https://github.com/gregory-lime/jacques/stargazers"><img src="https://img.shields.io/github/stars/gregory-lime/jacques?style=for-the-badge&logo=github" alt="GitHub stars" /></a>
-  <img src="https://img.shields.io/badge/TypeScript-100%25-blue?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
 </p>
 
 <p align="center">
-  <a href="#installation">Install</a> &nbsp;&bull;&nbsp;
+  macOS &nbsp;&nbsp; Linux &nbsp;&nbsp; Windows
+</p>
+
+<br />
+
+<p align="center">
+  <a href="#installation"><img src="https://img.shields.io/badge/%20npx%20jacques%20setup%20-install%20now-e86c50?style=for-the-badge&logoColor=white" alt="npx jacques setup" /></a>
+</p>
+
+<p align="center">
+  <sub>Single command. No global install needed. Downloads everything and runs the setup wizard.</sub>
+</p>
+
+<br />
+
+<p align="center">
   <a href="#what-you-get">Features</a> &nbsp;&bull;&nbsp;
   <a href="#who-is-this-for">Who Is This For</a> &nbsp;&bull;&nbsp;
   <a href="#commands">Commands</a> &nbsp;&bull;&nbsp;
   <a href="#architecture">Architecture</a> &nbsp;&bull;&nbsp;
+  <a href="#roadmap">Roadmap</a> &nbsp;&bull;&nbsp;
   <a href="#development">Development</a>
 </p>
 
 ---
-
-Keeping all your active and past Claude Code sessions together.
 
 Many CC instances, multiple local worktrees — won't ever be an issue again.
 
@@ -39,17 +49,11 @@ Many CC instances, multiple local worktrees — won't ever be an issue again.
 
 ## Installation
 
-Single command:
-
-<h3 align="center">
-
 ```
 npx jacques setup
 ```
 
-</h3>
-
-Downloads everything and runs the interactive setup wizard. No global install needed.
+That's it. One command downloads everything, builds the project, and walks you through an interactive setup wizard.
 
 <details>
 <summary><strong>Other ways to install</strong></summary>
