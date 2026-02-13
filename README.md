@@ -8,6 +8,10 @@
   <a href="https://github.com/gregory-lime/jacques/stargazers"><img src="https://img.shields.io/github/stars/gregory-lime/jacques?style=flat-square&logo=github" alt="GitHub stars" /></a>
 </p>
 
+<p align="center">
+  <img src="assets/screenshots/gui-with-claude.png" width="700" alt="Jacques GUI with Claude Code and plan editor" />
+</p>
+
 ---
 
 <h3 align="center">Keeping all your active and past sessions together.</h3>
@@ -114,7 +118,7 @@ A terminal TUI that shows real-time context usage %, session status, and plan pr
 ### Web GUI
 
 <p align="center">
-  <img src="assets/screenshots/gui-sessions.png" width="700" alt="Jacques Web GUI — Sessions" />
+  <img src="assets/screenshots/gui-sessions-clean.png" width="700" alt="Jacques Web GUI — Sessions" />
 </p>
 
 Full browser dashboard at `localhost:4243`. Browse session history, view extracted plans and subagent results, manage worktrees, launch sessions. Your entire Claude Code conversation archive — searchable.
