@@ -193,6 +193,14 @@ export const SHORTCUTS: readonly ShortcutDef[] = [
     zones: ['dashboard'],
   },
   {
+    id: 'session.deselect-all-u',
+    keys: 'u',
+    category: 'selection',
+    label: 'Clear selection',
+    description: 'Deselect all sessions',
+    zones: ['dashboard'],
+  },
+  {
     id: 'session.focus-terminal',
     keys: 'Enter',
     category: 'selection',

@@ -468,6 +468,9 @@ export function Dashboard() {
       registerAction('session.deselect-all', () => {
         setSelectedSessionIds(new Set());
       }),
+      registerAction('session.deselect-all-u', () => {
+        setSelectedSessionIds(new Set());
+      }),
       // Focus terminal (Enter) — use keyboard-focused, else fall back to selected/focused/first
       registerAction('session.focus-terminal', () => {
         const target = keyboardFocusedId || getTargetSessionId();

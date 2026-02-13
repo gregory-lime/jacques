@@ -365,8 +365,8 @@ export function useSessionsExperiment({
       return;
     }
 
-    // x — clear selection
-    if (input === "x") {
+    // x / u — clear selection (u = unselect)
+    if (input === "x" || input === "u") {
       setSelectedIds(new Set());
       return;
     }
