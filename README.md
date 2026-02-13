@@ -9,11 +9,7 @@
 </p>
 
 <p align="center">
-  <img src="assets/screenshots/cli-compact.png" width="400" alt="Jacques CLI compact view" />
-</p>
-
-<p align="center">
-  <img src="assets/screenshots/gui-with-claude.png" width="700" alt="Jacques GUI with Claude Code and plan editor" />
+  <img src="assets/screenshots/gui-with-claude.png" alt="Jacques GUI with Claude Code and plan editor" />
 </p>
 
 ---
@@ -32,7 +28,9 @@ npx jacques
   <sub>macOS &nbsp;&nbsp; Linux &nbsp;&nbsp; Windows</sub>
 </p>
 
-<br />
+<p align="center">
+  <img src="assets/screenshots/cli-compact.png" alt="Jacques CLI compact view" />
+</p>
 
 <p align="center">
   <a href="#what-you-get">Features</a> &nbsp;&bull;&nbsp;
@@ -92,7 +90,7 @@ One-click to spawn new Claude Code instances and create new worktrees per task.
 Never lose track of unfinished work on the 107th worktree you've created.
 
 <p align="center">
-  <img src="assets/screenshots/cli-and-readme.png" width="700" alt="Jacques CLI alongside GitHub README" />
+  <img src="assets/screenshots/cli-and-readme.png" alt="Jacques CLI alongside GitHub README" />
 </p>
 
 ---
@@ -107,10 +105,6 @@ Never lose track of unfinished work on the 107th worktree you've created.
 
 **13-inch MacBook, single screen** — a single CLI window will help you get the most out of limited space.
 
-<p align="center">
-  <img src="assets/screenshots/cli-compact.png" width="400" alt="Jacques CLI compact view" />
-</p>
-
 ---
 
 ## What You Get
@@ -120,7 +114,7 @@ Jacques stays simple but powerful. Inside there are a few modules and some addit
 ### CLI Dashboard
 
 <p align="center">
-  <img src="assets/screenshots/cli-dashboard.png" width="700" alt="Jacques CLI Dashboard" />
+  <img src="assets/screenshots/cli-dashboard.png" alt="Jacques CLI Dashboard" />
 </p>
 
 A terminal TUI that shows real-time context usage %, session status, and plan progress for every active Claude Code session. Keyboard-driven — focus sessions, tile terminal windows into a grid, spawn new sessions, and manage git worktrees without ever leaving the dashboard.
@@ -128,13 +122,13 @@ A terminal TUI that shows real-time context usage %, session status, and plan pr
 ### Web GUI
 
 <p align="center">
-  <img src="assets/screenshots/gui-sessions-clean.png" width="700" alt="Jacques Web GUI — Sessions" />
+  <img src="assets/screenshots/gui-sessions-clean.png" alt="Jacques Web GUI — Sessions" />
 </p>
 
 Full browser dashboard at `localhost:4243`. Browse session history, view extracted plans and subagent results, manage worktrees, launch sessions. Your entire Claude Code conversation archive — searchable.
 
 <p align="center">
-  <img src="assets/screenshots/gui-conversation.png" width="700" alt="Jacques Web GUI — Conversation View" />
+  <img src="assets/screenshots/gui-conversation.png" alt="Jacques Web GUI — Conversation View" />
 </p>
 
 ### StatusLine
@@ -158,7 +152,7 @@ The setup wizard lets you choose what to enable. Install just the lightweight CL
 ## Roadmap
 
 <p align="center">
-  <img src="assets/screenshots/full-workspace.png" width="700" alt="Jacques full workspace — CLI, setup, plans" />
+  <img src="assets/screenshots/full-workspace.png" alt="Jacques full workspace — CLI, setup, plans" />
 </p>
 
 The first release was built for a vibeathon organized by [BridgeMind](https://www.bridgemind.ai).
