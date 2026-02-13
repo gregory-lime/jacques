@@ -8,14 +8,15 @@
   <a href="https://github.com/gregory-lime/jacques/stargazers"><img src="https://img.shields.io/github/stars/gregory-lime/jacques?style=flat-square&logo=github" alt="GitHub stars" /></a>
 </p>
 
-<img src="assets/screenshots/cli-compact.png" width="100%" alt="Jacques CLI compact view" />
-
----
-
 <p align="center">
 Navigate through many CC instances and local worktrees.<br />
-Manage multiple sessions and repos. All from one single tool.
+Manage multiple sessions and repos.<br />
+All from one single tool.
 </p>
+
+<img src="assets/screenshots/cli-dashboard.png" width="100%" alt="Jacques CLI Dashboard" />
+
+---
 
 <br />
 
@@ -86,7 +87,7 @@ jacques
 
 ---
 
-## Known Issues With Working Without Jacques
+## Problems That Jacques Solves
 
 No more running blind between multiple opened terminals, tabs, worktrees and projects.
 
@@ -94,7 +95,7 @@ Everything available from inside a single app — monitor, focus, tile.
 
 One-click to spawn new Claude Code instances and create new worktrees per task.
 
-Never lose track of unfinished work on the 107th worktree you've created.
+Never lose track of uncommitted changes on the 107th worktree you've created.
 
 <p align="center">
   <img src="assets/screenshots/cli-and-readme.png" alt="Jacques CLI alongside GitHub README" />
@@ -121,7 +122,7 @@ Jacques stays simple but powerful. Inside there are a few modules and some addit
 ### CLI Dashboard
 
 <p align="center">
-  <img src="assets/screenshots/cli-dashboard.png" alt="Jacques CLI Dashboard" />
+  <img src="assets/screenshots/cli-compact.png" alt="Jacques CLI compact view" />
 </p>
 
 A terminal TUI that shows real-time context usage %, session status, and plan progress for every active Claude Code session. Keyboard-driven — focus sessions, tile terminal windows into a grid, spawn new sessions, and manage git worktrees without ever leaving the dashboard.
@@ -149,6 +150,10 @@ Full browser dashboard at `localhost:4243`. Browse session history, view extract
 ### Archive & Search
 
 Every session is auto-cataloged on exit — even if you Ctrl+C. Plans, subagent results, and session manifests are extracted and saved. Full-text search across all past conversations, filterable by project, date range, and technology.
+
+### Notifications
+
+Native OS notifications for events that matter — context thresholds (50%, 70%), plan creation, auto-compact, and handoff generation. Works across macOS (with click-to-focus), Linux, and Windows. The web GUI adds in-app toasts and a notification center with read/unread tracking. Opt-in via Settings with per-category toggles.
 
 ---
 
