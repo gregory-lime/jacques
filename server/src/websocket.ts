@@ -28,6 +28,7 @@ import { createLogger } from './logging/logger-factory.js';
 export interface WebSocketServerConfig {
   port: number;
   onClientMessage?: (ws: WebSocket, message: ClientMessage) => void;
+  onClientDisconnect?: (ws: WebSocket) => void;
   /** Suppress console output */
   silent?: boolean;
   /** Optional logger for dependency injection */
@@ -57,9 +58,12 @@ export class JacquesWebSocketServer {
   private heartbeatInterval: NodeJS.Timeout | null = null;
   private aliveClients = new WeakSet<WebSocket>();
 
+  private onClientDisconnect?: (ws: WebSocket) => void;
+
   constructor(config: WebSocketServerConfig) {
     this.port = config.port;
     this.onClientMessage = config.onClientMessage;
+    this.onClientDisconnect = config.onClientDisconnect;
     // Support both old silent flag and new logger injection
     this.logger = config.logger ?? createLogger({ silent: config.silent });
   }
@@ -143,6 +147,9 @@ export class JacquesWebSocketServer {
     ws.on('close', () => {
       this.log('[WebSocket] Client disconnected');
       this.clients.delete(ws);
+      if (this.onClientDisconnect) {
+        this.onClientDisconnect(ws);
+      }
     });
 
     ws.on('error', (err) => {
@@ -194,6 +201,7 @@ export class JacquesWebSocketServer {
    * Broadcast session removed
    */
   broadcastSessionRemoved(sessionId: string): void {
+    this.log(`[WebSocket] Broadcasting session_removed: ${sessionId} to ${this.clients.size} clients`);
     const message: SessionRemovedMessage = {
       type: 'session_removed',
       session_id: sessionId,

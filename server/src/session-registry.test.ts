@@ -698,6 +698,109 @@ describe('SessionRegistry', () => {
       expect(registry.getSessionCount()).toBe(1);
     });
 
+    it('should remove AUTO session in same CWD when new session starts', () => {
+      // Auto-register via context_update (gets AUTO: key, no PID)
+      registry.updateContext({
+        event: 'context_update',
+        timestamp: Date.now(),
+        session_id: 'auto-cwd-session',
+        used_percentage: 50,
+        remaining_percentage: 50,
+        context_window_size: 200000,
+        model: 'claude-opus-4-1',
+        cwd: '/Users/test/project',
+      });
+      expect(registry.hasSession('auto-cwd-session')).toBe(true);
+      expect(registry.getSession('auto-cwd-session')!.terminal_key).toMatch(/^AUTO:/);
+
+      // New session starts in same CWD (after /clear)
+      const event: SessionStartEvent = {
+        event: 'session_start',
+        timestamp: Date.now() + 1000,
+        session_id: 'new-session',
+        session_title: 'After Clear',
+        transcript_path: null,
+        cwd: '/Users/test/project',
+        project: 'project',
+        terminal: { tty: '/dev/ttys001', terminal_pid: 99999, term_program: null, iterm_session_id: null, term_session_id: null, kitty_window_id: null, wezterm_pane: null, vscode_injection: null, windowid: null, term: null },
+        terminal_key: 'TTY:/dev/ttys001',
+      };
+      registry.registerSession(event);
+
+      expect(registry.hasSession('auto-cwd-session')).toBe(false);
+      expect(registry.hasSession('new-session')).toBe(true);
+      expect(registry.getSessionCount()).toBe(1);
+    });
+
+    it('should remove TERM-keyed session when new TERM-keyed session starts', () => {
+      // Register first session with TERM key
+      const event1: SessionStartEvent = {
+        event: 'session_start',
+        timestamp: Date.now(),
+        session_id: 'old-term-session',
+        session_title: 'Old Session',
+        transcript_path: null,
+        cwd: '/test',
+        project: 'test',
+        terminal: null,
+        terminal_key: 'TERM:ABC123-DEF456',
+      };
+      registry.registerSession(event1);
+      expect(registry.hasSession('old-term-session')).toBe(true);
+
+      // New session with same TERM key (after /clear)
+      const event2: SessionStartEvent = {
+        event: 'session_start',
+        timestamp: Date.now() + 1000,
+        session_id: 'new-term-session',
+        session_title: 'New Session',
+        transcript_path: null,
+        cwd: '/test',
+        project: 'test',
+        terminal: null,
+        terminal_key: 'TERM:ABC123-DEF456',
+      };
+      registry.registerSession(event2);
+
+      expect(registry.hasSession('old-term-session')).toBe(false);
+      expect(registry.hasSession('new-term-session')).toBe(true);
+      expect(registry.getSessionCount()).toBe(1);
+    });
+
+    it('should not remove AUTO session from different CWD', () => {
+      // Auto-register in project A
+      registry.updateContext({
+        event: 'context_update',
+        timestamp: Date.now(),
+        session_id: 'auto-project-a',
+        used_percentage: 50,
+        remaining_percentage: 50,
+        context_window_size: 200000,
+        model: 'claude-opus-4-1',
+        cwd: '/Users/test/project-a',
+      });
+      expect(registry.hasSession('auto-project-a')).toBe(true);
+
+      // New session starts in project B (different CWD)
+      const event: SessionStartEvent = {
+        event: 'session_start',
+        timestamp: Date.now() + 1000,
+        session_id: 'new-project-b',
+        session_title: 'Project B',
+        transcript_path: null,
+        cwd: '/Users/test/project-b',
+        project: 'project-b',
+        terminal: null,
+        terminal_key: 'TTY:/dev/ttys002',
+      };
+      registry.registerSession(event);
+
+      // Both should coexist — different CWDs
+      expect(registry.hasSession('auto-project-a')).toBe(true);
+      expect(registry.hasSession('new-project-b')).toBe(true);
+      expect(registry.getSessionCount()).toBe(2);
+    });
+
     it('should not remove sessions from different terminals', () => {
       // Register session in terminal 1
       const event1: SessionStartEvent = {

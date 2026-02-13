@@ -9,6 +9,7 @@ import { WindowHandler } from './window-handler.js';
 import { SessionRegistry } from '../session-registry.js';
 import { createLogger } from '../logging/logger-factory.js';
 import type { TileStateManager } from '../window-manager/tile-state.js';
+import type { DashboardRegistry } from '../window-manager/dashboard-registry.js';
 import type { WebSocket } from 'ws';
 import type {
   SessionStartEvent,
@@ -71,6 +72,7 @@ describe('WindowHandler', () => {
     handler = new WindowHandler({
       registry,
       tileStateManager: new MockTileStateManager() as unknown as TileStateManager,
+      dashboardRegistry: { getTerminalKey: () => null, register: () => {}, unregister: () => {} } as unknown as DashboardRegistry,
       logger: silentLogger,
     });
   });

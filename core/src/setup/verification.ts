@@ -6,6 +6,7 @@ import { existsSync, readFileSync, readlinkSync } from "fs";
 import { homedir } from "os";
 import { join } from "path";
 import type { SetupOptions, VerificationResult } from "./types.js";
+import { hasJacquesConfigured } from "./settings-merge.js";
 
 /**
  * Run all verification checks after installation.
@@ -94,4 +95,33 @@ export function verifyInstallation(options: SetupOptions): VerificationResult[] 
   }
 
   return results;
+}
+
+/**
+ * Quick check: is Jacques minimally configured?
+ *
+ * Checks:
+ * 1. ~/.jacques/hooks symlink exists
+ * 2. ~/.claude/settings.json has Jacques hooks configured
+ *
+ * Used by the CLI to gate dashboard startup on first run.
+ */
+export function isSetupComplete(): boolean {
+  const hooksSymlink = join(homedir(), ".jacques", "hooks");
+  if (!existsSync(hooksSymlink)) {
+    return false;
+  }
+
+  const settingsPath = join(homedir(), ".claude", "settings.json");
+  if (!existsSync(settingsPath)) {
+    return false;
+  }
+
+  try {
+    const content = readFileSync(settingsPath, "utf8");
+    const settings = JSON.parse(content);
+    return hasJacquesConfigured(settings);
+  } catch {
+    return false;
+  }
 }

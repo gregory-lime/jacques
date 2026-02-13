@@ -6,10 +6,15 @@ import React from "react";
 import { render } from "ink";
 import { SetupWizard } from "../components/setup/SetupWizard.js";
 
+export interface SetupCommandOptions {
+  /** If true, return after setup completes instead of calling process.exit(0). */
+  returnAfterComplete?: boolean;
+}
+
 /**
  * Start the interactive setup wizard
  */
-export async function startSetup(): Promise<void> {
+export async function startSetup(options: SetupCommandOptions = {}): Promise<void> {
   // Check TTY
   const isTTY = process.stdin.isTTY && process.stdout.isTTY;
   if (!isTTY) {
@@ -29,7 +34,12 @@ export async function startSetup(): Promise<void> {
   } finally {
     // Exit alternate screen buffer
     process.stdout.write("\x1b[?1049l");
-    console.log("\nJacques setup complete.");
-    process.exit(0);
+
+    if (options.returnAfterComplete) {
+      console.log("\nSetup complete. Starting dashboard...\n");
+    } else {
+      console.log("\nJacques setup complete.");
+      process.exit(0);
+    }
   }
 }

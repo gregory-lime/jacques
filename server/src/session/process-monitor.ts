@@ -38,6 +38,7 @@ export class ProcessMonitor {
 
   // CWDs where a session was launched with --dangerously-skip-permissions
   private pendingBypassCwds = new Set<string>();
+  private pendingBypassTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   constructor(options: ProcessMonitorOptions) {
     this.callbacks = options.callbacks;
@@ -289,6 +290,11 @@ export class ProcessMonitor {
       clearInterval(this.processVerifyInterval);
       this.processVerifyInterval = null;
     }
+    // Clear all pending bypass timers
+    for (const timer of this.pendingBypassTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.pendingBypassTimers.clear();
   }
 
   /**
@@ -299,9 +305,14 @@ export class ProcessMonitor {
     const normalized = cwd.replace(/\/+$/, '');
     this.pendingBypassCwds.add(normalized);
     this.log(`[Registry] Marked pending bypass for: ${normalized}`);
-    setTimeout(() => {
+    // Clear any existing timer for this CWD before scheduling a new one
+    const existing = this.pendingBypassTimers.get(normalized);
+    if (existing) clearTimeout(existing);
+    const timer = setTimeout(() => {
       this.pendingBypassCwds.delete(normalized);
+      this.pendingBypassTimers.delete(normalized);
     }, 60_000);
+    this.pendingBypassTimers.set(normalized, timer);
   }
 
   /**
@@ -311,6 +322,12 @@ export class ProcessMonitor {
     const normalized = cwd.replace(/\/+$/, '');
     if (this.pendingBypassCwds.has(normalized)) {
       this.pendingBypassCwds.delete(normalized);
+      // Cancel the expiry timer since we consumed it
+      const timer = this.pendingBypassTimers.get(normalized);
+      if (timer) {
+        clearTimeout(timer);
+        this.pendingBypassTimers.delete(normalized);
+      }
       return true;
     }
     return false;

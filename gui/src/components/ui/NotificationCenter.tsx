@@ -169,17 +169,33 @@ function NotificationRow({
       }}
       onClick={onClick}
     >
-      {/* Priority dot */}
-      <span
+      {/* Mascot with priority ring */}
+      <div
         style={{
-          width: 6,
-          height: 6,
-          borderRadius: '50%',
-          backgroundColor: PRIORITY_COLORS[notification.priority],
+          width: 20,
+          height: 20,
+          borderRadius: 5,
+          border: `2px solid ${PRIORITY_COLORS[notification.priority]}`,
           flexShrink: 0,
-          marginTop: 5,
+          marginTop: 2,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden',
         }}
-      />
+      >
+        <img
+          src="/jacsub.svg"
+          alt=""
+          style={{
+            width: 16,
+            height: 16,
+            objectFit: 'contain' as const,
+            filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.3))',
+          }}
+          draggable={false}
+        />
+      </div>
 
       {/* Content */}
       <div style={{ flex: 1, minWidth: 0 }}>

@@ -17,6 +17,8 @@ import { validateTileStateWithBounds, validateTileStateBySessions } from '../win
 import { planSmartTileTransition, findFreeSpace } from '../window-manager/smart-layouts.js';
 import type { ExistingSlot } from '../window-manager/smart-layouts.js';
 import { launchTerminalSession } from '../terminal-launcher.js';
+import { activateTerminal, raiseTerminal } from '../terminal-activator.js';
+import type { DashboardRegistry } from '../window-manager/dashboard-registry.js';
 import type {
   TileWindowsRequest,
   TileWindowsResultMessage,
@@ -26,23 +28,53 @@ import type {
   PositionBrowserLayoutResultMessage,
   SmartTileAddRequest,
   SmartTileAddResultMessage,
+  RegisterDashboardRequest,
 } from '../types.js';
 
 export interface WindowHandlerDeps {
   registry: SessionRegistry;
   tileStateManager: TileStateManager;
+  dashboardRegistry: DashboardRegistry;
   logger: Logger;
 }
 
 export class WindowHandler {
   private registry: SessionRegistry;
   private tileStateManager: TileStateManager;
+  private dashboardRegistry: DashboardRegistry;
   private logger: Logger;
 
   constructor(deps: WindowHandlerDeps) {
     this.registry = deps.registry;
     this.tileStateManager = deps.tileStateManager;
+    this.dashboardRegistry = deps.dashboardRegistry;
     this.logger = deps.logger;
+  }
+
+  handleRegisterDashboard(ws: WebSocket, request: RegisterDashboardRequest): void {
+    this.dashboardRegistry.register(request.terminal_key, ws);
+    // Use console.log directly — this.logger is a no-op in embedded/silent mode,
+    // but the log interceptor still captures console.log for GUI broadcast
+    console.log(`[Window] Dashboard registered: ${request.terminal_key}`);
+  }
+
+  handleUnregisterDashboard(ws: WebSocket): void {
+    this.dashboardRegistry.unregister(ws);
+    this.logger.log('[Window] Dashboard unregistered');
+  }
+
+  /**
+   * Raise the dashboard terminal to the front after tiling.
+   */
+  private async raiseDashboardAfterTile(): Promise<void> {
+    const dashboardKey = this.dashboardRegistry.getTerminalKey();
+    if (!dashboardKey) return;
+
+    // Small delay to let the last tiling position settle
+    await new Promise(resolve => setTimeout(resolve, 150));
+
+    const result = await raiseTerminal(dashboardKey);
+    this.logger.log(`[Window] Dashboard raise: success=${result.success} method=${result.method}${result.error ? ` error=${result.error}` : ''}`);
   }
 
   async handleTileWindows(ws: WebSocket, request: TileWindowsRequest): Promise<void> {
@@ -138,6 +170,9 @@ export class WindowHandler {
             })
             .filter((s): s is { terminalKey: string; sessionId: string } => s !== null);
           this.tileStateManager.buildFromManualTile(tileDisplay.id, tileDisplay.workArea, sessions);
+
+          // Raise dashboard to front after tiling
+          await this.raiseDashboardAfterTile();
         }
       } else {
         this.logger.log(`Partial tile: ${result.positioned}/${result.total} windows positioned`);
@@ -536,6 +571,9 @@ export class WindowHandler {
           await manager.positionWindow(session.terminal_key, targetBounds);
         }
       }
+
+      // Raise dashboard to front after tiling
+      await this.raiseDashboardAfterTile();
 
       sendWsResponse<SmartTileAddResultMessage>(ws, {
         type: 'smart_tile_add_result',

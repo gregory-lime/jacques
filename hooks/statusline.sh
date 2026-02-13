@@ -165,19 +165,26 @@ fi
 
 # Capture terminal identity for focus detection
 iterm_session_id="${ITERM_SESSION_ID:-}"
-term_session_id="${TERM_SESSION_ID:-}"
 kitty_window_id="${KITTY_WINDOW_ID:-}"
+wezterm_pane="${WEZTERM_PANE:-}"
+wt_session="${WT_SESSION:-}"
+term_session_id="${TERM_SESSION_ID:-}"
 terminal_pid="$PPID"
 
-# Build terminal_key (same logic as jacques-register-session.py)
+# Build terminal_key (canonical order: ITERM > KITTY > WEZTERM > WT > TERM > TTY > PID)
+# Matches server's buildTerminalKey in terminal-key.ts
 if [ -n "$iterm_session_id" ]; then
   terminal_key="ITERM:$iterm_session_id"
 elif [ -n "$kitty_window_id" ]; then
   terminal_key="KITTY:$kitty_window_id"
+elif [ -n "$wezterm_pane" ]; then
+  terminal_key="WEZTERM:$wezterm_pane"
+elif [ -n "$wt_session" ]; then
+  terminal_key="WT:$wt_session"
 elif [ -n "$term_session_id" ]; then
   terminal_key="TERM:$term_session_id"
 else
-  # Fallback: TTY or PID (matches Python adapter's priority)
+  # Fallback: TTY or PID
   tty_path=$(tty 2>/dev/null)
   if [ -n "$tty_path" ] && [ "$tty_path" != "not a tty" ]; then
     terminal_key="TTY:$tty_path"

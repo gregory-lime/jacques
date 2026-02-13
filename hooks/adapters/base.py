@@ -364,7 +364,8 @@ class BaseAdapter(ABC):
         """
         Build a unique key for this terminal instance.
 
-        Priority: iTerm > Kitty > WezTerm > Windows Terminal > TTY > PID
+        Priority: ITERM > KITTY > WEZTERM > WT > TERM > TTY > PID
+        (matches server's buildTerminalKey in terminal-key.ts)
         """
         if terminal.get("iterm_session_id"):
             return f"ITERM:{terminal['iterm_session_id']}"
@@ -374,6 +375,8 @@ class BaseAdapter(ABC):
             return f"WEZTERM:{terminal['wezterm_pane']}"
         if terminal.get("wt_session"):
             return f"WT:{terminal['wt_session']}"
+        if terminal.get("term_session_id"):
+            return f"TERM:{terminal['term_session_id']}"
         if terminal.get("tty"):
             return f"TTY:{terminal['tty']}"
         if terminal.get("terminal_pid"):

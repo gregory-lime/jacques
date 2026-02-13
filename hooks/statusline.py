@@ -448,6 +448,7 @@ def main():
             'bug_threshold': ac['bug_threshold'],
         },
         'terminal_key': terminal_key,
+        'terminal_pid': os.getppid(),
         'session_title': session_title,
         'transcript_path': transcript_path,
         'git_branch': git_info['git_branch'],

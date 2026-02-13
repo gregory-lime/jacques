@@ -117,14 +117,21 @@ def get_terminal_identity() -> dict:
 
 
 def build_terminal_key(terminal: dict) -> str:
-    """Build a unique key for this terminal instance."""
-    # Priority: iTerm session ID > Kitty > WezTerm > TTY > PID
+    """Build a unique key for this terminal instance.
+
+    Priority: ITERM > KITTY > WEZTERM > WT > TERM > TTY > PID
+    (matches server's buildTerminalKey in terminal-key.ts)
+    """
     if terminal.get("iterm_session_id"):
         return f"ITERM:{terminal['iterm_session_id']}"
     if terminal.get("kitty_window_id"):
         return f"KITTY:{terminal['kitty_window_id']}"
     if terminal.get("wezterm_pane"):
         return f"WEZTERM:{terminal['wezterm_pane']}"
+    if terminal.get("wt_session"):
+        return f"WT:{terminal['wt_session']}"
+    if terminal.get("term_session_id"):
+        return f"TERM:{terminal['term_session_id']}"
     if terminal.get("tty"):
         return f"TTY:{terminal['tty']}"
     if terminal.get("terminal_pid"):

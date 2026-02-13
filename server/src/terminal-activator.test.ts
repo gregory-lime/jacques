@@ -6,7 +6,8 @@
  * and tested via manual verification.
  */
 
-import { activateTerminal, extractItermUuid } from './terminal-activator.js';
+import { activateTerminal } from './terminal-activator.js';
+import { extractItermUuid } from './connection/index.js';
 
 describe('activateTerminal', () => {
   describe('prefix parsing', () => {

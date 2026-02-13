@@ -126,6 +126,23 @@ All loggers are **silent by default** (`createLogger()` returns no-op). Server c
 **Problem**: When another Jacques server is already listening, the thrown error has `code: undefined` (not `EADDRINUSE`) and only carries a message string. The CLI showed a misleading "Warning: Could not start embedded server" message.
 **Solution**: Check both `error.code === 'EADDRINUSE'` and `error.message` containing "already" or "listening" (`cli.ts`)
 
+### Ghost Sessions After /clear (Client-Side Race Condition)
+**Problem**: After `/clear` in Claude Code, the old session persists alongside the new one in the CLI/GUI session list (2 sessions instead of 1). The server correctly removes the stale session and broadcasts `session_removed`, but a late `session_update` or `focus_changed` event arrives after the removal — and the React state handler re-adds the session because it no longer exists in the array.
+**Root cause**: In `useJacquesClient.ts`, the `session_update` handler checks `if (index >= 0) { update } else { add new }`. After `session_removed` fires and filters the session out, a queued `session_update` or `focus_changed` arrives, finds no match (index < 0), and re-adds the removed session as if it were new.
+**Solution**: Added `recentlyRemovedRef` (`useRef<Set<string>>`) in both `cli/src/hooks/useJacquesClient.ts` and `gui/src/hooks/useJacquesClient.ts`. On `session_removed`, the session ID is added to the set with a 10-second TTL. The `session_update` and `focus_changed` handlers skip sessions in this set, preventing ghost re-addition.
+
+### Stale Session Detection Strategies
+**Problem**: When a new session registers from the same terminal (e.g., after `/clear`), the server must identify and remove the old session. Different registration paths produce different terminal key formats (`ITERM:`, `DISCOVERED:`, `AUTO:`, etc.), making exact-match comparison insufficient.
+**Solution**: `isStaleSessionForNewRegistration()` uses three strategies in order:
+1. **Terminal key matching** (`matchTerminalKeys()`): Smart cross-format matching (e.g., `ITERM:w0t0p0:UUID` matches `DISCOVERED:ITERM:UUID`)
+2. **PID matching**: If the new session's `terminal_pid` matches an existing session's PID
+3. **CWD matching for AUTO: sessions**: If the existing session has an `AUTO:` prefix key and the CWDs match (trailing slash normalized)
+
+### Terminal Key Priority Must Be Consistent Across All Scripts
+**Problem**: Five different scripts build terminal keys (`terminal-key.ts`, `base.py`, `statusline.py`, `statusline.sh`, `jacques-register-session.py`). If the priority order differs, sessions from the same terminal get different keys and stale detection fails.
+**Canonical order**: `ITERM > KITTY > WEZTERM > WT > TERM > TTY > PID`
+**Solution**: Aligned all five scripts to the same priority order. Always check all scripts when adding a new terminal type.
+
 ## Known Bugs & Workarounds
 
 ### Claude Code Bug #18264

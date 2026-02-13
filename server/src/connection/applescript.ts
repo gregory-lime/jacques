@@ -13,6 +13,9 @@ import { promisify } from 'util';
 const execAsync = promisify(execCb);
 const execFileAsync = promisify(execFileCb);
 
+/** Default timeout for osascript calls (ms) — prevents hung processes */
+const APPLESCRIPT_TIMEOUT_MS = 5_000;
+
 /**
  * Escape single quotes in AppleScript for shell execution.
  *
@@ -48,12 +51,13 @@ export async function runAppleScript(
   script: string,
   language: 'AppleScript' | 'JavaScript' = 'AppleScript'
 ): Promise<string> {
+  const opts = { timeout: APPLESCRIPT_TIMEOUT_MS };
   if (language === 'JavaScript') {
     // Use execFile to avoid shell injection with complex JXA scripts
-    const { stdout } = await execFileAsync('osascript', ['-l', 'JavaScript', '-e', script]);
+    const { stdout } = await execFileAsync('osascript', ['-l', 'JavaScript', '-e', script], opts);
     return stdout.trim();
   }
-  const { stdout } = await execAsync(`osascript -e '${escapeAppleScript(script)}'`);
+  const { stdout } = await execAsync(`osascript -e '${escapeAppleScript(script)}'`, opts);
   return stdout.trim();
 }
 

@@ -11,6 +11,8 @@ import { fileURLToPath } from "url";
 import { App } from "../components/App.js";
 import { startEmbeddedServer } from "@jacques-ai/server";
 import type { EmbeddedServer } from "@jacques-ai/server";
+import { isSetupComplete } from "@jacques-ai/core/setup";
+import { startSetup } from "./setup.js";
 
 // Embedded server instance
 let embeddedServer: EmbeddedServer | null = null;
@@ -46,6 +48,17 @@ async function showStartupAnimation(): Promise<void> {
  * Start the interactive dashboard using Ink
  */
 export async function startDashboard(): Promise<void> {
+  // Setup completeness gate — first-time users must run setup wizard
+  if (!isSetupComplete()) {
+    console.log("Jacques is not yet configured. Starting setup wizard...\n");
+    await startSetup({ returnAfterComplete: true });
+
+    if (!isSetupComplete()) {
+      console.log("Setup did not complete successfully. Run 'jacques setup' to try again.");
+      process.exit(1);
+    }
+  }
+
   // Auto-rebuild GUI if source is newer than dist
   const __cli_filename = fileURLToPath(import.meta.url);
   const __cli_dirname = dirname(__cli_filename);

@@ -163,6 +163,7 @@ export function startFocusWatcher(
 
   let lastTerminalKey: string | null = null;
   let isRunning = true;
+  let pendingTimeout: ReturnType<typeof setTimeout> | null = null;
   // Poll slower when no terminal is focused (non-terminal app in foreground)
   const idleMultiplier = 3;
 
@@ -173,6 +174,10 @@ export function startFocusWatcher(
 
     try {
       const focusInfo = await getTerminalFocusInfo();
+
+      // Bail out if stopped during the async call above
+      if (!isRunning) return;
+
       const terminalKey = focusInfo ? buildTerminalKeyFromFocus(focusInfo) : null;
       const allKeys = focusInfo ? buildTerminalKeysFromFocus(focusInfo) : [];
 
@@ -199,7 +204,7 @@ export function startFocusWatcher(
     }
 
     if (isRunning) {
-      setTimeout(poll, nextDelay);
+      pendingTimeout = setTimeout(poll, nextDelay);
     }
   };
 
@@ -210,6 +215,10 @@ export function startFocusWatcher(
   return {
     stop: () => {
       isRunning = false;
+      if (pendingTimeout) {
+        clearTimeout(pendingTimeout);
+        pendingTimeout = null;
+      }
       log('[FocusWatcher] Stopped');
     }
   };

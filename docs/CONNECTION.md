@@ -138,6 +138,37 @@ Bypass is orthogonal to mode (plan/exec). The GUI shows:
 
 This ensures plan mode (more important for workflow) is always visible alongside the bypass indicator.
 
+## Stale Session Detection
+
+When a new session registers (e.g., after `/clear`), the server must detect and remove the old session from the same terminal. This is handled by `isStaleSessionForNewRegistration()` in `session-registry.ts`.
+
+### Detection Strategies
+
+Three strategies are applied in order:
+
+1. **Terminal key matching** — `matchTerminalKeys()` from `terminal-key.ts` handles cross-format comparison:
+   - `ITERM:w0t0p0:UUID` matches `ITERM:UUID` (env vs AppleScript format)
+   - `DISCOVERED:TTY:ttys001:PID` matches `TTY:/dev/ttys001` (discovered vs hook format)
+   - Strips `DISCOVERED:` and `AUTO:` prefixes before comparing
+
+2. **PID matching** — If the new event includes `terminal_pid` (from `os.getppid()` in hooks), it's compared against the existing session's stored PID. Covers cases where terminal keys differ but the parent process is the same.
+
+3. **CWD matching for AUTO: sessions** — If the existing session has an `AUTO:` terminal key (auto-registered from `context_update` before `SessionStart` hook fired) and both sessions share the same `cwd` (trailing slashes normalized), the old session is considered stale. This handles the case where no terminal identity or PID is available.
+
+### Client-Side Ghost Prevention
+
+Even with correct server-side detection, a race condition can cause ghost sessions in the CLI/GUI:
+
+1. Server removes stale session → broadcasts `session_removed`
+2. A queued `session_update` or `focus_changed` arrives after removal
+3. Client handler sees the session isn't in the list → adds it back as "new"
+
+**Fix**: Both `cli/src/hooks/useJacquesClient.ts` and `gui/src/hooks/useJacquesClient.ts` maintain a `recentlyRemovedRef` set. Session IDs are tracked for 10 seconds after removal. The `session_update` and `focus_changed` handlers skip sessions in this set.
+
+### Recently-Ended Guard
+
+The server also maintains a `wasRecentlyEnded` set (30-second TTL) in `CleanupService`. When a session ends via `SessionEnd` hook, its ID is tracked to prevent immediate re-registration from a late `context_update` event.
+
 ## Focus Tracking
 
 macOS only. Polls the focused terminal app and maps it to a session.

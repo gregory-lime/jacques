@@ -42,6 +42,8 @@ import type {
   RemoveWorktreeRequest,
 } from './types.js';
 import { TileStateManager } from './window-manager/tile-state.js';
+import { DashboardRegistry } from './window-manager/dashboard-registry.js';
+import type { RegisterDashboardRequest } from './types.js';
 import { ChatService } from './services/chat-service.js';
 import { WebSocket } from 'ws';
 import { ClaudeOperationLogger } from '@jacques-ai/core';
@@ -86,6 +88,7 @@ export async function startEmbeddedServer(
 
   // Initialize core components
   const tileStateManager = new TileStateManager();
+  const dashboardRegistry = new DashboardRegistry();
   const registry = new SessionRegistry({
     silent,
     // Trigger catalog extraction when a session is removed (Ctrl+C, crash, etc.)
@@ -131,6 +134,9 @@ export async function startEmbeddedServer(
   const wsServer = new JacquesWebSocketServer({
     port: wsPort,
     onClientMessage: handleClientMessage,
+    onClientDisconnect: (ws: WebSocket) => {
+      dashboardRegistry.unregister(ws);
+    },
     silent,
   });
 
@@ -204,7 +210,7 @@ export async function startEmbeddedServer(
   });
 
   // Create domain handlers
-  const windowHandler = new WindowHandler({ registry, tileStateManager, logger });
+  const windowHandler = new WindowHandler({ registry, tileStateManager, dashboardRegistry, logger });
   const worktreeHandler = new WorktreeHandler({ registry, tileStateManager, logger });
   const sessionHandler = new SessionHandler({ registry, logger });
   const settingsHandler = new SettingsHandler({ registry, wsServer, notificationService, logger });
@@ -279,6 +285,12 @@ export async function startEmbeddedServer(
         break;
       case 'smart_tile_add':
         windowHandler.handleSmartTileAdd(ws, message as SmartTileAddRequest);
+        break;
+      case 'register_dashboard':
+        windowHandler.handleRegisterDashboard(ws, message as RegisterDashboardRequest);
+        break;
+      case 'unregister_dashboard':
+        windowHandler.handleUnregisterDashboard(ws);
         break;
 
       // Worktree

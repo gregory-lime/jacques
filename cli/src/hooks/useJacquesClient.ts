@@ -6,8 +6,34 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { execSync } from 'child_process';
 import { JacquesClient } from '@jacques-ai/core';
 import type { Session, WorktreeWithStatus } from '@jacques-ai/core';
+
+/**
+ * Build a terminal key identifying the CLI's terminal window.
+ * Used to register as the dashboard so the server can raise it after tiling.
+ */
+function buildDashboardTerminalKey(): string | null {
+  // Prefer iTerm session ID (most precise)
+  const itermSession = process.env.ITERM_SESSION_ID;
+  if (itermSession) {
+    return `ITERM:${itermSession}`;
+  }
+
+  // Try TTY path
+  if (process.stdout.isTTY) {
+    try {
+      const tty = execSync('tty', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim();
+      if (tty && tty.startsWith('/dev/')) {
+        return `TTY:${tty.replace('/dev/', '')}:${process.pid}`;
+      }
+    } catch { /* tty command may fail in some environments */ }
+  }
+
+  // Fallback to PID
+  return `PID:${process.pid}`;
+}
 
 const SERVER_URL = process.env.JACQUES_SERVER_URL || 'ws://localhost:4242';
 
@@ -98,6 +124,8 @@ export function useJacquesClient(): UseJacquesClientReturn {
   const [worktreesByRepo, setWorktreesByRepo] = useState<Map<string, WorktreeWithStatus[]>>(new Map());
   const [removeWorktreeResult, setRemoveWorktreeResult] = useState<RemoveWorktreeResult | null>(null);
   const clientRef = useRef<JacquesClient | null>(null);
+  const recentlyRemovedRef = useRef<Set<string>>(new Set());
+  const removalTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   useEffect(() => {
     const jacquesClient = new JacquesClient(SERVER_URL, { silent: true });
@@ -105,6 +133,11 @@ export function useJacquesClient(): UseJacquesClientReturn {
     // Event handlers
     jacquesClient.on('connected', () => {
       setConnected(true);
+      // Register as dashboard so server raises this window after tiling
+      const terminalKey = buildDashboardTerminalKey();
+      if (terminalKey) {
+        jacquesClient.send({ type: 'register_dashboard', terminal_key: terminalKey } as any);
+      }
     });
 
     jacquesClient.on('disconnected', () => {
@@ -126,6 +159,10 @@ export function useJacquesClient(): UseJacquesClientReturn {
 
     jacquesClient.on('session_update', (session: Session) => {
       setSessions(prev => {
+        // Don't re-add sessions that were recently removed (race: late update after removal)
+        if (recentlyRemovedRef.current.has(session.session_id)) {
+          return prev;
+        }
         const index = prev.findIndex(s => s.session_id === session.session_id);
         let newSessions: Session[];
         if (index >= 0) {
@@ -141,6 +178,16 @@ export function useJacquesClient(): UseJacquesClientReturn {
     });
 
     jacquesClient.on('session_removed', (sessionId: string) => {
+      // Track recently removed sessions to prevent re-addition from late session_update events
+      recentlyRemovedRef.current.add(sessionId);
+      const existingTimer = removalTimersRef.current.get(sessionId);
+      if (existingTimer) clearTimeout(existingTimer);
+      const timer = setTimeout(() => {
+        recentlyRemovedRef.current.delete(sessionId);
+        removalTimersRef.current.delete(sessionId);
+      }, 10000);
+      removalTimersRef.current.set(sessionId, timer);
+
       setSessions(prev => prev.filter(s => s.session_id !== sessionId));
       setFocusedSessionId(prev => {
         if (prev === sessionId) {
@@ -158,6 +205,10 @@ export function useJacquesClient(): UseJacquesClientReturn {
       // Also update the session in our local state with fresh data
       if (session) {
         setSessions(prev => {
+          // Don't re-add sessions that were recently removed
+          if (recentlyRemovedRef.current.has(session.session_id)) {
+            return prev;
+          }
           const index = prev.findIndex(s => s.session_id === session.session_id);
           if (index >= 0) {
             const newSessions = [...prev];
@@ -264,6 +315,11 @@ export function useJacquesClient(): UseJacquesClientReturn {
       if (jacquesClient.getIsConnected()) {
         jacquesClient.disconnect();
       }
+      // Clear all pending removal timers
+      for (const timer of removalTimersRef.current.values()) {
+        clearTimeout(timer);
+      }
+      removalTimersRef.current.clear();
     };
   }, []);
 

@@ -906,6 +906,23 @@ export interface SmartTileAddResultMessage {
 }
 
 /**
+ * Register this client's terminal as the Jacques dashboard.
+ * After tiling, the dashboard window is raised to the front (z-order)
+ * so it stays visible on top of the tiled Claude Code sessions.
+ */
+export interface RegisterDashboardRequest {
+  type: 'register_dashboard';
+  terminal_key: string;
+}
+
+/**
+ * Unregister this client's terminal as the dashboard.
+ */
+export interface UnregisterDashboardRequest {
+  type: 'unregister_dashboard';
+}
+
+/**
  * Union type for all client → server messages
  */
 export type ClientMessage =
@@ -924,7 +941,9 @@ export type ClientMessage =
   | SmartTileAddRequest
   | UpdateNotificationSettingsRequest
   | ChatSendRequest
-  | ChatAbortRequest;
+  | ChatAbortRequest
+  | RegisterDashboardRequest
+  | UnregisterDashboardRequest;
 
 // ============================================================
 // Configuration

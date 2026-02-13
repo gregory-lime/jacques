@@ -35,4 +35,4 @@ export { createJacquesDir, setupHooksSymlink } from "./hooks-symlink.js";
 
 export { installSkills, skillsAlreadyInstalled } from "./skills-install.js";
 
-export { verifyInstallation } from "./verification.js";
+export { verifyInstallation, isSetupComplete } from "./verification.js";

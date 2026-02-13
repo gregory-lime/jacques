@@ -416,6 +416,8 @@ function useJacquesClientInternal(): UseJacquesClientReturn {
   const createWorktreeCallbackRef = useRef<((success: boolean, worktreePath?: string, branch?: string, sessionLaunched?: boolean, launchMethod?: string, error?: string) => void) | null>(null);
   const listWorktreesCallbackRef = useRef<((success: boolean, worktrees?: WorktreeWithStatus[], error?: string) => void) | null>(null);
   const removeWorktreeCallbackRef = useRef<((success: boolean, worktreePath?: string, branchDeleted?: boolean, error?: string) => void) | null>(null);
+  const recentlyRemovedRef = useRef<Set<string>>(new Set());
+  const removalTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const clientRef = useRef<BrowserJacquesClient | null>(null);
 
   useEffect(() => {
@@ -444,6 +446,10 @@ function useJacquesClientInternal(): UseJacquesClientReturn {
 
     jacquesClient.onSessionUpdate = (session: Session) => {
       setSessions(prev => {
+        // Don't re-add sessions that were recently removed (race: late update after removal)
+        if (recentlyRemovedRef.current.has(session.session_id)) {
+          return prev;
+        }
         const index = prev.findIndex(s => s.session_id === session.session_id);
         let newSessions: Session[];
         if (index >= 0) {
@@ -459,6 +465,17 @@ function useJacquesClientInternal(): UseJacquesClientReturn {
     };
 
     jacquesClient.onSessionRemoved = (sessionId: string) => {
+      // Track recently removed sessions to prevent re-addition from late session_update events
+      recentlyRemovedRef.current.add(sessionId);
+      // Clear any existing timer for this session, then schedule cleanup
+      const existingTimer = removalTimersRef.current.get(sessionId);
+      if (existingTimer) clearTimeout(existingTimer);
+      const timer = setTimeout(() => {
+        recentlyRemovedRef.current.delete(sessionId);
+        removalTimersRef.current.delete(sessionId);
+      }, 10000);
+      removalTimersRef.current.set(sessionId, timer);
+
       setSessions(prev => prev.filter(s => s.session_id !== sessionId));
       setFocusedSessionId(prev => {
         if (prev === sessionId) {
@@ -474,6 +491,10 @@ function useJacquesClientInternal(): UseJacquesClientReturn {
 
       if (session) {
         setSessions(prev => {
+          // Don't re-add sessions that were recently removed
+          if (recentlyRemovedRef.current.has(session.session_id)) {
+            return prev;
+          }
           const index = prev.findIndex(s => s.session_id === session.session_id);
           if (index >= 0) {
             const newSessions = [...prev];
@@ -659,6 +680,11 @@ function useJacquesClientInternal(): UseJacquesClientReturn {
     return () => {
       jacquesClient.disconnect();
       clientRef.current = null;
+      // Clear all pending removal timers
+      for (const timer of removalTimersRef.current.values()) {
+        clearTimeout(timer);
+      }
+      removalTimersRef.current.clear();
     };
   }, []);
 
