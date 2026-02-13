@@ -81,6 +81,10 @@ One-click to spawn new Claude Code instances and create new worktrees per task.
 
 Never lose track of unfinished work on the 107th worktree you've created.
 
+<p align="center">
+  <img src="assets/screenshots/cli-and-readme.png" width="700" alt="Jacques CLI alongside GitHub README" />
+</p>
+
 ---
 
 ## Who Is This For
@@ -101,19 +105,25 @@ Jacques stays simple but powerful. Inside there are a few modules and some addit
 
 ### CLI Dashboard
 
-<!-- TODO: CLI screenshot -->
+<p align="center">
+  <img src="assets/screenshots/cli-dashboard.png" width="700" alt="Jacques CLI Dashboard" />
+</p>
 
 A terminal TUI that shows real-time context usage %, session status, and plan progress for every active Claude Code session. Keyboard-driven — focus sessions, tile terminal windows into a grid, spawn new sessions, and manage git worktrees without ever leaving the dashboard.
 
 ### Web GUI
 
-<!-- TODO: Web GUI screenshot -->
+<p align="center">
+  <img src="assets/screenshots/gui-sessions.png" width="700" alt="Jacques Web GUI — Sessions" />
+</p>
 
 Full browser dashboard at `localhost:4243`. Browse session history, view extracted plans and subagent results, manage worktrees, launch sessions. Your entire Claude Code conversation archive — searchable.
 
-### StatusLine
+<p align="center">
+  <img src="assets/screenshots/gui-conversation.png" width="700" alt="Jacques Web GUI — Conversation View" />
+</p>
 
-<!-- TODO: StatusLine screenshot -->
+### StatusLine
 
 `[Opus] ctx:42%` displayed right inside Claude Code. No window switching needed — context usage is always visible.
 
@@ -132,6 +142,10 @@ The setup wizard lets you choose what to enable. Install just the lightweight CL
 ---
 
 ## Roadmap
+
+<p align="center">
+  <img src="assets/screenshots/full-workspace.png" width="700" alt="Jacques full workspace — CLI, setup, plans" />
+</p>
 
 The first release was built for a vibeathon organized by [BridgeMind](https://www.bridgemind.ai).
 
