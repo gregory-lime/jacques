@@ -8,9 +8,7 @@
   <a href="https://github.com/gregory-lime/jacques/stargazers"><img src="https://img.shields.io/github/stars/gregory-lime/jacques?style=flat-square&logo=github" alt="GitHub stars" /></a>
 </p>
 
-<p align="center">
-  <img src="assets/screenshots/gui-with-claude.png" alt="Jacques GUI with Claude Code and plan editor" />
-</p>
+<img src="assets/screenshots/cli-compact.png" width="100%" alt="Jacques CLI compact view" />
 
 ---
 
@@ -28,7 +26,9 @@ npx jacques
   <sub>macOS &nbsp;&nbsp; Linux &nbsp;&nbsp; Windows</sub>
 </p>
 
-<img src="assets/screenshots/cli-compact.png" width="100%" alt="Jacques CLI compact view" />
+<p align="center">
+  <img src="assets/screenshots/gui-with-claude.png" alt="Jacques GUI with Claude Code and plan editor" />
+</p>
 
 <p align="center">
   <a href="#what-you-get">Features</a> &nbsp;&bull;&nbsp;
