@@ -504,8 +504,8 @@ function buildOtherProjectItems(
     }
   }
 
-  // New Worktree button (details mode only, or input if creating for this project)
-  if (showAllWorktrees && projectGitRoot) {
+  // New Worktree button (any git project with sessions, or details mode for empty ones)
+  if (projectGitRoot) {
     result.push({ kind: "spacer" });
     selectable.push(result.length);
     if (isCreatingHere) {

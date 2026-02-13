@@ -191,6 +191,15 @@ export function App(): React.ReactElement {
     return null;
   }, [projectSelector.selectedProject, projectSelector.projects, focusedSession]);
 
+  // ---- Re-trigger worktree fetch when repo root changes while in sessions view ----
+  useEffect(() => {
+    if (currentView !== "sessions-experiment") return;
+    const root = getRepoRoot();
+    if (root && root !== worktreesHook.repoRoot) {
+      worktreesHook.open(root);
+    }
+  }, [currentView, getRepoRoot, worktreesHook.repoRoot, worktreesHook.open]);
+
   // ---- Handle menu selection ----
   const handleMenuSelect = useCallback((key: string) => {
     switch (key) {
