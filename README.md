@@ -1,13 +1,10 @@
 <p align="center">
-  <br />
-  <img src="assets/jacsub.svg" width="120" alt="Jacques mascot" />
+  <img src="assets/jacsub.svg" width="100" alt="Jacques" />
+  <h1 align="center">Jacques</h1>
 </p>
 
-<h1 align="center">Jacques</h1>
-
 <p align="center">
-  <strong>Real-time Claude Code sessions manager</strong><br />
-  <sub>Keeping all your active and past sessions together.</sub>
+  real-time Claude Code sessions manager
 </p>
 
 <p align="center">
@@ -16,18 +13,20 @@
   <a href="https://github.com/gregory-lime/jacques/stargazers"><img src="https://img.shields.io/github/stars/gregory-lime/jacques?style=for-the-badge&logo=github" alt="GitHub stars" /></a>
 </p>
 
+---
+
 <p align="center">
-  macOS &nbsp;&nbsp; Linux &nbsp;&nbsp; Windows
+  Keeping all your active and past sessions together.<br />
+  Many CC instances, multiple local worktrees — won't ever be an issue again.
 </p>
 
 <br />
 
-<p align="center">
-  <a href="#installation"><img src="https://img.shields.io/badge/%20npx%20jacques%20setup%20-install%20now-e86c50?style=for-the-badge&logoColor=white" alt="npx jacques setup" /></a>
-</p>
+<pre align="center"><code>npx jacques setup</code></pre>
 
 <p align="center">
-  <sub>Single command. No global install needed. Downloads everything and runs the setup wizard.</sub>
+  Single command. No global install needed. Downloads everything and runs the setup wizard.<br />
+  macOS &nbsp; Linux &nbsp; Windows
 </p>
 
 <br />
@@ -40,10 +39,6 @@
   <a href="#roadmap">Roadmap</a> &nbsp;&bull;&nbsp;
   <a href="#development">Development</a>
 </p>
-
----
-
-Many CC instances, multiple local worktrees — won't ever be an issue again.
 
 ---
 
