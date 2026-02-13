@@ -465,6 +465,9 @@ export function Dashboard() {
       registerAction('session.select-all', () => {
         setSelectedSessionIds(new Set(filteredLiveSessions.map(s => s.session_id)));
       }),
+      registerAction('session.select-all-a', () => {
+        setSelectedSessionIds(new Set(filteredLiveSessions.map(s => s.session_id)));
+      }),
       registerAction('session.deselect-all', () => {
         setSelectedSessionIds(new Set());
       }),

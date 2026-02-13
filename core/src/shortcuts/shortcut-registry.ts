@@ -185,6 +185,14 @@ export const SHORTCUTS: readonly ShortcutDef[] = [
     zones: ['dashboard'],
   },
   {
+    id: 'session.select-all-a',
+    keys: 'a',
+    category: 'selection',
+    label: 'Select all',
+    description: 'Select all active sessions',
+    zones: ['dashboard'],
+  },
+  {
     id: 'session.deselect-all',
     keys: 'x',
     category: 'selection',

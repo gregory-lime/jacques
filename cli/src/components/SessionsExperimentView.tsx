@@ -115,6 +115,7 @@ export function SessionsExperimentView({
     { key: "\u2423", label: "sel" },
     { key: "f", label: "full" },
     { key: "t", label: "tile" },
+    { key: "a", label: "all" },
     { key: "u", label: "unsel" },
   ];
 
