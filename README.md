@@ -13,6 +13,10 @@
 </p>
 
 <p align="center">
+  <img src="assets/screenshots/cli-compact.png" width="400" alt="Jacques CLI compact view" />
+</p>
+
+<p align="center">
   <img src="assets/screenshots/gui-with-claude.png" width="700" alt="Jacques GUI with Claude Code and plan editor" />
 </p>
 
