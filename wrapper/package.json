@@ -1,6 +1,6 @@
 {
   "name": "jacques",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Real-time context monitor for AI coding assistants (Claude Code, Cursor)",
   "bin": {
     "jacques": "./bin/jacques.js"
@@ -10,7 +10,7 @@
     "bin"
   ],
   "dependencies": {
-    "@jacques-ai/cli": "0.1.0"
+    "@jacques-ai/cli": "0.1.1"
   },
   "repository": {
     "type": "git",

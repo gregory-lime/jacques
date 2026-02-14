@@ -12,6 +12,10 @@ import {
   searchConversationsSchema,
   handleSearchConversations,
 } from "./search-tool.js";
+import { createRequire } from "module";
+
+const require = createRequire(import.meta.url);
+const pkg = require("../../package.json") as { version: string };
 
 // ============================================================
 // Server Setup
@@ -19,7 +23,7 @@ import {
 
 const server = new McpServer({
   name: "jacques-archive",
-  version: "0.1.0",
+  version: pkg.version,
 });
 
 // ============================================================

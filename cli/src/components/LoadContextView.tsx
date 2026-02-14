@@ -9,6 +9,7 @@ import React from "react";
 import { Box, Text } from "ink";
 import { MASCOT_ANSI } from "../assets/mascot-ansi.js";
 import { ACCENT_COLOR, MUTED_TEXT, BORDER_COLOR } from "./layout/index.js";
+import { VERSION } from "../version.js";
 
 const MASCOT_WIDTH = 14;
 const MIN_CONTENT_WIDTH = 42;
@@ -127,7 +128,7 @@ function LoadVerticalLayout({
     <Box flexDirection="column">
       <Text bold color={ACCENT_COLOR}>
         Jacques
-        {showVersion && <Text color={MUTED_TEXT}> v0.1.0</Text>}
+        {showVersion && <Text color={MUTED_TEXT}> v{VERSION}</Text>}
       </Text>
 
       <Box marginTop={1}>
@@ -172,7 +173,7 @@ function LoadHorizontalLayout({
   const visibleContent = content.slice(0, totalHeight);
 
   const titlePart = "─ Jacques";
-  const versionPart = showVersion ? " v0.1.0" : "";
+  const versionPart = showVersion ? ` v${VERSION}` : "";
   const titleLength = titlePart.length + versionPart.length;
   const remainingBorder = Math.max(0, terminalWidth - titleLength - 3);
 

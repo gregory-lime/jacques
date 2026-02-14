@@ -9,6 +9,7 @@ import { MASCOT_ANSI } from "../../assets/mascot-ansi.js";
 import { ACCENT_COLOR, MUTED_TEXT, SUCCESS_COLOR, ERROR_COLOR } from "./theme.js";
 import { APP_ENDEARMENT } from "@jacques-ai/core";
 import { buildBottomControls, MAIN_CONTROLS } from "../../utils/bottom-controls.js";
+import { VERSION } from "../../version.js";
 
 export interface VerticalLayoutProps {
   content: React.ReactNode[];
@@ -44,7 +45,7 @@ export function VerticalLayout({
           if (textLineIndex === 0) {
             textContent = <Text color={MUTED_TEXT}>{APP_ENDEARMENT}</Text>;
           } else if (textLineIndex === 1) {
-            textContent = <Text bold color={ACCENT_COLOR}>{title}<Text color={MUTED_TEXT}> v0.1.0</Text></Text>;
+            textContent = <Text bold color={ACCENT_COLOR}>{title}<Text color={MUTED_TEXT}> v{VERSION}</Text></Text>;
           } else {
             textContent = <Text color="white">Sessions Manager</Text>;
           }

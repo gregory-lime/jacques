@@ -18,6 +18,7 @@ import {
   FIXED_CONTENT_HEIGHT,
 } from "./theme.js";
 import { buildBottomControls, MAIN_CONTROLS } from "../../utils/bottom-controls.js";
+import { VERSION } from "../../version.js";
 
 export interface HorizontalLayoutProps {
   content: React.ReactNode[];
@@ -65,7 +66,7 @@ export function HorizontalLayout({
 
   // Title that crosses the border
   const titlePart = `─ ${title}`;
-  const versionPart = showVersion ? ` v0.1.0` : "";
+  const versionPart = showVersion ? ` v${VERSION}` : "";
   const titleLength = titlePart.length + versionPart.length;
   const remainingBorder = Math.max(0, terminalWidth - titleLength - 3);
 

@@ -1,6 +1,6 @@
 {
   "name": "@jacques-ai/cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Jacques CLI TUI for Claude Code context monitoring",
   "main": "dist/cli.js",
   "type": "module",
@@ -17,8 +17,8 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@jacques-ai/core": "0.1.0",
-    "@jacques-ai/server": "0.1.0",
+    "@jacques-ai/core": "0.1.1",
+    "@jacques-ai/server": "0.1.1",
     "commander": "^12.1.0",
     "ink": "^6.6.0",
     "react": "^19.2.4",

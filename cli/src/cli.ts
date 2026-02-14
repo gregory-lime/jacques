@@ -22,8 +22,7 @@ import {
   startSetup,
   runUpdate,
 } from "./commands/index.js";
-
-const VERSION = "0.1.0";
+import { VERSION } from "./version.js";
 
 const program = new Command();
 

@@ -31,6 +31,7 @@ import { getCliActivity } from "../utils/activity.js";
 import { getSessionModeDisplay } from "../utils/session-mode.js";
 import { buildBottomControls } from "../utils/bottom-controls.js";
 import { ScanningIndicator } from "./shared/ScanningIndicator.js";
+import { VERSION } from "../version.js";
 
 interface SessionsExperimentViewProps {
   items: ContentItem[];
@@ -455,7 +456,7 @@ export function SessionsExperimentView({
 
     // Top border
     const borderTitle = "\u2500 Jacques";
-    const borderVersion = showVersion ? " v0.1.0 " : " ";
+    const borderVersion = showVersion ? ` v${VERSION} ` : " ";
     const scrollUpInd = canScrollUp ? " \u25B2" : "";
     const topRemaining = Math.max(0, terminalWidth - borderTitle.length - borderVersion.length - scrollUpInd.length - 2);
 
@@ -557,7 +558,7 @@ export function SessionsExperimentView({
       if (textLineIndex === 0) {
         textContent = <Text color={MUTED_TEXT}>{APP_ENDEARMENT}</Text>;
       } else if (textLineIndex === 1) {
-        textContent = <Text bold color={ACCENT_COLOR}>Jacques{showNarrowVersion ? <Text color={MUTED_TEXT}> v0.1.0</Text> : ""}</Text>;
+        textContent = <Text bold color={ACCENT_COLOR}>Jacques{showNarrowVersion ? <Text color={MUTED_TEXT}> v{VERSION}</Text> : ""}</Text>;
       } else {
         textContent = <Text color="white">Sessions Manager</Text>;
       }

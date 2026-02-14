@@ -9,8 +9,7 @@ import React from "react";
 import { Box, Text } from "ink";
 import { Mascot } from "./Mascot.js";
 import { ACCENT_COLOR, SUCCESS_COLOR, ERROR_COLOR } from "./layout/theme.js";
-
-const VERSION = "0.1.0";
+import { VERSION } from "../version.js";
 
 interface HeaderProps {
   connected: boolean;
