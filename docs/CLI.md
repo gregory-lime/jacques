@@ -16,6 +16,7 @@ Terminal UI for real-time session monitoring. Built with Ink (React for CLIs). D
 | `jacques list` | JSON output of sessions |
 | `jacques search <query>` | Search archived conversations |
 | `jacques archive-stats` | Show archive statistics |
+| `jacques update` | Check for and install the latest version |
 
 The CLI TUI cannot run inline in Claude Code (requires TTY). Use `jacques` in a separate terminal.
 

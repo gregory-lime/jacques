@@ -187,6 +187,7 @@ More features on the way.
 | `jacques list` | List active sessions as JSON |
 | `jacques search <query>` | Search archived conversations |
 | `jacques archive-stats` | Show archive statistics |
+| `jacques update` | Check for and install the latest version |
 | `jacques --version` | Show version |
 | `jacques --help` | Show all commands |
 
