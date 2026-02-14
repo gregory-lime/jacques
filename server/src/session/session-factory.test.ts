@@ -253,6 +253,75 @@ describe('SessionFactory', () => {
 
       expect(session.terminal_key).toBe('DISCOVERED:WindowsTerminal:WT-SESS-ID');
     });
+
+    it('should use detectedStatus when provided', () => {
+      const discovered: DetectedSession = {
+        sessionId: 'disc-status-1',
+        cwd: '/test',
+        transcriptPath: '/path/transcript.jsonl',
+        gitBranch: null,
+        gitWorktree: null,
+        gitRepoRoot: null,
+        contextMetrics: null,
+        lastActivity: 6000,
+        title: null,
+        pid: 33333,
+        tty: 'ttys004',
+        project: 'test',
+        detectedStatus: 'idle',
+      };
+
+      const session = createFromDiscovered(discovered);
+
+      expect(session.status).toBe('idle');
+      expect(session.last_tool_name).toBeNull();
+    });
+
+    it('should use detectedStatus awaiting with lastToolName', () => {
+      const discovered: DetectedSession = {
+        sessionId: 'disc-status-2',
+        cwd: '/test',
+        transcriptPath: '/path/transcript.jsonl',
+        gitBranch: null,
+        gitWorktree: null,
+        gitRepoRoot: null,
+        contextMetrics: null,
+        lastActivity: 7000,
+        title: null,
+        pid: 44444,
+        tty: 'ttys005',
+        project: 'test',
+        detectedStatus: 'awaiting',
+        lastToolName: 'Edit',
+      };
+
+      const session = createFromDiscovered(discovered);
+
+      expect(session.status).toBe('awaiting');
+      expect(session.last_tool_name).toBe('Edit');
+    });
+
+    it('should fall back to active when no detectedStatus', () => {
+      const discovered: DetectedSession = {
+        sessionId: 'disc-status-3',
+        cwd: '/test',
+        transcriptPath: '/path/transcript.jsonl',
+        gitBranch: null,
+        gitWorktree: null,
+        gitRepoRoot: null,
+        contextMetrics: null,
+        lastActivity: 8000,
+        title: null,
+        pid: 55555,
+        tty: 'ttys006',
+        project: 'test',
+      };
+
+      const session = createFromDiscovered(discovered);
+
+      expect(session.status).toBe('active');
+      expect(session.last_tool_name).toBeNull();
+    });
   });
 
   describe('createFromContextUpdate', () => {
