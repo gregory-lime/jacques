@@ -101,8 +101,14 @@ verifyProcesses()
     3. If dead → unregisterSession() → catalog extraction
   Also checks:
     - CWD in Trash → remove
-    - Idle > 4 hours → remove
+    - Idle > 4 hours → remove (only if process is NOT confirmed alive)
 ```
+
+**Key behavior**: Sessions with a confirmed-alive PID are never removed by idle timeout. This preserves long-idle sessions where the user has the terminal open and plans to return. Only sessions without a PID or with a dead process are subject to idle cleanup.
+
+### Periodic Cleanup (every 5 min)
+
+`CleanupService` removes sessions in `idle` status that have been inactive > 60 minutes. Before removing, it checks PID liveness via `extractPid()` + `isProcessRunning()` — sessions with running processes are skipped.
 
 ## Bypass Mode Detection (`--dangerously-skip-permissions`)
 
