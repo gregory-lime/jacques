@@ -31,7 +31,7 @@ import {
   getSessionIndex,
   type SessionEntry,
 } from "@jacques-ai/core/cache";
-import type { ContextMetrics, SessionMode } from "./types.js";
+import type { ContextMetrics, SessionMode, SessionStatus } from "./types.js";
 import { CATALOG_CACHE_MAX_AGE_MS } from "./connection/constants.js";
 import {
   findActiveSessionFiles,
@@ -82,6 +82,10 @@ export interface DetectedSession {
   mode?: SessionMode;
   /** Whether the process was launched with --dangerously-skip-permissions */
   isBypass?: boolean;
+  /** Status detected from JSONL tail analysis */
+  detectedStatus?: SessionStatus;
+  /** Last tool name from detected status (when awaiting) */
+  lastToolName?: string | null;
 }
 
 // Process detection delegated to connection/process-detection.ts
@@ -195,6 +199,8 @@ export async function scanForActiveSessions(): Promise<DetectedSession[]> {
         terminalSessionId: proc.terminalSessionId,
         mode: sessionFile.mode,
         isBypass: proc.isBypass,
+        detectedStatus: sessionFile.detectedStatus,
+        lastToolName: sessionFile.lastToolName,
       });
     }
 
@@ -222,6 +228,8 @@ export async function scanForActiveSessions(): Promise<DetectedSession[]> {
         tty: "?",
         project,
         mode: sessionFile.mode,
+        detectedStatus: sessionFile.detectedStatus,
+        lastToolName: sessionFile.lastToolName,
       });
     }
 
@@ -258,6 +266,8 @@ export async function scanForActiveSessions(): Promise<DetectedSession[]> {
           terminalSessionId: proc?.terminalSessionId,
           mode: sessionFile.mode,
           isBypass: proc?.isBypass,
+          detectedStatus: sessionFile.detectedStatus,
+          lastToolName: sessionFile.lastToolName,
         });
       }
     }

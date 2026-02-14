@@ -223,6 +223,20 @@ describe('ProcessMonitor', () => {
       expect(removedSessionIds).toContain('s1');
     });
 
+    it('should NOT remove session with alive PID even if idle beyond timeout', async () => {
+      mockIsProcessRunning.mockResolvedValue(true);
+      const session = makeSession({
+        session_id: 's1',
+        terminal_key: 'DISCOVERED:PID:12345',
+        last_activity: Date.now() - (5 * 60 * 60 * 1000), // 5 hours ago
+      });
+      sessions.set('s1', session);
+
+      await monitor.verifyProcesses();
+
+      expect(removedSessionIds).toHaveLength(0);
+    });
+
     it('should not remove recently active sessions without PID', async () => {
       const session = makeSession({
         session_id: 's1',

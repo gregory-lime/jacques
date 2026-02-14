@@ -84,7 +84,7 @@ export function createFromDiscovered(discovered: DetectedSession): Session {
     workspace: null,
     terminal: null,
     terminal_key: terminalKey,
-    status: 'active',
+    status: discovered.detectedStatus || 'active',
     last_activity: discovered.lastActivity,
     registered_at: Date.now(),
     context_metrics: discovered.contextMetrics,
@@ -93,7 +93,7 @@ export function createFromDiscovered(discovered: DetectedSession): Session {
     git_worktree: discovered.gitWorktree,
     git_repo_root: discovered.gitRepoRoot,
     mode: discovered.mode || null,
-    last_tool_name: null,
+    last_tool_name: discovered.lastToolName || null,
   };
 }
 

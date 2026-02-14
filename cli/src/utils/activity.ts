@@ -88,12 +88,12 @@ export function getCliActivity(
 
   // Idle = Claude finished, waiting for next user message
   if (s === "idle") {
-    return { icon: "\u25CB", color: COLORS.idle, label: "idle", needsAttention: false };
+    return { icon: "\u25CB", color: COLORS.idle, label: "ready", needsAttention: false };
   }
 
-  // Active = just registered
+  // Active = just registered / starting up
   if (s === "active") {
-    return { icon: "\u25CF", color: COLORS.active, label: "active", needsAttention: false };
+    return { icon: "\u25CF", color: COLORS.active, label: "starting", needsAttention: false };
   }
 
   // Fallback

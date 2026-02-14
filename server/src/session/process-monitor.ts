@@ -117,6 +117,7 @@ export class ProcessMonitor {
 
     for (const [id, session] of this.callbacks.getAllSessions()) {
       // 1. Check if process is still running
+      let processAlive = false;
       const pid = this.getSessionPid(session);
       if (pid !== null) {
         const isRunning = await isProcessRunning(pid);
@@ -125,6 +126,7 @@ export class ProcessMonitor {
           sessionsToRemove.push(id);
           continue;
         }
+        processAlive = true;
       } else {
         // Track PID-less sessions for batch process scan
         pidlessSessions.push([id, session]);
@@ -137,8 +139,8 @@ export class ProcessMonitor {
         continue;
       }
 
-      // 3. Check for idle timeout
-      if (now - session.last_activity > IDLE_TIMEOUT_MS) {
+      // 3. Check for idle timeout — only for sessions WITHOUT a confirmed running process
+      if (!processAlive && now - session.last_activity > IDLE_TIMEOUT_MS) {
         const hoursIdle = ((now - session.last_activity) / (1000 * 60 * 60)).toFixed(1);
         this.log(`[Registry] Session ${id} idle for ${hoursIdle}h, marking as stale`);
         sessionsToRemove.push(id);

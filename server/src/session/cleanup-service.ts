@@ -13,6 +13,8 @@ import {
   RECENTLY_ENDED_TTL_MS,
   CLEANUP_INTERVAL_MS,
 } from '../connection/constants.js';
+import { extractPid } from '../connection/terminal-key.js';
+import { isProcessRunning } from '../connection/process-detection.js';
 
 export interface CleanupServiceCallbacks {
   getAllSessions: () => [string, Session][];
@@ -83,7 +85,7 @@ export class CleanupService {
       return;
     }
 
-    const runCleanup = (): void => {
+    const runCleanup = async (): Promise<void> => {
       const cutoff = Date.now() - (maxIdleMinutes * 60 * 1000);
       const staleSessionIds: string[] = [];
 
@@ -93,19 +95,39 @@ export class CleanupService {
         }
       }
 
+      // Filter out sessions with running processes
+      const toRemove: string[] = [];
       for (const id of staleSessionIds) {
+        const sessions = this.callbacks.getAllSessions();
+        const session = sessions.find(([sid]) => sid === id)?.[1];
+        if (session) {
+          const pid = extractPid(session.terminal_key);
+          if (pid !== null) {
+            const alive = await isProcessRunning(pid);
+            if (alive) {
+              this.log(`[Registry] Skipping stale cleanup for ${id} — process ${pid} still running`);
+              continue;
+            }
+          }
+        }
+        toRemove.push(id);
+      }
+
+      for (const id of toRemove) {
         this.log(`[Registry] Cleaning up stale session: ${id}`);
         this.callbacks.removeSession(id);
       }
 
-      if (staleSessionIds.length > 0) {
-        this.log(`[Registry] Cleaned up ${staleSessionIds.length} stale session(s)`);
+      if (toRemove.length > 0) {
+        this.log(`[Registry] Cleaned up ${toRemove.length} stale session(s)`);
       }
 
       this.cleanupRecentlyEnded();
     };
 
-    this.cleanupInterval = setInterval(runCleanup, CLEANUP_INTERVAL_MS);
+    this.cleanupInterval = setInterval(() => {
+      runCleanup().catch(() => {});
+    }, CLEANUP_INTERVAL_MS);
     this.log(`[Registry] Stale session cleanup started (threshold: ${maxIdleMinutes} minutes)`);
   }
 
