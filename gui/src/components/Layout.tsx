@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Outlet, NavLink, useLocation, useMatch, useNavigate, Link } from 'react-router-dom';
+import { Outlet, NavLink, useLocation, useMatch, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Layers,
-  BookOpen,
   Settings,
   Terminal,
   ChevronsLeft,
@@ -15,11 +14,10 @@ import { ProjectSelector } from './ProjectSelector';
 import { useJacquesClient } from '../hooks/useJacquesClient';
 import { useProjectScope } from '../hooks/useProjectScope.js';
 import { getProjectGroupKey } from '../utils/git';
-import { getSourcesStatus, hideProject } from '../api';
-import type { SourcesStatus } from '../api';
+import { hideProject } from '../api';
 import { MultiLogPanel } from './MultiLogPanel';
 import { SidebarSessionList } from './SidebarSessionList';
-import { SectionHeader, ToastContainer, NotificationCenter } from './ui';
+import { ToastContainer, NotificationCenter } from './ui';
 import { NotificationProvider } from '../hooks/useNotifications';
 import { usePersistedState } from '../hooks/usePersistedState';
 import { useOpenSessions } from '../hooks/useOpenSessions';
@@ -28,12 +26,11 @@ import { useShortcutActions } from '../hooks/useShortcutActions';
 import { CommandPalette } from './CommandPalette';
 import { ShortcutHelpOverlay } from './ShortcutHelpOverlay';
 
-const PROJECT_TABS = ['sessions', 'artifacts', 'context'] as const;
+const PROJECT_TABS = ['sessions', 'artifacts'] as const;
 
 const navItems = [
   { tab: 'sessions', label: 'Sessions', Icon: LayoutDashboard },
   { tab: 'artifacts', label: 'Artifacts', Icon: Layers },
-  { tab: 'context', label: 'Context', Icon: BookOpen },
 ];
 
 export function Layout() {
@@ -41,11 +38,6 @@ export function Layout() {
   const navigate = useNavigate();
   const { sessions, serverLogs, claudeOperations, apiLogs, launchSession, createWorktree, focusTerminal } = useJacquesClient();
   const { selectedProject, setSelectedProject, archivedProjects, setArchivedProjects, discoveredProjects, refreshProjects } = useProjectScope();
-  const [sourceStatus, setSourceStatus] = useState<SourcesStatus>({
-    obsidian: { connected: false },
-    googleDocs: { connected: false },
-    notion: { connected: false },
-  });
 
   // Extract project slug and current tab from URL via pattern matching
   // Match both /:projectSlug/:tab and /:projectSlug/sessions/:sessionId
@@ -88,26 +80,12 @@ export function Layout() {
       }),
       registerAction('nav.sessions', () => navProjectSlug && navigate(`/${navProjectSlug}/sessions`)),
       registerAction('nav.artifacts', () => navProjectSlug && navigate(`/${navProjectSlug}/artifacts`)),
-      registerAction('nav.context', () => navProjectSlug && navigate(`/${navProjectSlug}/context`)),
       registerAction('nav.archive', () => navigate('/archive')),
       registerAction('nav.settings', () => navigate('/settings')),
       registerAction('nav.sidebar-toggle', () => setSidebarCollapsed(!sidebarCollapsed)),
     ];
     return () => cleanups.forEach(fn => fn());
   }, [registerAction, navigate, navProjectSlug, showCommandPalette, showHelpOverlay, sidebarCollapsed, setSidebarCollapsed]);
-
-  // Load source status
-  useEffect(() => {
-    async function loadSourceStatus() {
-      try {
-        const status = await getSourcesStatus();
-        setSourceStatus(status);
-      } catch (error) {
-        console.error('Failed to load source status:', error);
-      }
-    }
-    loadSourceStatus();
-  }, [location.pathname]);
 
   // Recompute archived projects when discovered projects or active sessions change
   useEffect(() => {
@@ -265,42 +243,6 @@ export function Layout() {
             );
           })}
         </nav>
-
-        {/* Sources Section */}
-        {!sidebarCollapsed && (
-          <div style={styles.sourcesSection}>
-            <Link to="/sources" style={styles.sectionHeaderLink}>
-              <SectionHeader title="Sources" accentColor={colors.accent} />
-            </Link>
-            {[
-              { key: 'obsidian' as const, label: 'Obsidian' },
-              { key: 'googleDocs' as const, label: 'Google Docs' },
-              { key: 'notion' as const, label: 'Notion' },
-            ].map(({ key, label }) => (
-              <Link
-                key={key}
-                to="/sources"
-                style={{
-                  ...styles.sourceItem,
-                  color: sourceStatus[key].connected ? colors.textSecondary : colors.textMuted,
-                }}
-              >
-                <span>{label}</span>
-                <span
-                  style={{
-                    width: '6px',
-                    height: '6px',
-                    borderRadius: '50%',
-                    backgroundColor: sourceStatus[key].connected ? colors.success : colors.textMuted,
-                    opacity: sourceStatus[key].connected ? 1 : 0.4,
-                    marginLeft: 'auto',
-                    flexShrink: 0,
-                  }}
-                />
-              </Link>
-            ))}
-          </div>
-        )}
 
         {/* Footer */}
         <div style={{
@@ -491,28 +433,6 @@ const styles: Record<string, React.CSSProperties> = {
     height: '16px',
     backgroundColor: colors.accent,
     borderRadius: '0 2px 2px 0',
-  },
-  sourcesSection: {
-    marginTop: 'auto',
-    padding: '16px 8px 0',
-    borderTop: `1px solid ${colors.borderSubtle}`,
-  },
-  sectionHeaderLink: {
-    textDecoration: 'none',
-    display: 'block',
-    padding: '0 12px',
-  },
-  sourceItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    padding: '6px 12px',
-    color: colors.textSecondary,
-    fontSize: '13px',
-    textDecoration: 'none',
-    cursor: 'pointer',
-    borderRadius: '4px',
-    transition: 'background-color 150ms ease',
   },
   sidebarFooter: {
     padding: '12px 8px 0',

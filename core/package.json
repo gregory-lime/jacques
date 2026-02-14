@@ -1,6 +1,6 @@
 {
   "name": "@jacques-ai/core",
-  "version": "0.0.7-alpha.1",
+  "version": "0.1.0",
   "description": "Core business logic for Jacques - shared between CLI and GUI",
   "main": "dist/index.js",
   "type": "module",

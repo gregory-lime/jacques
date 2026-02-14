@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { FolderRoot, Bell, Archive, Plug, RefreshCw, ExternalLink, ShieldOff, Activity } from 'lucide-react';
+import { FolderRoot, Bell, Archive, RefreshCw, ExternalLink, ShieldOff, Activity } from 'lucide-react';
 import { colors } from '../styles/theme';
 import { SectionHeader, SettingsSection, ToggleSwitch } from '../components/ui';
 import { useNotifications } from '../hooks/useNotifications';
@@ -425,17 +425,6 @@ export function Settings() {
           <span style={{ fontSize: '12px', color: colors.textMuted, marginTop: '8px', display: 'block' }}>
             Extract catalog data and rebuild the session index
           </span>
-        </div>
-      </SettingsSection>
-
-      {/* Sources Section */}
-      <SettingsSection
-        title="Sources"
-        icon={<Plug size={16} />}
-        description="External source integrations"
-      >
-        <div style={styles.placeholder}>
-          Source configuration coming soon
         </div>
       </SettingsSection>
 
