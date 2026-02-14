@@ -338,11 +338,15 @@ export class WindowHandler {
       // Position terminal(s)
       let terminalsPositioned = 0;
       for (let i = 0; i < terminalKeys.length && i < geometries.terminals.length; i++) {
-        const result = await manager.positionWindow(terminalKeys[i], geometries.terminals[i]);
-        if (result.success) {
-          terminalsPositioned++;
-        } else if (result.error) {
-          errors.push(`Terminal ${i}: ${result.error}`);
+        try {
+          const result = await manager.positionWindow(terminalKeys[i], geometries.terminals[i]);
+          if (result.success) {
+            terminalsPositioned++;
+          } else if (result.error) {
+            errors.push(`Terminal ${i}: ${result.error}`);
+          }
+        } catch (err) {
+          errors.push(`Terminal ${i}: ${err instanceof Error ? err.message : String(err)}`);
         }
         if (i < terminalKeys.length - 1) {
           await new Promise(resolve => setTimeout(resolve, 100));
@@ -476,11 +480,15 @@ export class WindowHandler {
 
         if (transition) {
           for (const repo of transition.repositions) {
-            const result = await manager.positionWindow(repo.terminalKey, repo.newGeometry);
-            if (result.success) {
-              repositioned++;
-            } else {
-              this.logger.warn(`Failed to reposition ${repo.terminalKey}: ${result.error}`);
+            try {
+              const result = await manager.positionWindow(repo.terminalKey, repo.newGeometry);
+              if (result.success) {
+                repositioned++;
+              } else {
+                this.logger.warn(`Failed to reposition ${repo.terminalKey}: ${result.error}`);
+              }
+            } catch (err) {
+              this.logger.warn(`Failed to reposition ${repo.terminalKey}: ${err instanceof Error ? err.message : String(err)}`);
             }
             if (transition.repositions.indexOf(repo) < transition.repositions.length - 1) {
               await new Promise(resolve => setTimeout(resolve, 100));

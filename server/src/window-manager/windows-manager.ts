@@ -307,11 +307,15 @@ export class WindowsWindowManager implements WindowManager {
       const terminalKey = terminalKeys[i];
       const geometry = allSlots[i].geometry;
 
-      const result = await this.positionWindow(terminalKey, geometry);
-      if (result.success) {
-        positioned++;
-      } else if (result.error) {
-        errors.push(`${terminalKey}: ${result.error}`);
+      try {
+        const result = await this.positionWindow(terminalKey, geometry);
+        if (result.success) {
+          positioned++;
+        } else if (result.error) {
+          errors.push(`${terminalKey}: ${result.error}`);
+        }
+      } catch (err) {
+        errors.push(`${terminalKey}: ${err instanceof Error ? err.message : String(err)}`);
       }
 
       // Small delay between windows
