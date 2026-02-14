@@ -20,6 +20,7 @@ import {
   searchArchive,
   showArchiveStats,
   startSetup,
+  runUpdate,
 } from "./commands/index.js";
 
 const VERSION = "0.1.0";
@@ -66,5 +67,10 @@ program
   .command("archive-stats")
   .description("Show archive statistics")
   .action(showArchiveStats);
+
+program
+  .command("update")
+  .description("Check for and install the latest version of Jacques")
+  .action(() => runUpdate(VERSION));
 
 program.parse();
